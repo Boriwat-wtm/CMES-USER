@@ -1,0 +1,37 @@
+[
+  {
+    "id": "gift-1763113881217",
+    "senderName": "dasd",
+    "tableNumber": 1,
+    "note": "asdas",
+    "items": [
+      {
+        "id": "1763113822575",
+        "name": "s",
+        "price": 1,
+        "quantity": 3
+      }
+    ],
+    "totalPrice": 3,
+    "status": "pending_payment",
+    "createdAt": "2025-11-14T09:51:21.217Z"
+  },
+  {
+    "id": "gift-1763113889599",
+    "senderName": "asd",
+    "tableNumber": 1,
+    "note": "dasd",
+    "items": [
+      {
+        "id": "1763113822575",
+        "name": "s",
+        "price": 1,
+        "quantity": 2
+      }
+    ],
+    "totalPrice": 2,
+    "status": "awaiting_admin",
+    "createdAt": "2025-11-14T09:51:29.599Z",
+    "paidAt": "2025-11-14T09:51:36.107Z"
+  }
+]

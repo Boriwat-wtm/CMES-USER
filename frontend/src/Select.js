@@ -19,14 +19,16 @@ function Select() {
 
   useEffect(() => {
     const socket = io("http://localhost:4005");
+    
     socket.on("status", (data) => {
-      // filter เฉพาะแพ็คเกจที่ตรงกับ type ที่เลือก
+      console.log("Received status event:", data);
       if (data.settings) {
         const filtered = data.settings.filter(pkg => pkg.mode === type);
+        console.log("Filtered packages for", type, ":", filtered);
         setPackages(filtered);
       }
     });
-    // ขอข้อมูลล่าสุด
+
     socket.emit("getConfig");
     return () => socket.disconnect();
   }, [type]);
@@ -45,17 +47,29 @@ function Select() {
     if (selectedOption === null) {
       setAlertMessage("โปรดเลือกแพ็กเกจที่ต้องการ");
       setIsProcessing(false);
-    } else {
-      const currentTime = new Date();
-      const endTime = new Date(currentTime.getTime() + parseInt(time) * 60000);
-      localStorage.setItem("endTime", endTime.toISOString());
-
-      const newOrderValue = JSON.stringify({ type, time, price });
-      localStorage.setItem("order", newOrderValue);
-
-      navigate(`/upload?type=${type}&time=${time}&price=${price}`);
-      setIsProcessing(false);
+      return;
     }
+
+    const timeSeconds = parseInt(time, 10) || 0;
+    const timeInMinutes = Math.max(1, Math.ceil(timeSeconds / 60));
+    const priceNum = Number(price) || 0;
+
+    if (type === "birthday") {
+      const endTime = new Date(Date.now() + timeSeconds * 1000);
+      localStorage.setItem("endTime", endTime.toISOString());
+      const newOrderValue = JSON.stringify({ type: "image", time: timeInMinutes, price: 0 });
+      localStorage.setItem("order", newOrderValue);
+      navigate(`/upload?type=image&time=${timeInMinutes}&price=0&free=true`);
+    } else {
+      const endTime = new Date(Date.now() + timeSeconds * 1000);
+      localStorage.setItem("endTime", endTime.toISOString());
+      const newOrderValue = JSON.stringify({ type, time: timeInMinutes, price: priceNum });
+      localStorage.setItem("order", newOrderValue);
+      const freeParam = priceNum === 0 ? "&free=true" : "";
+      navigate(`/upload?type=${encodeURIComponent(type)}&time=${timeInMinutes}&price=${priceNum}${freeParam}`);
+    }
+
+    setIsProcessing(false);
   };
 
   const handleGoBack = () => {
@@ -106,8 +120,26 @@ function Select() {
                 )}
               </div>
               <div className="type-details">
-                <h2>{type === "image" ? "รูปภาพ + ข้อความ" : "ข้อความเท่านั้น"}</h2>
-                <p>{type === "image" ? "อัปโหลดรูปภาพพร้อมข้อความ" : "ส่งข้อความไปแสดงบนจอ"}</p>
+                <h2>
+                  {type === "image" 
+                    ? "รูปภาพ + ข้อความ" 
+                    : type === "text"
+                    ? "ข้อความเท่านั้น"
+                    : type === "birthday"
+                    ? "อวยพรวันเกิด"
+                    : "รูปภาพ + ข้อความ"
+                  }
+                </h2>
+                <p>
+                  {type === "image" 
+                    ? "อัปโหลดรูปภาพพร้อมข้อความ" 
+                    : type === "text"
+                    ? "ส่งข้อความไปแสดงบนจอ"
+                    : type === "birthday"
+                    ? "อัปโหลดรูปภาพพร้อมข้อความ"
+                    : "อัปโหลดรูปภาพพร้อมข้อความ"
+                  }
+                </p>
               </div>
             </div>
           </div>
@@ -124,7 +156,7 @@ function Select() {
                   <div
                     key={pkg.id}
                     className={`package-card ${selectedOption === index ? "selected" : ""}`}
-                    onClick={() => handleSelect(pkg.duration, pkg.price, index)}
+                    onClick={() => handleSelect(pkg.time, pkg.price, index)}
                   >
                     <div className="package-header">
                       <div className="package-icon">
@@ -137,7 +169,7 @@ function Select() {
                     </div>
                     <div className="package-content">
                       <div className="price-display">
-                        <span className="price-amount">฿{pkg.price}</span>
+                        <span className="price-amount">{type === "birthday" ? "ฟรี!" : `฿${pkg.price}`}</span>
                       </div>
                       <div className="package-features">
                         <div className="feature-item">
@@ -152,7 +184,7 @@ function Select() {
                           </svg>
                           <span>คุณภาพ HD</span>
                         </div>
-                        {type === "image" && (
+                        {(type === "image" || type === "birthday") && (
                           <div className="feature-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M20 6L9 17l-5-5"/>
@@ -241,7 +273,7 @@ function Select() {
                     <li>เนื้อหาลามกอนาจารหรือไม่เหมาะสม</li>
                     <li>การดูถูกเหยียดหยามหรือสร้างความแตกแยก</li>
                     <li>การคุกคามหรือผิดกฎหมาย</li>
-                    {type === "image" && <li>QR Code หรือลิงก์ในรูปภาพ</li>}
+                    {(type === "image" || type === "birthday") && <li>QR Code หรือลิงก์ในรูปภาพ</li>}
                   </ul>
                   
                   <div className="warning-note">

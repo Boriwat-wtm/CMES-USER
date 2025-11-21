@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/static/css/main.17e5dbc9.css",
+    "main.js": "/static/js/main.b91fbe69.js",
+    "static/js/453.670e15c7.chunk.js": "/static/js/453.670e15c7.chunk.js",
+    "static/media/payment-logo.jpg": "/static/media/payment-logo.213bb5ca8483e7b53f06.jpg",
+    "static/media/promptpay-logo.png": "/static/media/promptpay-logo.049a363637e60044a3ab.png",
+    "index.html": "/index.html",
+    "main.17e5dbc9.css.map": "/static/css/main.17e5dbc9.css.map",
+    "main.b91fbe69.js.map": "/static/js/main.b91fbe69.js.map",
+    "453.670e15c7.chunk.js.map": "/static/js/453.670e15c7.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.17e5dbc9.css",
+    "static/js/main.b91fbe69.js"
+  ]
+}

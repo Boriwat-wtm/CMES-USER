@@ -85,27 +85,19 @@ s/* พื้นหลังและโครงสร้าง */
 
 .avatar-section {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
 }
 
 .avatar-container {
   position: relative;
-  width: 120px;
-  height: 120px;
-}
-
-.profile-avatar {
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;      /* ทำให้เป็นวงกลม */
-  object-fit: cover;
-  border: 3px solid #4299e1;
-  box-shadow: 0 2px 8px rgba(66, 153, 225, 0.15);
-  margin-bottom: 10px;
-  background: #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 4px solid #4299e1;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(66, 153, 225, 0.2);
 }
 
 .avatar-image,
@@ -113,7 +105,9 @@ s/* พื้นหลังและโครงสร้าง */
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 4px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar-image {
@@ -121,32 +115,28 @@ s/* พื้นหลังและโครงสร้าง */
 }
 
 .avatar-placeholder {
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   color: #64748b;
 }
 
 .avatar-actions {
-  position: absolute;
-  bottom: 0;
-  right: 0;
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
+  justify-content: center;
 }
 
 .upload-btn,
 .remove-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .upload-btn {
@@ -156,6 +146,8 @@ s/* พื้นหลังและโครงสร้าง */
 
 .upload-btn:hover {
   background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .remove-btn {
@@ -165,6 +157,8 @@ s/* พื้นหลังและโครงสร้าง */
 
 .remove-btn:hover {
   background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .profile-info {

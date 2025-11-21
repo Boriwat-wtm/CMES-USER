@@ -9,6 +9,7 @@ function Upload() {
   const type = queryParams.get("type");
   const time = parseInt(queryParams.get("time")); 
   const price = queryParams.get("price");
+  const isFree = queryParams.get("free") === "true";
 
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
@@ -18,6 +19,7 @@ function Upload() {
   const [textColor, setTextColor] = useState("white");
   const [selectedSocial, setSelectedSocial] = useState(""); // social ที่เลือก
   const [socialName, setSocialName] = useState(""); // ชื่อ social
+  const [actualType, setActualType] = useState(type); // เพื่อเก็บ type จริง (birthday หรือ image/text)
 
   const MAX_TEXT_LENGTH = 36;
 
@@ -35,6 +37,18 @@ function Upload() {
           // *** ไม่ต้อง setImage(data.image) ***
         }
       } catch {}
+    }
+
+    // ดึง actual type จาก order (set โดย Select.js)
+    const order = localStorage.getItem("order");
+    if (order) {
+      try {
+        const orderData = JSON.parse(order);
+        console.log("[Upload] Order from localStorage:", orderData);
+        setActualType(orderData.type || type);
+      } catch {
+        setActualType(type);
+      }
     }
   }, []);
 
@@ -181,18 +195,21 @@ function Upload() {
     : null;
 
   const handleAccept = async () => {
-    if (type === "image" && image) {
+    console.log("[Upload] handleAccept called, type:", type, "actualType:", actualType, "isFree:", isFree);
+    
+    if ((type === "image" || type === "birthday") && image) {
       generateFinalImage(image, text, textColor, selectedSocial, socialName, async (finalBlob) => {
-        const formData = new FormData();
-        formData.append("file", finalBlob, "final.png");
-        formData.append("type", type);
-        formData.append("time", time);
-        formData.append("price", price);
-        formData.append("textColor", textColor);
-        formData.append("text", text);                // เพิ่ม
-        formData.append("socialType", selectedSocial); // เพิ่ม
-        formData.append("socialName", socialName);     // เพิ่ม
-        formData.append("composed", "1");              // บอกว่าเป็นรูปที่ตกแต่งแล้ว
+          const formData = new FormData();
+          formData.append("file", finalBlob, "final.png");
+          // ส่ง actualType ไปแทน type
+          formData.append("type", actualType || "image");
+          formData.append("time", time || "5"); // ถ้าไม่มี time ให้ใช้ 5 นาที
+          formData.append("price", isFree ? "0" : (price || "1")); // ถ้าเป็น free ให้ราคาเป็น 0
+          formData.append("textColor", textColor);
+          formData.append("text", text);
+          formData.append("socialType", selectedSocial);
+          formData.append("socialName", socialName);
+          formData.append("composed", "1");
 
         let sender = "Unknown";
         const user = localStorage.getItem("user");
@@ -207,6 +224,7 @@ function Upload() {
         formData.append("sender", sender);
 
         try {
+          console.log("[Upload] Uploading with type:", actualType, "to Admin backend");
           const response = await fetch("http://localhost:5001/api/upload", {
             method: "POST",
             body: formData,
@@ -214,14 +232,23 @@ function Upload() {
           
           if (response.ok) {
             const result = await response.json();
+            console.log("[Upload] Upload success:", result);
             localStorage.setItem('pendingUploadId', result.uploadId);
             setShowPreviewModal(false);
-            navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${type}&time=${time}`);
+            if (isFree) {
+              // ถ้าเป็นการใช้งานฟรี ไปที่หน้าสถานะทันที
+              navigate("/home");
+            } else {
+              // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
+              navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${actualType}&time=${time}`);
+            }
           } else {
-            throw new Error('Failed to upload');
+            const errText = await response.text();
+            console.error("[Upload] Upload failed:", response.status, errText);
+            throw new Error(`Upload failed: ${response.status} ${errText}`);
           }
         } catch (error) {
-          console.error('Error uploading:', error);
+          console.error('[Upload] Error uploading:', error);
           setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
       });
@@ -262,7 +289,13 @@ function Upload() {
           const result = await response.json();
           localStorage.setItem('pendingUploadId', result.uploadId);
           setShowPreviewModal(false);
-          navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${type}&time=${time}`);
+          if (isFree) {
+            // ถ้าเป็นการใช้งานฟรี ไปที่หน้าสถานะทันที
+            navigate("/home");
+          } else {
+            // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
+            navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${type}&time=${time}`);
+          }
         } else {
           throw new Error('Failed to upload');
         }
@@ -777,7 +810,9 @@ function Upload() {
               </div>
               <div className="modal-actions">
                 <button className="secondary-btn" onClick={handleEdit}>แก้ไข</button>
-                <button className="primary-btn" onClick={handleAccept}>ยืนยันและชำระเงิน</button>
+                <button className="primary-btn" onClick={handleAccept}>
+                  {isFree ? "ยืนยันการอัพโหลด" : "ยืนยันและชำระเงิน"}
+                </button>
               </div>
             </div>
           </div>
