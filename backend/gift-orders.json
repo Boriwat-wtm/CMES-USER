@@ -33,5 +33,23 @@
     "status": "awaiting_admin",
     "createdAt": "2025-11-14T09:51:29.599Z",
     "paidAt": "2025-11-14T09:51:36.107Z"
+  },
+  {
+    "id": "gift-1763723350223",
+    "senderName": "kuy",
+    "tableNumber": 2,
+    "note": "เบิพ",
+    "items": [
+      {
+        "id": "1763723320633",
+        "name": "กกก",
+        "price": 1,
+        "quantity": 2
+      }
+    ],
+    "totalPrice": 2,
+    "status": "awaiting_admin",
+    "createdAt": "2025-11-21T11:09:10.223Z",
+    "paidAt": "2025-11-21T11:09:55.228Z"
   }
 ]

@@ -333,7 +333,7 @@ function Payment() {
               <h3 style={{ marginBottom: 12 }}>ชำระเงินสำเร็จ</h3>
               <p style={{ marginBottom: 24 }}>ระบบได้รับข้อมูลแล้ว ขอบคุณค่ะ</p>
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/home")}
                 style={{
                   background: "#2563eb",
                   color: "#fff",
