@@ -1,1 +1,17 @@
+# Node dependencies
 node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# Build & cache files
+*.log
+.cache/
+dist/
+build/
+.DS_Store
+
+# Uploads (ถ้าไม่ต้องการเก็บรูปใน repo)
+backend/uploads/
+
+# System files
+Thumbs.db
