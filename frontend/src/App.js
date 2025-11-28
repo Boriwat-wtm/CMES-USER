@@ -14,7 +14,7 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/ " element={<Register />} />
+        <Route path="/" element={<Register />} />
         <Route path="/home" element={<Home />} />
         <Route path="/select" element={<Select />} />
         <Route path="/upload" element={<Upload />} />

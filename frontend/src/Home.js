@@ -339,39 +339,31 @@ function Home() {
           
           <nav className="header-nav">
             {isLoggedIn ? (
-              <div style={{ position: "relative" }}>
+              <div className="profile-menu-wrapper">
                 <button
-                  className="profile-avatar-btn"
+                  className={`profile-avatar-btn ${profileImage ? "has-image" : ""}`}
+                  type="button"
                   onClick={() => setShowProfileMenu((prev) => !prev)}
                   title="เมนูโปรไฟล์"
-                  style={{
-                    width: "48px",
-                    height: "48px",
-                    borderRadius: "50%",
-                    border: "2px solid #667eea",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "white",
-                    fontSize: "24px",
-                    transition: "all 0.3s ease",
-                    padding: 0,
-                    fontWeight: "500",
-                    overflow: "hidden",
-                    backgroundImage: profileImage ? `url(${profileImage})` : "none",
-                    backgroundSize: profileImage ? "cover" : "auto",
-                    backgroundPosition: "center",
-                    backgroundColor: profileImage ? "transparent" : "#667eea",
-                    background: profileImage ? "none" : "linear-gradient(135deg, #667eea, #764ba2)",
-                  }}
                 >
-                  {!profileImage && (
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
-                    </svg>
-                  )}
+                  <span className="profile-avatar-ring">
+                    {profileImage ? (
+                      <img src={profileImage} alt="รูปโปรไฟล์" className="profile-avatar-image" />
+                    ) : (
+                      <svg
+                        className="profile-avatar-icon"
+                        width="28"
+                        height="28"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                      >
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    )}
+                  </span>
                 </button>
                 {showProfileMenu && (
                   <div
