@@ -159,6 +159,11 @@
   background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
 }
 
+.report-content-grid {
+  display: grid;
+  gap: 2rem;
+}
+
 /* Card Header */
 .card-header {
   text-align: center;
@@ -198,6 +203,12 @@
   display: flex;
   flex-direction: column;
   gap: 2rem;
+}
+
+.report-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 .input-group {
@@ -347,6 +358,7 @@
   padding: 1.5rem;
   border-radius: 16px;
   border: 1px solid #fde68a;
+  width: 100%;
 }
 
 .quick-tips h4 {
@@ -393,6 +405,47 @@
   font-size: 0.85rem;
   margin-top: 0.25rem;
   line-height: 1.4;
+}
+
+.support-card {
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.support-card h4 {
+  color: #312e81;
+  margin-bottom: 0.5rem;
+  font-size: 1.05rem;
+}
+
+.support-card p {
+  color: #475569;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.support-card ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.support-card ul span {
+  color: #6366f1;
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.support-card small {
+  color: #6b7280;
+  font-size: 0.8rem;
 }
 
 /* Status Message */
@@ -513,6 +566,10 @@
     padding: 1.5rem;
     border-radius: 20px;
   }
+
+  .report-content-grid {
+    grid-template-columns: 1fr;
+  }
   
   .tips-grid {
     grid-template-columns: 1fr;
@@ -547,5 +604,17 @@
   .select-input,
   .detail-input {
     padding: 0.875rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .report-content-grid {
+    grid-template-columns: 2fr 1fr;
+    align-items: flex-start;
+  }
+
+  .report-side-panel {
+    position: sticky;
+    top: 1.5rem;
   }
 }

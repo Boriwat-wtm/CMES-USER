@@ -159,7 +159,8 @@ function Report() {
               <span className="subtitle">เราพร้อมฟังและปรับปรุง</span>
             </div>
 
-            <form className="report-form" onSubmit={handleSubmit}>
+            <div className="report-content-grid">
+              <form className="report-form" onSubmit={handleSubmit}>
               <div className="input-group">
                 <label className="input-label">
                   <span className="label-text">ประเภทปัญหา</span>
@@ -229,33 +230,6 @@ function Report() {
                 </div>
               </div>
 
-              <div className="quick-tips">
-                <h4>📋 เทคนิคการรายงานที่มีประสิทธิภาพ</h4>
-                <div className="tips-grid">
-                  <div className="tip-item">
-                    <span className="tip-number">1</span>
-                    <div>
-                      <strong>ระบุเวลา</strong>
-                      <p>วันที่และเวลาที่เกิดปัญหา</p>
-                    </div>
-                  </div>
-                  <div className="tip-item">
-                    <span className="tip-number">2</span>
-                    <div>
-                      <strong>อธิบายขั้นตอน</strong>
-                      <p>สิ่งที่ทำก่อนเกิดปัญหา</p>
-                    </div>
-                  </div>
-                  <div className="tip-item">
-                    <span className="tip-number">3</span>
-                    <div>
-                      <strong>ผลที่เกิดขึ้น</strong>
-                      <p>สิ่งที่คาดหวัง vs สิ่งที่เกิดขึ้นจริง</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {message && (
                 <div className={`status-message ${message.includes("🎉") ? 'success' : 'error'}`}>
                   <div className="message-content">
@@ -292,7 +266,48 @@ function Report() {
                   )}
                 </button>
               </div>
-            </form>
+              </form>
+
+              <aside className="report-side-panel">
+                <div className="quick-tips">
+                  <h4>📋 เทคนิคการรายงานที่มีประสิทธิภาพ</h4>
+                  <div className="tips-grid">
+                    <div className="tip-item">
+                      <span className="tip-number">1</span>
+                      <div>
+                        <strong>ระบุเวลา</strong>
+                        <p>วันที่และเวลาที่เกิดปัญหา</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-number">2</span>
+                      <div>
+                        <strong>อธิบายขั้นตอน</strong>
+                        <p>สิ่งที่ทำก่อนเกิดปัญหา</p>
+                      </div>
+                    </div>
+                    <div className="tip-item">
+                      <span className="tip-number">3</span>
+                      <div>
+                        <strong>ผลที่เกิดขึ้น</strong>
+                        <p>สิ่งที่คาดหวัง vs สิ่งที่เกิดขึ้นจริง</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="support-card">
+                  <h4>📞 ช่องทางติดต่อด่วน</h4>
+                  <p>ถ้าต้องการความช่วยเหลือทันที สามารถติดต่อทีมงานได้ที่</p>
+                  <ul>
+                    <li><span>Line:</span> @digitalsignage</li>
+                    <li><span>Email:</span> support@cms.example</li>
+                    <li><span>โทร:</span> 091-234-5678</li>
+                  </ul>
+                  <small>ทีมงานตอบกลับทุกวัน 09:00-22:00 น.</small>
+                </div>
+              </aside>
+            </div>
           </div>
         </main>
       </div>
