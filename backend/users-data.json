@@ -7,5 +7,30 @@
     "avatar": "blob:http://localhost:3000/4817a997-7d91-4d5e-8f7d-b93fa8b205ed",
     "createdAt": "2025-11-28T07:02:19.732Z",
     "lastUpdated": "2025-11-28T08:46:24.513Z"
+  },
+  "1765298617399": {
+    "id": "1765298617399",
+    "email": "test@example.com",
+    "username": "testuser",
+    "password": "$2a$10$ZdLEV2Qtsyvvu6WS1vlQGes/uFF3oTVSBqVv6dGQ2zon1R.wKxgom",
+    "avatar": null,
+    "birthday": "",
+    "createdAt": "2025-12-09T16:43:37.399Z",
+    "lastBirthdayUpdate": "2025-12-09T16:43:37.399Z",
+    "emailVerified": false
+  },
+  "1765300613001": {
+    "id": "1765300613001",
+    "email": "pyaksda@gmail.com",
+    "username": "JX HN",
+    "password": null,
+    "googleId": "102917014203491669284",
+    "avatar": "https://lh3.googleusercontent.com/a/ACg8ocKYgvmNAjyshcEUdBMNcOynlsQ1TN0bMwB8VRv0Tr2JLfBxZFgR=s96-c",
+    "birthday": "",
+    "createdAt": "2025-12-09T17:16:53.001Z",
+    "updatedAt": "2025-12-09T17:16:53.001Z",
+    "lastBirthdayUpdate": "2025-12-09T17:16:53.001Z",
+    "emailVerified": true,
+    "authMethod": "google"
   }
 }

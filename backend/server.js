@@ -11,10 +11,10 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import bodyParser from "body-parser";
-import twilio from "twilio";
 import axios from "axios";
 import http from "http";
 import { Server as SocketIoServer } from "socket.io";
+import authRoutes from "./routes/auth.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,16 +25,14 @@ app.use(cors());
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "http://localhost:5001").replace(/\/$/, "");
 
-// Twilio Credentials
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const client = twilio(accountSid, authToken);
-
 const expectedAmount = parseInt(process.env.EXPECTED_AMOUNT, 10);
 
 app.use(bodyParser.json());
 app.use(express.static("uploads"));
 app.use(express.json());
+
+// ===== AUTH ROUTES =====
+app.use("/api/auth", authRoutes);
 
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
@@ -158,101 +156,6 @@ app.get("/api/check-birthday", async (req, res) => {
   } catch (err) {
     console.error("Error checking birthday:", err);
     res.status(500).json({ isBirthday: false, error: err.message });
-  }
-});
-
-// ----- OTP & Authentication -----
-app.post("/api/send-otp", async (req, res) => {
-  const { phone } = req.body;
-  if (!phone) {
-    return res.status(400).json({ success: false, message: "กรุณาระบุหมายเลขโทรศัพท์" });
-  }
-  if (!/^\d{10}$/.test(phone)) {
-    return res.status(400).json({ success: false, message: "หมายเลขโทรศัพท์ไม่ถูกต้อง" });
-  }
-  const config = {
-    method: 'post',
-    url: 'https://portal-otp.smsmkt.com/api/otp-send',
-    headers: {
-      "Content-Type": "application/json",
-      "api_key": "2607fce6276d1f68e8d543e953d76bc4",
-      "secret_key": "5yX5m9LcHVNks99i",
-    },
-    data: JSON.stringify({
-      "project_key": "69a425bf4f",
-      "phone": phone,
-    })
-  };
-  try {
-    const response = await axios(config);
-    console.log(JSON.stringify(response.data));
-    if (response.data.code === "000") {
-      res.json({
-        success: true,
-        message: "OTP ส่งสำเร็จ",
-        token: response.data.result.token,
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: response.data.detail,
-      });
-    }
-  } catch (error) {
-    console.error("Error sending OTP:", error.message || error);
-    res.status(500).json({ success: false, message: "ไม่สามารถส่ง OTP ได้" });
-  }
-});
-
-app.post("/api/verify-otp", async (req, res) => {
-  const { otp, token, phone, birthday } = req.body;
-  if (!otp || !token) {
-    return res.status(400).json({ success: false, message: "กรุณาระบุ OTP และ token" });
-  }
-  const verifyData = {
-    otp_code: otp,
-    token: token,
-    ref_code: "",
-  };
-  const config = {
-    method: "post",
-    url: "https://portal-otp.smsmkt.com/api/otp-validate",
-    headers: {
-      "Content-Type": "application/json",
-      api_key: "2607fce6276d1f68e8d543e953d76bc4",
-      secret_key: "5yX5m9LcHVNks99i",
-    },
-    data: JSON.stringify(verifyData),
-  };
-  try {
-    const response = await axios(config);
-    if (response.data.code === "000") {
-      const userData = {
-        phone,
-        username: "",
-        email: "",
-        avatar: null,
-        birthday,
-        lastBirthdayUpdate: new Date().toISOString(),
-      };
-      const users = loadUsers();
-      users[phone] = userData;
-      saveUsers(users);
-      console.log(`[Backend] Saved user data for phone: ${phone}`);
-      const authToken = Buffer.from(phone).toString("base64");
-      res.json({ 
-        success: true, 
-        message: "OTP verified successfully",
-        token: authToken,
-        user: userData
-      });
-    } else {
-      console.error("SMSMKT Error:", response.data.detail);
-      res.status(400).json({ success: false, message: response.data.detail });
-    }
-  } catch (error) {
-    console.error("Error verifying OTP:", error.message || error);
-    res.status(500).json({ success: false, message: "ไม่สามารถตรวจสอบ OTP ได้" });
   }
 });
 

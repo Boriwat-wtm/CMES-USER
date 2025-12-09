@@ -1,0 +1,443 @@
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const router = express.Router();
+
+// File paths
+const usersFile = path.join(__dirname, "../users-data.json");
+
+// Utility functions
+function loadUsers() {
+  try {
+    if (fs.existsSync(usersFile)) {
+      const data = fs.readFileSync(usersFile, "utf8");
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error("Error loading users:", e);
+  }
+  return {};
+}
+
+function saveUsers(users) {
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
+}
+
+function generateToken(userId) {
+  const secret = process.env.JWT_SECRET || "your-secret-key-change-this";
+  return jwt.sign({ userId }, secret, { expiresIn: "7d" });
+}
+
+function verifyToken(token) {
+  const secret = process.env.JWT_SECRET || "your-secret-key-change-this";
+  try {
+    return jwt.verify(token, secret);
+  } catch (error) {
+    return null;
+  }
+}
+
+// ==========================================
+// REGISTER
+// ==========================================
+router.post("/register", async (req, res) => {
+  try {
+    const { email, password, username } = req.body;
+
+    // Validation
+    if (!email || !password || !username) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, password, and username are required",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    const users = loadUsers();
+
+    // Check if email exists
+    const emailExists = Object.values(users).some((u) => u.email === email);
+    if (emailExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Check if username exists
+    const usernameExists = Object.values(users).some((u) => u.username === username);
+    if (usernameExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Username already taken",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const userId = Date.now().toString();
+    const newUser = {
+      id: userId,
+      email,
+      username,
+      password: hashedPassword,
+      avatar: null,
+      birthday: "",
+      createdAt: new Date().toISOString(),
+      lastBirthdayUpdate: new Date().toISOString(),
+      emailVerified: false, // Optional: email verification
+    };
+
+    // Save user
+    users[userId] = newUser;
+    saveUsers(users);
+
+    // Generate token
+    const token = generateToken(userId);
+
+    // Return user data (without password)
+    const { password: _, ...userDataWithoutPassword } = newUser;
+
+    res.json({
+      success: true,
+      token,
+      user: userDataWithoutPassword,
+      message: "Registration successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Register error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Registration failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// LOGIN
+// ==========================================
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const users = loadUsers();
+
+    // Find user by email
+    const user = Object.values(users).find((u) => u.email === email);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Compare password
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user.id);
+
+    // Return user data (without password)
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      token,
+      user: userDataWithoutPassword,
+      message: "Login successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Login failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// VERIFY TOKEN
+// ==========================================
+router.post("/verify-token", (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Token is required",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const users = loadUsers();
+    const user = users[decoded.userId];
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      user: userDataWithoutPassword,
+      message: "Token is valid",
+    });
+  } catch (error) {
+    console.error("[Auth] Verify token error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Token verification failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// GET PROFILE
+// ==========================================
+router.get("/profile", (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const users = loadUsers();
+    const user = users[decoded.userId];
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      user: userDataWithoutPassword,
+    });
+  } catch (error) {
+    console.error("[Auth] Get profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get profile",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// UPDATE PROFILE
+// ==========================================
+router.put("/profile", (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const users = loadUsers();
+    const user = users[decoded.userId];
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update allowed fields
+    const { username, avatar, birthday } = req.body;
+
+    if (username) {
+      // Check if username is already taken by another user
+      const usernameTaken = Object.values(users).some(
+        (u) => u.username === username && u.id !== user.id
+      );
+      if (usernameTaken) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken",
+        });
+      }
+      user.username = username;
+    }
+
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+
+    if (birthday) {
+      user.birthday = birthday;
+      user.lastBirthdayUpdate = new Date().toISOString();
+    }
+
+    user.updatedAt = new Date().toISOString();
+    saveUsers(users);
+
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      user: userDataWithoutPassword,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("[Auth] Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// GOOGLE OAUTH
+// ==========================================
+router.post("/google", async (req, res) => {
+  try {
+    const { googleId, email, name, picture } = req.body;
+
+    if (!googleId || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Google ID and email are required",
+      });
+    }
+
+    const users = loadUsers();
+
+    // Find user by email or googleId
+    let user = Object.values(users).find((u) => u.email === email);
+
+    if (user) {
+      // User already exists, link Google account if not linked
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.updatedAt = new Date().toISOString();
+        saveUsers(users);
+      }
+    } else {
+      // Create new user from Google data
+      const userId = Date.now().toString();
+      user = {
+        id: userId,
+        email,
+        username: name || email.split("@")[0],
+        password: null, // No password for OAuth users
+        googleId,
+        avatar: picture || null,
+        birthday: "",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastBirthdayUpdate: new Date().toISOString(),
+        emailVerified: true, // Google verified emails
+        authMethod: "google", // Track how user registered
+      };
+      users[userId] = user;
+      saveUsers(users);
+    }
+
+    // Generate JWT token
+    const token = generateToken(user.id);
+
+    // Return user data (without password)
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      token,
+      user: userDataWithoutPassword,
+      message: "Google login successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Google login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Google login failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// LOGOUT
+// ==========================================
+router.post("/logout", (req, res) => {
+  // Client-side การทำ logout ดำเนินการลบ token จาก localStorage
+  // Server-side สามารถใช้ blacklist token หรือเพียงส่ง success response
+  res.json({
+    success: true,
+    message: "Logout successful",
+  });
+});
+
+export default router;
