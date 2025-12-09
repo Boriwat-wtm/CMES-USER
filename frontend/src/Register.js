@@ -122,8 +122,15 @@ function Register() {
         throw new Error(data.message || "การลงทะเบียนล้มเหลว");
       }
 
+      // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("birthday", data.user.birthday || "");
+      localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ ลงทะเบียนสำเร็จ กำลังนำเข้าสู่ระบบ...");
       setTimeout(() => navigate("/home"), 1500);
@@ -165,8 +172,15 @@ function Register() {
         throw new Error(data.message || "เข้าสู่ระบบล้มเหลว");
       }
 
+      // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("birthday", data.user.birthday || "");
+      localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ เข้าสู่ระบบสำเร็จ...");
       setTimeout(() => navigate("/home"), 1500);
@@ -212,8 +226,15 @@ function Register() {
         throw new Error(data.message || "Google login failed");
       }
 
+      // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("birthday", data.user.birthday || "");
+      localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ เข้าสู่ระบบด้วย Google สำเร็จ...");
       setTimeout(() => navigate("/home"), 1500);

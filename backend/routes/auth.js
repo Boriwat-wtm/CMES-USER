@@ -364,7 +364,7 @@ router.put("/profile", (req, res) => {
 // ==========================================
 router.post("/google", async (req, res) => {
   try {
-    const { googleId, email, name, picture } = req.body;
+    const { googleId, email, name, picture, username, birthday } = req.body;
 
     if (!googleId || !email) {
       return res.status(400).json({
@@ -382,23 +382,34 @@ router.post("/google", async (req, res) => {
       // User already exists, link Google account if not linked
       if (!user.googleId) {
         user.googleId = googleId;
-        user.updatedAt = new Date().toISOString();
-        saveUsers(users);
       }
+      
+      // Update username and birthday if provided
+      if (username) {
+        user.username = username;
+      }
+      if (birthday) {
+        user.birthday = birthday;
+        user.lastBirthdayUpdate = new Date().toISOString();
+      }
+      
+      user.updatedAt = new Date().toISOString();
+      saveUsers(users);
     } else {
-      // Create new user from Google data
+      // สร้าง user ใหม่จาก Google data โดยใช้ Google name เป็น username
+      // ให้ผู้ใช้กรอก birthday และแก้ username ในหน้า Profile ได้
       const userId = Date.now().toString();
       user = {
         id: userId,
         email,
-        username: name || email.split("@")[0],
+        username: name || email.split("@")[0], // ใช้ Google name หรือ email prefix
         password: null, // No password for OAuth users
         googleId,
         avatar: picture || null,
-        birthday: "",
+        birthday: "", // ปล่อยเป็นค่าว่าง ให้ผู้ใช้กรอกเองใน Profile page
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        lastBirthdayUpdate: new Date().toISOString(),
+        lastBirthdayUpdate: null,
         emailVerified: true, // Google verified emails
         authMethod: "google", // Track how user registered
       };
@@ -423,6 +434,87 @@ router.post("/google", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Google login failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// UPDATE PROFILE (PUT)
+// ==========================================
+router.put("/profile", (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const { username, email, avatar, birthday, lastBirthdayEdit } = req.body;
+
+    const users = loadUsers();
+    const user = users[decoded.userId];
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update fields
+    if (username && username.trim()) {
+      // Check if username is already taken by another user
+      const usernameTaken = Object.values(users).some(
+        (u) => u.username === username && u.id !== user.id
+      );
+      if (usernameTaken) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken",
+        });
+      }
+      user.username = username;
+    }
+
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+
+    if (birthday) {
+      user.birthday = birthday;
+    }
+
+    if (lastBirthdayEdit) {
+      user.lastBirthdayEdit = lastBirthdayEdit;
+    }
+
+    user.updatedAt = new Date().toISOString();
+    saveUsers(users);
+
+    const { password: _, ...userDataWithoutPassword } = user;
+
+    res.json({
+      success: true,
+      user: userDataWithoutPassword,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("[Auth] Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
       error: error.message,
     });
   }

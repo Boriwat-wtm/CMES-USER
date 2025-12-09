@@ -218,18 +218,37 @@ function Profile() {
     // ส่งข้อมูลไปยัง backend เพื่อบันทึก
     const token = localStorage.getItem("token");
     if (token) {
-      fetch("http://localhost:4000/api/update-profile", {
-        method: "POST",
+      fetch("http://localhost:4000/api/auth/profile", {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(newUser)
+        body: JSON.stringify({
+          username: newUser.username,
+          email: newUser.email,
+          avatar: newUser.avatar,
+          birthday: newUser.birthday,
+          lastBirthdayEdit: newUser.lastBirthdayEdit
+        })
       })
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           console.log("[Profile] Profile updated on backend");
+          // อัปเดต localStorage เพื่อเก็บข้อมูล
+          localStorage.setItem("username", newUser.username);
+          localStorage.setItem("email", newUser.email);
+          localStorage.setItem("birthday", newUser.birthday || "");
+          if (newUser.avatar) {
+            localStorage.setItem("avatar", newUser.avatar);
+          }
+          if (newUser.lastBirthdayEdit) {
+            localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
+          }
+          // อัปเดต user data ใน localStorage
+          const updatedUser = { ...data.user };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
         } else {
           console.error("[Profile] Failed to update profile on backend:", data.message);
         }
