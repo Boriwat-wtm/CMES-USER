@@ -75,10 +75,8 @@ app.get("/api/check-phone", (req, res) => {
     if (!phone) {
       return res.status(400).json({ success: false, message: "Phone number required" });
     }
-    console.log(`[Backend /api/check-phone] Checking phone: ${phone}`);
     const users = loadUsers();
     const userExists = !!users[phone];
-    console.log(`[Backend /api/check-phone] Phone ${phone} exists: ${userExists}`);
     if (userExists) {
       res.json({ success: true, exists: true, user: users[phone] });
     } else {
@@ -97,7 +95,6 @@ app.get("/api/user-profile", (req, res) => {
       return res.status(401).json({ success: false, message: "No token" });
     }
     const phone = Buffer.from(token, "base64").toString("utf8");
-    console.log(`[Backend] Getting user profile for phone: ${phone}`);
     const users = loadUsers();
     const userData = users[phone];
     if (!userData) {
@@ -117,7 +114,6 @@ app.post("/api/update-profile", (req, res) => {
       return res.status(401).json({ success: false, message: "No token" });
     }
     const phone = Buffer.from(token, "base64").toString("utf8");
-    console.log(`[Backend] Updating profile for phone: ${phone}`);
     const { username, email, birthday, avatar } = req.body;
     const users = loadUsers();
     if (!users[phone]) {
@@ -132,7 +128,6 @@ app.post("/api/update-profile", (req, res) => {
       lastUpdated: new Date().toISOString()
     };
     saveUsers(users);
-    console.log(`[Backend] Profile updated for phone: ${phone}`);
     res.json({ success: true, user: users[phone] });
   } catch (err) {
     console.error("Error updating profile:", err);
@@ -155,7 +150,6 @@ app.get("/api/check-birthday", async (req, res) => {
     const today = new Date();
     const todayDay = today.getDate();
     const todayMonth = today.getMonth() + 1;
-    console.log(`[Backend] Birthday Check: ${day}/${month} vs ${todayDay}/${todayMonth}`);
     const isBirthday = day === todayDay && month === todayMonth;
     res.json({ 
       isBirthday,
