@@ -14,7 +14,8 @@ import bodyParser from "body-parser";
 import axios from "axios";
 import http from "http";
 import { Server as SocketIoServer } from "socket.io";
-import authRoutes from "./routes/auth.js";
+import mongoose from "mongoose";
+import authRoutes from "./routes/auth-mongodb.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +31,18 @@ const expectedAmount = parseInt(process.env.EXPECTED_AMOUNT, 10);
 app.use(bodyParser.json());
 app.use(express.static("uploads"));
 app.use(express.json());
+
+// ===== MONGODB CONNECTION =====
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
+
+mongoose.connect(MONGODB_URI)
+.then(() => {
+  console.log("✓ Connected to MongoDB");
+})
+.catch((err) => {
+  console.error("✗ MongoDB connection error:", err);
+  process.exit(1);
+});
 
 // ===== AUTH ROUTES =====
 app.use("/api/auth", authRoutes);
@@ -695,12 +708,9 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
 
 app.get("/api/rankings/top", async (req, res) => {
   try {
-    const response = await fetch(`${ADMIN_API_BASE}/api/rankings/top`);
-    if (!response.ok) {
-      throw new Error("ADMIN_UNAVAILABLE");
-    }
-    const data = await response.json();
-    res.json({ success: true, ranks: data.ranks || [], totalUsers: data.totalUsers || 0 });
+    // TODO: เชื่อมต่อ Admin API หรือสร้าง Rankings Model ใน MongoDB
+    // ตอนนี้ส่ง empty rankings เพื่อหลีกเลี่ยง error
+    res.json({ success: true, ranks: [], totalUsers: 0 });
   } catch (error) {
     console.error("Fetch rankings failed", error);
     res.status(500).json({ success: false, message: "ไม่สามารถโหลดอันดับ" });

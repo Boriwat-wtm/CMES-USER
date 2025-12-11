@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Test Google Sign-In</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>Test Google Sign-In</h1>
+    <div id="g_id_onload"
+         data-client_id="883469174780-dmo1gmgtvkbmckcpgohipvbqk1glcl6g.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            console.log("✓ Google Sign-In Success!");
+            console.log("Token:", response.credential);
+            alert("✓ Google Sign-In works!");
+        }
+
+        window.onload = function () {
+            console.log("Google Sign-In library loaded");
+            if (window.google) {
+                console.log("✓ google object available");
+            } else {
+                console.error("✗ google object NOT available");
+            }
+        }
+    </script>
+</body>
+</html>

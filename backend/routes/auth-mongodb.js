@@ -1,0 +1,443 @@
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+
+const router = express.Router();
+
+// Utility functions
+function generateToken(userId) {
+  const secret = process.env.JWT_SECRET || "your-secret-key-change-this";
+  return jwt.sign({ userId }, secret, { expiresIn: "7d" });
+}
+
+function verifyToken(token) {
+  const secret = process.env.JWT_SECRET || "your-secret-key-change-this";
+  try {
+    return jwt.verify(token, secret);
+  } catch (error) {
+    return null;
+  }
+}
+
+// ==========================================
+// REGISTER (Email/Password)
+// ==========================================
+router.post("/register", async (req, res) => {
+  try {
+    const { email, password, username } = req.body;
+
+    // Validation
+    if (!email || !password || !username) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, password, and username are required",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
+    }
+
+    // Check if email exists
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already registered",
+      });
+    }
+
+    // Check if username exists
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({
+        success: false,
+        message: "Username already taken",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const newUser = new User({
+      email,
+      username,
+      password: hashedPassword,
+      authMethod: "email",
+      emailVerified: false,
+    });
+
+    await newUser.save();
+
+    // Generate token
+    const token = generateToken(newUser._id.toString());
+
+    // Return user data (without password)
+    const userResponse = {
+      id: newUser._id.toString(),
+      email: newUser.email,
+      username: newUser.username,
+      avatar: newUser.avatar,
+      birthday: newUser.birthday,
+      authMethod: newUser.authMethod,
+    };
+
+    res.json({
+      success: true,
+      token,
+      user: userResponse,
+      message: "Registration successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Register error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Registration failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// LOGIN (Email/Password)
+// ==========================================
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Compare password
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate token
+    const token = generateToken(user._id.toString());
+
+    // Return user data (without password)
+    const userResponse = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      avatar: user.avatar,
+      birthday: user.birthday,
+      authMethod: user.authMethod,
+    };
+
+    res.json({
+      success: true,
+      token,
+      user: userResponse,
+      message: "Login successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Login failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// GOOGLE OAUTH
+// ==========================================
+router.post("/google", async (req, res) => {
+  try {
+    const { googleId, email, name, picture } = req.body;
+
+    if (!googleId || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Google ID and email are required",
+      });
+    }
+
+    // Find user by email
+    let user = await User.findOne({ email });
+
+    if (user) {
+      // User already exists, link Google account if not linked
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      user.updatedAt = new Date();
+      await user.save();
+    } else {
+      // Create new user from Google data
+      // ใช้ Google name เป็น username, birthday ปล่อยว่างให้ผู้ใช้กรอก
+      user = new User({
+        email,
+        username: name || email.split("@")[0],
+        googleId,
+        avatar: picture || null,
+        birthday: "",
+        authMethod: "google",
+        emailVerified: true,
+      });
+      await user.save();
+    }
+
+    // Generate JWT token
+    const token = generateToken(user._id.toString());
+
+    // Return user data (without password)
+    const userResponse = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      avatar: user.avatar,
+      birthday: user.birthday,
+      authMethod: user.authMethod,
+    };
+
+    res.json({
+      success: true,
+      token,
+      user: userResponse,
+      message: "Google login/registration successful",
+    });
+  } catch (error) {
+    console.error("[Auth] Google error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Google authentication failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// VERIFY TOKEN
+// ==========================================
+router.post("/verify-token", async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Token is required",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userResponse = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      avatar: user.avatar,
+      birthday: user.birthday,
+      authMethod: user.authMethod,
+    };
+
+    res.json({
+      success: true,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("[Auth] Verify token error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Token verification failed",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// GET PROFILE
+// ==========================================
+router.get("/profile", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userResponse = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      avatar: user.avatar,
+      birthday: user.birthday,
+      lastBirthdayEdit: user.lastBirthdayEdit,
+      authMethod: user.authMethod,
+    };
+
+    res.json({
+      success: true,
+      user: userResponse,
+    });
+  } catch (error) {
+    console.error("[Auth] Get profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get profile",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// UPDATE PROFILE (PUT)
+// ==========================================
+router.put("/profile", async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const decoded = verifyToken(token);
+    if (!decoded) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token",
+      });
+    }
+
+    const { username, avatar, birthday, lastBirthdayEdit } = req.body;
+
+    const user = await User.findById(decoded.userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Update fields
+    if (username && username.trim()) {
+      // Check if username is already taken by another user
+      const existingUsername = await User.findOne({
+        username,
+        _id: { $ne: user._id },
+      });
+      if (existingUsername) {
+        return res.status(400).json({
+          success: false,
+          message: "Username already taken",
+        });
+      }
+      user.username = username;
+    }
+
+    if (avatar !== undefined) {
+      user.avatar = avatar;
+    }
+
+    if (birthday) {
+      user.birthday = birthday;
+    }
+
+    if (lastBirthdayEdit) {
+      user.lastBirthdayEdit = new Date(lastBirthdayEdit);
+    }
+
+    await user.save();
+
+    const userResponse = {
+      id: user._id.toString(),
+      email: user.email,
+      username: user.username,
+      avatar: user.avatar,
+      birthday: user.birthday,
+      lastBirthdayEdit: user.lastBirthdayEdit,
+      authMethod: user.authMethod,
+    };
+
+    res.json({
+      success: true,
+      user: userResponse,
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("[Auth] Update profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+      error: error.message,
+    });
+  }
+});
+
+// ==========================================
+// LOGOUT
+// ==========================================
+router.post("/logout", (req, res) => {
+  res.json({
+    success: true,
+    message: "Logout successful",
+  });
+});
+
+export default router;
