@@ -164,9 +164,14 @@ function Profile() {
       return;
     }
     
-    const url = URL.createObjectURL(file);
-    setPreviewUrl(url);
-    setTempUser(prev => ({ ...prev, avatar: url }));
+    // Convert file to Base64 to persist in localStorage
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64String = event.target.result;
+      setPreviewUrl(base64String);
+      setTempUser(prev => ({ ...prev, avatar: base64String }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveAvatar = () => {
