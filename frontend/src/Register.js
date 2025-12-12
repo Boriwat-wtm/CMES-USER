@@ -267,27 +267,36 @@ function Register() {
     }
   };
 
-  // Render Google button when tab changes
+  // Render Google button when component mounts or tab changes
   useEffect(() => {
-    if (!isGoogleConfigured() || !window.google) return;
+    if (!isGoogleConfigured()) return;
 
-    setTimeout(() => {
-      try {
-        const googleBtnElement = document.getElementById("google-signin-btn");
-        if (googleBtnElement) {
-          window.google.accounts.id.renderButton(
-            googleBtnElement,
-            { 
-              theme: "outline", 
-              size: "large",
-              text: activeTab === "register" ? "signup_with" : "signin_with"
+    // Wait for Google script to load
+    const waitForGoogle = setInterval(() => {
+      if (window.google) {
+        clearInterval(waitForGoogle);
+        
+        setTimeout(() => {
+          try {
+            const googleBtnElement = document.getElementById("google-signin-btn");
+            if (googleBtnElement) {
+              window.google.accounts.id.renderButton(
+                googleBtnElement,
+                { 
+                  theme: "outline", 
+                  size: "large",
+                  text: activeTab === "register" ? "signup_with" : "signin_with"
+                }
+              );
             }
-          );
-        }
-      } catch (e) {
-        console.log("Google button render error:", e);
+          } catch (e) {
+            console.log("Google button render error:", e);
+          }
+        }, 100);
       }
     }, 100);
+
+    return () => clearInterval(waitForGoogle);
   }, [activeTab]);
 
   return (
