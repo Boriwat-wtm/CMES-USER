@@ -64,7 +64,7 @@ function Home() {
     const fetchUserProfile = async () => {
       if (!token) return;
       try {
-        const response = await fetch("http://localhost:4000/api/user-profile", {
+        const response = await fetch("http://localhost:4000/api/auth/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -92,13 +92,13 @@ function Home() {
     };
 
     window.addEventListener("storage", handleStorageChange);
-    
+
     // Also listen for focus event to refresh when returning to the page
     const handleFocus = () => {
       const newAvatar = localStorage.getItem("avatar");
       setProfileImage(newAvatar);
     };
-    
+
     window.addEventListener("focus", handleFocus);
 
     return () => {
@@ -164,7 +164,7 @@ function Home() {
           birthdayOn: (data.enableBirthday ?? data.birthdayOn) ?? true,
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -326,9 +326,9 @@ function Home() {
           <div className="header-brand">
             <div className="brand-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                <line x1="8" y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
             </div>
             <div className="brand-text">
@@ -336,7 +336,7 @@ function Home() {
               <p>University of Phayao, Thailand</p>
             </div>
           </div>
-          
+
           <nav className="header-nav">
             {isLoggedIn ? (
               <div className="profile-menu-wrapper">
@@ -359,8 +359,8 @@ function Home() {
                         stroke="currentColor"
                         strokeWidth="1.5"
                       >
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                        <circle cx="12" cy="7" r="4"/>
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
                       </svg>
                     )}
                   </span>
@@ -399,8 +399,8 @@ function Home() {
                         label: "แก้ไขโปรไฟล์",
                         icon: (
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
                         ),
                         action: () => navigate("/profile"),
@@ -410,9 +410,9 @@ function Home() {
                         label: "รายงานปัญหา",
                         icon: (
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
                           </svg>
                         ),
                         action: () => navigate("/report"),
@@ -422,9 +422,9 @@ function Home() {
                         label: "ออกจากระบบ",
                         icon: (
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
                           </svg>
                         ),
                         action: handleLogout,
@@ -462,18 +462,18 @@ function Home() {
               <div className="auth-buttons">
                 <Link to="/signin" className="nav-btn signin-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                    <polyline points="10,17 15,12 10,7"/>
-                    <line x1="15" y1="12" x2="3" y2="12"/>
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                    <polyline points="10,17 15,12 10,7" />
+                    <line x1="15" y1="12" x2="3" y2="12" />
                   </svg>
                   Sign In
                 </Link>
                 <Link to="/signup" className="nav-btn signup-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="8.5" cy="7" r="4"/>
-                    <line x1="20" y1="8" x2="20" y2="14"/>
-                    <line x1="23" y1="11" x2="17" y2="11"/>
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="8.5" cy="7" r="4" />
+                    <line x1="20" y1="8" x2="20" y2="14" />
+                    <line x1="23" y1="11" x2="17" y2="11" />
                   </svg>
                   Sign Up
                 </Link>
@@ -583,9 +583,9 @@ function Home() {
                     <div className="card-header">
                       <div className="service-icon">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <path d="M21 15l-5-5L5 21"/>
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
                         </svg>
                       </div>
                       <div className="service-badge">วันเกิด</div>
@@ -607,7 +607,7 @@ function Home() {
                         {isLoggedIn ? "ฟรีในวันเกิดของคุณ" : "เข้าสู่ระบบเพื่อรับสิทธิ์"}
                       </span>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                        <path d="M5 12h14M12 5l7 7-7 7" />
                       </svg>
                     </div>
                   </div>
@@ -645,15 +645,15 @@ function Home() {
               <div className="status-header">
                 <div className="status-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-                    <line x1="9" y1="9" x2="9.01" y2="9"/>
-                    <line x1="15" y1="9" x2="15.01" y2="9"/>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+                    <line x1="9" y1="9" x2="9.01" y2="9" />
+                    <line x1="15" y1="9" x2="15.01" y2="9" />
                   </svg>
                 </div>
                 <h3>สถานะการแสดงผล</h3>
               </div>
-              
+
               <div className="status-content">
                 {order ? (
                   <div className="order-info">
@@ -675,11 +675,11 @@ function Home() {
                   </div>
                 )}
               </div>
-              
+
               <button className="status-btn" onClick={handleCheckStatus}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
                 </svg>
                 ตรวจสอบสถานะ
               </button>
@@ -705,8 +705,8 @@ function Home() {
                 <h3>รายละเอียดคำสั่งซื้อ</h3>
                 <button className="close-button" onClick={handleCloseModal}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -751,8 +751,8 @@ function Home() {
                   <div className="no-order-modal">
                     <div className="empty-state">
                       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M8 12h8"/>
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M8 12h8" />
                       </svg>
                       <h4>ไม่มีคำสั่งซื้อ</h4>
                       <p>คุณยังไม่มีการสั่งซื้อบริการ</p>

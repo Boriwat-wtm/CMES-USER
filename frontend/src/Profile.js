@@ -23,6 +23,8 @@ function Profile() {
   const [nextEditIfChangedNow, setNextEditIfChangedNow] = useState(null);
   const [canEditBirthday, setCanEditBirthday] = useState(true);
 
+  const [selectedFile, setSelectedFile] = useState(null); // Store raw file for upload
+
   // robust parser: try ISO/native, then dd/mm/yyyy
   const parsePossibleDate = (s) => {
     if (!s) return null;
@@ -64,35 +66,8 @@ function Profile() {
 
   // compute nextEditFromLast and canEditBirthday whenever user.lastBirthdayEdit changes
   useEffect(() => {
-    // ❌ ปลดล็อกการแก้ไขวันเกิดในระหว่างทดสอบ ✅ อนุญาตให้แก้ไขได้ทุกครั้ง
     setNextEditFromLast(null);
     setCanEditBirthday(true);
-    
-    // TODO: เปิดใช้งาน 3-month restriction หลังจาก 13 กุมภาพันธ์ 2569
-    /*
-    const raw = user.lastBirthdayEdit || "";
-    const possiblyMistaken = raw && user.birthday && raw.trim() === user.birthday.trim();
-
-    if (!raw || possiblyMistaken) {
-      setNextEditFromLast(null);
-      setCanEditBirthday(true);
-      return;
-    }
-
-    const parsed = parsePossibleDate(raw);
-    if (!parsed) {
-      setNextEditFromLast(null);
-      setCanEditBirthday(true);
-      return;
-    }
-
-    const nxt = new Date(parsed);
-    nxt.setMonth(nxt.getMonth() + 3);
-    setNextEditFromLast(nxt);
-
-    const now = new Date();
-    setCanEditBirthday(now >= nxt);
-    */
   }, [user.lastBirthdayEdit, user.birthday]);
 
   // hasChanges
@@ -100,12 +75,12 @@ function Profile() {
     const usernameChanged = (user.username || "") !== (tempUser.username || "");
     const emailChanged = (user.email || "") !== (tempUser.email || "");
     const birthdayChanged = (user.birthday || "") !== (tempUser.birthday || "");
-    
+
     // For avatar, check if tempUser.avatar or previewUrl is different from user.avatar
-    const avatarChanged = (tempUser.avatar !== user.avatar) || (previewUrl && previewUrl !== user.avatar);
-    
+    const avatarChanged = (tempUser.avatar !== user.avatar) || (previewUrl && previewUrl !== user.avatar) || selectedFile;
+
     return usernameChanged || emailChanged || birthdayChanged || avatarChanged;
-  }, [user, tempUser, previewUrl]);
+  }, [user, tempUser, previewUrl, selectedFile]);
 
   // birthday validation
   useEffect(() => {
@@ -151,25 +126,29 @@ function Profile() {
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     // Validate file type
     if (!file.type.startsWith('image/')) {
       alert("โปรดเลือกไฟล์รูปภาพเท่านั้น");
       return;
     }
-    
+
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("ขนาดไฟล์ต้องไม่เกิน 5 MB");
       return;
     }
-    
-    // Convert file to Base64 to persist in localStorage
+
+    // Store raw file
+    setSelectedFile(file);
+
+    // Convert file to Base64 to show preview immediately
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64String = event.target.result;
       setPreviewUrl(base64String);
-      setTempUser(prev => ({ ...prev, avatar: base64String }));
+      // We don't set tempUser.avatar here to avoid saving base64 to DB
+      // setTempUser(prev => ({ ...prev, avatar: base64String })); 
     };
     reader.readAsDataURL(file);
   };
@@ -177,6 +156,7 @@ function Profile() {
   const handleRemoveAvatar = () => {
     setTempUser(prev => ({ ...prev, avatar: null }));
     setPreviewUrl(null);
+    setSelectedFile(null);
   };
 
   const handleSave = async () => {
@@ -196,85 +176,128 @@ function Profile() {
       return;
     }
 
-    // prepare new user object and lastBirthdayEdit update
-    const finalAvatar = previewUrl || tempUser.avatar || null;
-    const newUser = {
-      username: tempUser.username || "",
-      email: tempUser.email || "",
-      avatar: finalAvatar,
-      birthday: tempUser.birthday || "",
-      lastBirthdayEdit: isBirthdayChanged ? new Date().toISOString() : user.lastBirthdayEdit
-    };
+    try {
+      let finalAvatarUrl = tempUser.avatar;
 
-    // persist locally and update state
-    setUser(newUser);
-    setTempUser(newUser);
-    localStorage.setItem("username", newUser.username);
-    localStorage.setItem("email", newUser.email);
-    if (newUser.avatar) localStorage.setItem("avatar", newUser.avatar); else localStorage.removeItem("avatar");
-    if (newUser.birthday) {
-      localStorage.setItem("birthday", newUser.birthday);
-      if (newUser.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
-    } else {
-      localStorage.removeItem("birthday");
-      localStorage.removeItem("lastBirthdayEdit");
-    }
+      // Unset previewUrl logic if image removed
+      if (!previewUrl && !tempUser.avatar) {
+        finalAvatarUrl = null;
+      }
 
-    // ส่งข้อมูลไปยัง backend เพื่อบันทึก
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch("http://localhost:4000/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          username: newUser.username,
-          email: newUser.email,
-          avatar: newUser.avatar,
-          birthday: newUser.birthday,
-          lastBirthdayEdit: newUser.lastBirthdayEdit
-        })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          console.log("[Profile] Profile updated on backend");
-          // อัปเดต localStorage เพื่อเก็บข้อมูล
-          localStorage.setItem("username", newUser.username);
-          localStorage.setItem("email", newUser.email);
-          localStorage.setItem("birthday", newUser.birthday || "");
-          if (newUser.avatar) {
-            localStorage.setItem("avatar", newUser.avatar);
-          }
-          if (newUser.lastBirthdayEdit) {
-            localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
-          }
-          // อัปเดต user data ใน localStorage
-          const updatedUser = { ...data.user };
-          localStorage.setItem("user", JSON.stringify(updatedUser));
-        } else {
-          console.error("[Profile] Failed to update profile on backend:", data.message);
+      // If there is a new file selected, upload it first
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("avatar", selectedFile);
+
+        const uploadRes = await fetch("http://localhost:4000/api/upload-avatar", {
+          method: "POST",
+          body: formData
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload avatar");
         }
-      })
-      .catch(err => console.error("[Profile] Error updating profile on backend:", err));
-    }
 
-    // update nextEditFromLast immediately
-    const parsed = parsePossibleDate(newUser.lastBirthdayEdit);
-    if (parsed) {
-      const nxt = new Date(parsed);
-      nxt.setMonth(nxt.getMonth() + 3);
-      setNextEditFromLast(nxt);
-      setCanEditBirthday(new Date() >= nxt);
-    } else {
-      setNextEditFromLast(null);
-      setCanEditBirthday(true);
-    }
+        const uploadData = await uploadRes.json();
+        if (uploadData.success && uploadData.imageUrl) {
+          finalAvatarUrl = uploadData.imageUrl; // Use the returned URL
+          // If URL is relative, prepend base if needed, currently usually served relatively or absolutely by backend
+          // The backend returns relative e.g. /uploads/avatars/...
+        }
+      }
 
-    // navigate to home
-    navigate("/home");
+      // prepare new user object and lastBirthdayEdit update
+      const newUser = {
+        username: tempUser.username || "",
+        email: tempUser.email || "",
+        avatar: finalAvatarUrl,
+        birthday: tempUser.birthday || "",
+        lastBirthdayEdit: isBirthdayChanged ? new Date().toISOString() : user.lastBirthdayEdit
+      };
+
+      // persist locally and update state
+      setUser(newUser);
+      setTempUser(newUser);
+      localStorage.setItem("username", newUser.username);
+      localStorage.setItem("email", newUser.email);
+      if (newUser.avatar) localStorage.setItem("avatar", newUser.avatar); else localStorage.removeItem("avatar");
+      if (newUser.birthday) {
+        localStorage.setItem("birthday", newUser.birthday);
+        if (newUser.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
+      } else {
+        localStorage.removeItem("birthday");
+        localStorage.removeItem("lastBirthdayEdit");
+      }
+
+      // ส่งข้อมูลไปยัง backend เพื่อบันทึก
+      const token = localStorage.getItem("token");
+      if (token) {
+        fetch("http://localhost:4000/api/auth/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            username: newUser.username,
+            email: newUser.email,
+            avatar: newUser.avatar,
+            birthday: newUser.birthday,
+            lastBirthdayEdit: newUser.lastBirthdayEdit
+          })
+        })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              console.log("[Profile] Profile updated on backend");
+              // อัปเดต localStorage เพื่อเก็บข้อมูล
+              localStorage.setItem("username", newUser.username);
+              localStorage.setItem("email", newUser.email);
+              localStorage.setItem("birthday", newUser.birthday || "");
+              if (newUser.avatar) {
+                localStorage.setItem("avatar", newUser.avatar);
+              }
+              if (newUser.lastBirthdayEdit) {
+                localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
+              }
+              // อัปเดต user data ใน localStorage
+              const updatedUser = { ...data.user };
+              localStorage.setItem("user", JSON.stringify(updatedUser));
+
+              // Clean up state
+              setSelectedFile(null);
+              setPreviewUrl(null); // Clear preview since we saved
+            } else {
+              console.error("[Profile] Failed to update profile on backend:", data.message);
+              alert("บันทึกข้อมูลไม่สำเร็จ: " + data.message);
+            }
+          })
+          .catch(err => {
+            console.error("[Profile] Error updating profile on backend:", err);
+            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+          });
+      }
+
+      // update nextEditFromLast immediately
+      const parsed = parsePossibleDate(newUser.lastBirthdayEdit);
+      if (parsed) {
+        const nxt = new Date(parsed);
+        nxt.setMonth(nxt.getMonth() + 3);
+        setNextEditFromLast(nxt);
+        setCanEditBirthday(new Date() >= nxt);
+      } else {
+        setNextEditFromLast(null);
+        setCanEditBirthday(true);
+      }
+
+      // navigate to home
+      navigate("/home");
+
+    } catch (error) {
+      console.error("Profile save error:", error);
+      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      return;
+    }
   };
 
   const handleGoBack = () => navigate("/home");
@@ -298,8 +321,8 @@ function Profile() {
                 ) : (
                   <div className="avatar-placeholder">
                     <svg width="70" height="70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                      <circle cx="12" cy="7" r="4"/>
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
                     </svg>
                   </div>
                 )}
@@ -308,7 +331,7 @@ function Profile() {
               <div className="avatar-actions">
                 <label className="upload-btn" htmlFor="avatar-upload">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 5v14M5 12h14"/>
+                    <path d="M12 5v14M5 12h14" />
                   </svg>
                   <span>อัปโหลด</span>
                 </label>
@@ -316,7 +339,7 @@ function Profile() {
                 {(tempUser.avatar || previewUrl) && (
                   <button className="remove-btn" onClick={handleRemoveAvatar} type="button">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M18 6L6 18M6 6l12 12"/>
+                      <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                     <span>ลบ</span>
                   </button>
@@ -356,13 +379,13 @@ function Profile() {
                 <div className="info-message" style={{ marginTop: 8 }}>
                   {canEditBirthday === false ? (
                     nextEditFromLast ? (
-                      <>สามารถแก้ไขวันเกิดได้ทุก 3 เดือนเท่านั้น<br/>แก้ไขได้อีกครั้งในวันที่ {nextEditFromLast.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
+                      <>สามารถแก้ไขวันเกิดได้ทุก 3 เดือนเท่านั้น<br />แก้ไขได้อีกครั้งในวันที่ {nextEditFromLast.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
                     ) : (
                       <>ไม่สามารถคำนวณวันที่ถัดไปได้ (ข้อมูลที่เก็บอาจไม่ถูกต้อง)</>
                     )
                   ) : (
                     nextEditIfChangedNow ? (
-                      <>สามารถแก้ไขวันเกิดได้ตอนนี้<br/>หากเปลี่ยนแล้ว จะสามารถเปลี่ยนได้อีกครั้งในวันที่ {nextEditIfChangedNow.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
+                      <>สามารถแก้ไขวันเกิดได้ตอนนี้<br />หากเปลี่ยนแล้ว จะสามารถเปลี่ยนได้อีกครั้งในวันที่ {nextEditIfChangedNow.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
                     ) : null
                   )}
                 </div>

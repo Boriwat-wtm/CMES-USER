@@ -166,16 +166,57 @@ app.get("/api/check-birthday", async (req, res) => {
   }
 });
 
-// ----- File Upload Setup -----
-const storage = multer.diskStorage({
+const avatarDir = path.join(__dirname, "uploads/avatars");
+const slipDir = path.join(__dirname, "uploads/slips");
+const genericDir = path.join(__dirname, "uploads/others");
+
+if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
+if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
+if (!fs.existsSync(slipDir)) fs.mkdirSync(slipDir, { recursive: true });
+if (!fs.existsSync(genericDir)) fs.mkdirSync(genericDir, { recursive: true });
+
+// Serve static files specific folders
+app.use("/uploads/avatars", express.static(avatarDir));
+app.use("/uploads/slips", express.static(slipDir));
+app.use("/uploads", express.static(genericDir)); // fallback or others
+
+// ----- Multer Storage Configs -----
+
+// 1. Avatar Storage
+const avatarStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/");
+    cb(null, avatarDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    // user-avatar-{timestamp}.ext
+    cb(null, `avatar-${Date.now()}${path.extname(file.originalname)}`);
   },
 });
-const upload = multer({ storage });
+
+// 2. Slip Storage
+const slipStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, slipDir);
+  },
+  filename: (req, file, cb) => {
+    // slip-{timestamp}.ext
+    cb(null, `slip-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+
+// 3. Generic Storage (Fallback)
+const genericStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, genericDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `file-${Date.now()}${path.extname(file.originalname)}`);
+  },
+});
+
+const uploadAvatar = multer({ storage: avatarStorage });
+const uploadSlip = multer({ storage: slipStorage });
+const uploadGeneric = multer({ storage: genericStorage });
 
 // ----- Gift Orders Storage -----
 const giftOrdersPath = path.join(__dirname, "gift-orders.json");
@@ -227,8 +268,8 @@ app.post("/api/report", async (req, res) => {
   }
 });
 
-// เพิ่ม API OCR
-app.post("/api/ocr", upload.single("image"), async (req, res) => {
+// เพิ่ม API OCR (ใช้ Generic ไปก่อน หรือจะเปลี่ยนเป็น Slip ก็ได้ถ้าเป็นสลิป)
+app.post("/api/ocr", uploadGeneric.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "No file uploaded" });
   }
@@ -243,7 +284,8 @@ app.post("/api/ocr", upload.single("image"), async (req, res) => {
   }
 });
 
-app.post("/verify-slip", upload.single("slip"), async (req, res) => {
+// API Verify Slip (ใช้ uploadSlip)
+app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   console.log("===> เข้ามา /verify-slip แล้ว");
   let status = "failed";
   let detail = "";
@@ -325,8 +367,9 @@ function thaiToArabic(str) {
 // เก็บข้อมูลรอชำระเงิน
 let pendingUploads = new Map();
 
-// API สำหรับบันทึกข้อมูลรอชำระเงิน
-app.post("/api/upload", upload.single("file"), (req, res) => {
+// API สำหรับบันทึกข้อมูลรอชำระเงิน (ใช้ generic หรือแยกก็ได้ แต่เดิมใช้ upload.single("file"))
+// User ส่ง file ขึ้นหน้าจอ (ไม่ใช่สลิป ไม่ใช่อวตาร) -> ใช้ Generic หรือ User Uploads
+app.post("/api/upload", uploadGeneric.single("file"), (req, res) => {
   const { text, type, time, price, sender } = req.body;
   const uploadId = Date.now().toString();
 
@@ -385,8 +428,12 @@ app.post("/api/confirm-payment", async (req, res) => {
 
     // ส่งไฟล์หากมี
     if (uploadData.file) {
-      const filePath = path.join(__dirname, 'uploads', uploadData.file);
-      if (fs.existsSync(filePath)) {
+      // NOTE: ต้องชี้ไปที่ genericDir หรือโฟลเดอร์ที่ถูกต้อง
+      // เดิมคือ uploads/ แต่ตอนนี้เราเปลี่ยนเป็น uploads/others (genericDir)
+      // หรือต้องเช็คว่า uploadData.filePath ชี้ไปไหน
+      // req.file.path ของ multer จะเก็บ full path ไว้
+      const filePath = uploadData.filePath;
+      if (filePath && fs.existsSync(filePath)) {
         formData.append('file', fs.createReadStream(filePath));
       }
     }
@@ -426,10 +473,10 @@ app.get("/api/upload-status/:uploadId", (req, res) => {
   }
 });
 
-// API สำหรับอัปโหลดรูปภาพและข้อความ
-app.post("/upload-content", upload.single("image"), (req, res) => {
+// API สำหรับอัปโหลดรูปภาพและข้อความ (Generic)
+app.post("/upload-content", uploadGeneric.single("image"), (req, res) => {
   const { message } = req.body;
-  const imageUrl = req.file ? `http://localhost:${port}/uploads/${req.file.filename}` : null;
+  const imageUrl = req.file ? `http://localhost:${port}/uploads/others/${req.file.filename}` : null;
 
   console.log("Message:", message);
   console.log("Image URL:", imageUrl);
@@ -437,9 +484,24 @@ app.post("/upload-content", upload.single("image"), (req, res) => {
   res.json({ success: true, message, imageUrl });
 });
 
-// API เดิมสำหรับอัปโหลดรูปภาพ
-app.post("/upload", upload.single("image"), (req, res) => {
-  res.json({ imageUrl: `http://localhost:${port}/uploads/${req.file.filename}` });
+// API สำหรับอัปโหลด Avatar เฉพาะ
+app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file uploaded" });
+    }
+    // Return full URL
+    const imageUrl = `http://localhost:${port}/uploads/avatars/${req.file.filename}`;
+    res.json({ success: true, imageUrl });
+  } catch (error) {
+    console.error("Upload avatar failed", error);
+    res.status(500).json({ success: false, message: "Upload failed" });
+  }
+});
+
+// API เดิมสำหรับอัปโหลดรูปภาพ (Generic)
+app.post("/upload", uploadGeneric.single("image"), (req, res) => {
+  res.json({ imageUrl: `http://localhost:${port}/uploads/others/${req.file.filename}` });
 });
 
 // Endpoint สำหรับส่ง OTP
@@ -561,6 +623,10 @@ let config = {
   price: 100,
   time: 10
 };
+
+app.get("/api/status", (req, res) => {
+  res.json(config);
+});
 
 io.on("connection", (socket) => {
   socket.emit("configUpdate", config);
