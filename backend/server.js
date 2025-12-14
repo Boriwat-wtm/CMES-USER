@@ -35,14 +35,14 @@ app.use(express.json());
 // ===== MONGODB CONNECTION =====
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
 
-mongoose.connect(MONGODB_URI)
-.then(() => {
-  console.log("✓ Connected to MongoDB");
-})
-.catch((err) => {
-  console.error("✗ MongoDB connection error:", err);
-  process.exit(1);
-});
+mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
+  .then(() => {
+    console.log("✓ Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.error("✗ MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 // ===== AUTH ROUTES =====
 app.use("/api/auth", authRoutes);
@@ -151,7 +151,7 @@ app.get("/api/check-birthday", async (req, res) => {
     const todayDay = today.getDate();
     const todayMonth = today.getMonth() + 1;
     const isBirthday = day === todayDay && month === todayMonth;
-    res.json({ 
+    res.json({
       isBirthday,
       debug: {
         birthday: birthdayStr,
@@ -329,7 +329,7 @@ let pendingUploads = new Map();
 app.post("/api/upload", upload.single("file"), (req, res) => {
   const { text, type, time, price, sender } = req.body;
   const uploadId = Date.now().toString();
-  
+
   const uploadData = {
     id: uploadId,
     text,
@@ -344,10 +344,10 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
     socialType: req.body.socialType,
     socialName: req.body.socialName,
   };
-  
+
   // เก็บข้อมูลรอชำระเงิน
   pendingUploads.set(uploadId, uploadData);
-  
+
   // ตั้งเวลายกเลิก 10 นาที
   setTimeout(() => {
     if (pendingUploads.has(uploadId)) {
@@ -355,7 +355,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
       pendingUploads.delete(uploadId);
     }
   }, 10 * 60 * 1000); // 10 นาที
-  
+
   res.json({ success: true, uploadId });
 });
 
@@ -363,17 +363,17 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 app.post("/api/confirm-payment", async (req, res) => {
   try {
     const { uploadId } = req.body;
-    
+
     if (!uploadId) {
       return res.status(400).json({ success: false, message: 'Missing uploadId' });
     }
-    
+
     const uploadData = pendingUploads.get(uploadId);
-    
+
     if (!uploadData) {
       return res.status(404).json({ success: false, message: 'Upload not found or expired' });
     }
-    
+
     // ส่งข้อมูลไปยัง Admin backend
     const formData = new FormData();
     formData.append('text', uploadData.text || '');
@@ -382,7 +382,7 @@ app.post("/api/confirm-payment", async (req, res) => {
     formData.append('price', uploadData.price.toString());
     formData.append('sender', uploadData.sender);
     formData.append('textColor', uploadData.textColor || 'white'); // เพิ่มสีข้อความ
-    
+
     // ส่งไฟล์หากมี
     if (uploadData.file) {
       const filePath = path.join(__dirname, 'uploads', uploadData.file);
@@ -390,24 +390,24 @@ app.post("/api/confirm-payment", async (req, res) => {
         formData.append('file', fs.createReadStream(filePath));
       }
     }
-    
+
     // ส่งข้อมูลไปยัง Admin backend
     const response = await fetch(`${ADMIN_API_BASE}/api/upload`, {
       method: 'POST',
       body: formData,
       headers: formData.getHeaders()
     });
-    
+
     if (response.ok) {
       // ลบข้อมูลออกจากรายการรอชำระเงิน
       pendingUploads.delete(uploadId);
-      
+
       console.log('Successfully sent to admin backend');
       res.json({ success: true, message: 'Payment confirmed and data sent to admin' });
     } else {
       throw new Error('Failed to send to admin backend');
     }
-    
+
   } catch (error) {
     console.error('Error confirming payment:', error);
     res.status(500).json({ success: false, message: 'เกิดข้อผิดพลาดในการยืนยันการชำระเงิน' });
@@ -417,7 +417,7 @@ app.post("/api/confirm-payment", async (req, res) => {
 // API สำหรับตรวจสอบสถานะ upload
 app.get("/api/upload-status/:uploadId", (req, res) => {
   const { uploadId } = req.params;
-  
+
   if (pendingUploads.has(uploadId)) {
     const data = pendingUploads.get(uploadId);
     res.json({ exists: true, status: data.status });
