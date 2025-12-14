@@ -57,9 +57,14 @@ function Home() {
   const socketRef = useRef(null);
 
   useEffect(() => {
+    const getValidAvatar = () => {
+      const val = localStorage.getItem("avatar");
+      if (val && val !== "null" && val !== "undefined") return val;
+      return null;
+    };
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
-    setProfileImage(localStorage.getItem("avatar"));
+    setProfileImage(getValidAvatar());
 
     const fetchUserProfile = async () => {
       if (!token) return;
@@ -76,6 +81,9 @@ function Home() {
             if (data.user.avatar) {
               localStorage.setItem("avatar", data.user.avatar);
               setProfileImage(data.user.avatar);
+            } else {
+              localStorage.removeItem("avatar");
+              setProfileImage(null);
             }
           }
         }
@@ -87,16 +95,14 @@ function Home() {
 
     // Listen for storage changes (e.g., when coming back from Profile page)
     const handleStorageChange = () => {
-      const newAvatar = localStorage.getItem("avatar");
-      setProfileImage(newAvatar);
+      setProfileImage(getValidAvatar());
     };
 
     window.addEventListener("storage", handleStorageChange);
 
     // Also listen for focus event to refresh when returning to the page
     const handleFocus = () => {
-      const newAvatar = localStorage.getItem("avatar");
-      setProfileImage(newAvatar);
+      setProfileImage(getValidAvatar());
     };
 
     window.addEventListener("focus", handleFocus);
@@ -348,7 +354,15 @@ function Home() {
                 >
                   <span className="profile-avatar-ring">
                     {profileImage ? (
-                      <img src={profileImage} alt="รูปโปรไฟล์" className="profile-avatar-image" />
+                      <img
+                        src={profileImage}
+                        alt="รูปโปรไฟล์"
+                        className="profile-avatar-image"
+                        onError={(e) => {
+                          e.target.onerror = null; // prevent loop
+                          setProfileImage(null);
+                        }}
+                      />
                     ) : (
                       <svg
                         className="profile-avatar-icon"
