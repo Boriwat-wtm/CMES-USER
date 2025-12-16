@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom"; 
 import "./Upload.css";
+import igLogo from "./data-icon/ig-logo.png";
+import fbLogo from "./data-icon/facebook-logo.png";
+import lineLogo from "./data-icon/line-logo.png";
+import tiktokLogo from "./data-icon/x-logo.png";
 
 function Upload() {
   const location = useLocation();
@@ -50,7 +54,7 @@ function Upload() {
         setActualType(type);
       }
     }
-  }, []);
+  }, [type]);
 
   // Save ข้อมูลทุกครั้งที่ state เปลี่ยน
   useEffect(() => {
@@ -148,49 +152,30 @@ function Upload() {
 
   const socialOnImage = selectedSocial && socialName
     ? (() => {
-        switch (selectedSocial) {
-          case "ig":
-            return (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <rect x="2" y="2" width="20" height="20" rx="5" fill="#E1306C"/>
-                  <circle cx="12" cy="12" r="5" fill="#fff"/>
-                  <circle cx="18" cy="6" r="1.5" fill="#fff"/>
-                </svg>
-                {socialName}
-              </span>
-            );
-          case "fb":
-            return (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F3">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                {socialName}
-              </span>
-            );
-          case "line":
-            return (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755">
-                  <rect x="2" y="2" width="20" height="20" rx="5"/>
-                  <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff" fontFamily="Arial">LINE</text>
-                </svg>
-                {socialName}
-              </span>
-            );
-          case "tiktok":
-            return (
-              <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="#000">
-                  <path d="M9.5 3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5a5.5 5.5 0 0 0 5.5 5.5h1.5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.5A5.5 5.5 0 0 0 14.5 19.5V21a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1.5A5.5 5.5 0 0 0 3 14.5V13a1 1 0 0 1 1-1h1.5A5.5 5.5 0 0 0 9.5 4.5V3z"/>
-                </svg>
-                {socialName}
-              </span>
-            );
-          default:
-            return null;
-        }
+        const logoMap = {
+          ig: igLogo,
+          fb: fbLogo,
+          line: lineLogo,
+          tiktok: tiktokLogo
+        };
+        
+        const logoSrc = logoMap[selectedSocial];
+        if (!logoSrc) return null;
+        
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <img 
+              src={logoSrc} 
+              alt={selectedSocial.toUpperCase()} 
+              style={{ width: "22px", height: "22px", objectFit: "contain" }} 
+            />
+            <span style={{ 
+              fontWeight: "700", 
+              fontSize: "20px",
+              textShadow: "0 2px 6px rgba(0,0,0,0.8)"
+            }}>{socialName}</span>
+          </span>
+        );
       })()
     : null;
 
@@ -351,35 +336,111 @@ function Upload() {
       const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0);
 
-      // วาด Social (กลางภาพ)
+      // คำนวณสเกลเทียบกับกล่องพรีวิวสูง ~400px เพื่อให้ขนาดตัวอักษรสัมพันธ์กับภาพจริง
+      const basePreviewHeight = 400;
+      const scale = Math.max(canvas.height / basePreviewHeight, 1);
+      const socialFontSize = 20 * scale;
+      const textFontSize = 18 * scale;
+      const logoSize = 28 * scale;
+      const padding = 12 * scale;
+      const spacing = 8 * scale;
+      const shadowBlur = 8 * scale;
+      const centerY = canvas.height / 2;
+      const hasText = Boolean(text);
+      const hasSocial = Boolean(socialType && socialName);
+      const stackSpacing = hasSocial && hasText ? spacing : 0;
+      const totalHeight =
+        (hasSocial ? logoSize : 0) + stackSpacing + (hasText ? textFontSize : 0);
+      const stackTop = centerY - totalHeight / 2;
+      const socialCenterY = hasSocial ? stackTop + logoSize / 2 : null;
+      const textCenterY = hasText
+        ? hasSocial
+          ? stackTop + logoSize + stackSpacing + textFontSize / 2
+          : stackTop + textFontSize / 2
+        : null;
+
+      // ฟังก์ชันวาดทั้งหมด (รอโหลด logo ก่อนจะวาด)
+      const drawContent = () => {
+        // วาดข้อความ (กลางภาพ - ขนาดเล็กกว่า social)
+        if (text) {
+          ctx.font = `400 ${textFontSize}px Prompt, Kanit, sans-serif`;
+          ctx.fillStyle = textColor || "#fff";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.shadowColor = textColor === "white" ? "#000" : "#fff";
+          ctx.shadowBlur = shadowBlur;
+          ctx.fillText(text, canvas.width / 2, textCenterY ?? centerY);
+          ctx.shadowBlur = 0;
+        }
+
+        canvas.toBlob((blob) => {
+          callback(blob);
+        }, "image/png");
+      };
+
+      // วาด Social Logo + Name (ด้านบนของภาพ)
       if (socialType && socialName) {
-        ctx.font = "bold 32px Prompt, Kanit, sans-serif";
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.shadowColor = "#000";
-        ctx.shadowBlur = 6;
-        ctx.fillText(
-          `${socialType.toUpperCase()}: ${socialName}`,
-          canvas.width / 2,
-          canvas.height / 2 - 20
-        );
-        ctx.shadowBlur = 0;
-      }
+        const logoMap = {
+          ig: igLogo,
+          fb: fbLogo,
+          line: lineLogo,
+          tiktok: tiktokLogo
+        };
 
-      // วาดข้อความ (กลางภาพ)
-      if (text) {
-        ctx.font = "bold 36px Prompt, Kanit, sans-serif";
-        ctx.fillStyle = textColor || "#fff";
-        ctx.textAlign = "center";
-        ctx.shadowColor = textColor === "white" ? "#000" : "#fff";
-        ctx.shadowBlur = 8;
-        ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 30);
-        ctx.shadowBlur = 0;
-      }
+        const logoSrc = logoMap[socialType];
+        if (logoSrc) {
+          const logoImg = new window.Image();
+          logoImg.onload = () => {
+            // ตั้งค่าฟอนต์สำหรับ social name
+            ctx.font = `700 ${socialFontSize}px Prompt, Kanit, sans-serif`;
+            
+            const textWidth = ctx.measureText(socialName).width;
+            const totalWidth = logoSize + padding + textWidth;
+            
+            // คำนวณตำแหน่งให้อยู่กลางด้านบน
+            const startX = (canvas.width - totalWidth) / 2;
+            const socialY = socialCenterY ?? centerY;
+            const startY = socialY - logoSize / 2;
 
-      canvas.toBlob((blob) => {
-        callback(blob);
-      }, "image/png");
+            // วาด Logo
+            ctx.drawImage(logoImg, startX, startY, logoSize, logoSize);
+
+            // วาดชื่อ Social (ไม่มี box พื้นหลัง)
+            ctx.font = `700 ${socialFontSize}px Prompt, Kanit, sans-serif`;
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000";
+            ctx.shadowBlur = shadowBlur;
+            ctx.fillText(socialName, startX + logoSize + padding, socialY);
+            ctx.shadowBlur = 0;
+
+            drawContent();
+          };
+          logoImg.onerror = () => {
+            // ถ้าโหลด logo ไม่สำเร็จ ใช้ text แทน
+            const fallbackFont = Math.max(32 * scale, socialFontSize);
+            ctx.font = `700 ${fallbackFont}px Prompt, Kanit, sans-serif`;
+            ctx.fillStyle = "#fff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.shadowColor = "#000";
+            ctx.shadowBlur = shadowBlur;
+            ctx.fillText(
+              `${socialType.toUpperCase()}: ${socialName}`,
+              canvas.width / 2,
+              (socialCenterY ?? centerY)
+            );
+            ctx.shadowBlur = 0;
+            drawContent();
+          };
+          logoImg.src = logoSrc;
+        } else {
+          drawContent();
+        }
+      } else {
+        drawContent();
+      }
     };
     img.src = URL.createObjectURL(imageFile);
   }
@@ -472,8 +533,9 @@ function Upload() {
                           color: "#fff",
                           padding: "6px 16px",
                           borderRadius: "8px",
-                          fontWeight: "bold",
-                          fontSize: "16px",
+                          fontWeight: "700",
+                          fontSize: "20px",
+                          textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                           maxWidth: "100%",
                           wordBreak: "break-all"
                         }}>
@@ -486,7 +548,7 @@ function Upload() {
                           color: textColor,
                           borderRadius: "8px",
                           padding: "6px 16px",
-                          fontWeight: "bold",
+                          fontWeight: "400",
                           fontSize: "18px",
                           textShadow: textColor === "white"
                             ? "0 2px 8px rgba(0,0,0,0.8)"
@@ -516,11 +578,7 @@ function Upload() {
                     onChange={() => { setSelectedSocial("ig"); setSocialName(""); }}
                   />
                   <span className="icon-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="20" height="20" rx="5" fill="#E1306C"/>
-                      <circle cx="12" cy="12" r="5" fill="#fff"/>
-                      <circle cx="18" cy="6" r="1.5" fill="#fff"/>
-                    </svg>
+                    <img src={igLogo} alt="IG" style={{ width: "18px", height: "18px", objectFit: "contain" }} />
                     IG
                   </span>
                 </label>
@@ -533,9 +591,7 @@ function Upload() {
                     onChange={() => { setSelectedSocial("fb"); setSocialName(""); }}
                   />
                   <span className="icon-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F3">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
+                    <img src={fbLogo} alt="Facebook" style={{ width: "18px", height: "18px", objectFit: "contain" }} />
                     Facebook
                   </span>
                 </label>
@@ -548,10 +604,7 @@ function Upload() {
                     onChange={() => { setSelectedSocial("line"); setSocialName(""); }}
                   />
                   <span className="icon-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#06C755">
-                      <rect x="2" y="2" width="20" height="20" rx="5"/>
-                      <text x="12" y="16" textAnchor="middle" fontSize="10" fill="#fff" fontFamily="Arial">LINE</text>
-                    </svg>
+                    <img src={lineLogo} alt="Line" style={{ width: "18px", height: "18px", objectFit: "contain" }} />
                     Line
                   </span>
                 </label>
@@ -564,9 +617,7 @@ function Upload() {
                     onChange={() => { setSelectedSocial("tiktok"); setSocialName(""); }}
                   />
                   <span className="icon-label">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#000">
-                      <path d="M9.5 3a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5a5.5 5.5 0 0 0 5.5 5.5h1.5a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.5A5.5 5.5 0 0 0 14.5 19.5V21a1 1 0 0 1-1 1h-3a1 1 0 0 1-1-1v-1.5A5.5 5.5 0 0 0 3 14.5V13a1 1 0 0 1 1-1h1.5A5.5 5.5 0 0 0 9.5 4.5V3z"/>
-                    </svg>
+                    <img src={tiktokLogo} alt="TikTok" style={{ width: "18px", height: "18px", objectFit: "contain" }} />
                     Tiktok
                   </span>
                 </label>
@@ -744,8 +795,9 @@ function Upload() {
                             color: "#fff",
                             padding: "6px 16px",
                             borderRadius: "8px",
-                            fontWeight: "bold",
-                            fontSize: "16px",
+                            fontWeight: "700",
+                            fontSize: "20px",
+                            textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                             maxWidth: "100%",
                             wordBreak: "break-all"
                           }}>
@@ -758,7 +810,7 @@ function Upload() {
                             color: textColor,
                             borderRadius: "8px",
                             padding: "6px 16px",
-                            fontWeight: "bold",
+                            fontWeight: "400",
                             fontSize: "18px",
                             textShadow: textColor === "white"
                               ? "0 2px 8px rgba(0,0,0,0.8)"
@@ -793,18 +845,18 @@ function Upload() {
                         <div
                           style={{
                             marginBottom: "16px",
-                            marginTop: "8px", // ขยับลงมาอีกนิด
+                            marginTop: "8px",
                             color: "#fff",
                             padding: "6px 18px",
                             borderRadius: "8px",
-                            fontWeight: "bold",
-                            fontSize: "24px",
+                            fontWeight: "700",
+                            fontSize: "20px",
+                            textShadow: "0 2px 8px rgba(0,0,0,0.8)",
                             maxWidth: "100%",
                             wordBreak: "break-all",
                             display: "inline-flex",
                             alignItems: "center",
-                            boxShadow: "none" // เอาเงาออก
-                            // background: "#666", // ลบ background ออก
+                            boxShadow: "none"
                           }}
                         >
                           {socialOnImage}
@@ -813,8 +865,8 @@ function Upload() {
                       <div
                         style={{
                           color: textColor,
-                          fontWeight: "bold",
-                          fontSize: "20px", // ปรับขนาดข้อความเป็น 20px
+                          fontWeight: "400",
+                          fontSize: "18px",
                           textShadow: textColor === "white"
                             ? "0 2px 8px rgba(0,0,0,0.8)"
                             : "0 2px 8px rgba(255,255,255,0.8)",
