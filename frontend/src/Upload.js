@@ -212,16 +212,28 @@ function Upload() {
           formData.append("composed", "1");
 
         let sender = "Unknown";
+        let userId = null;
+        let email = null;
+        let avatar = null;
+        
         const user = localStorage.getItem("user");
         if (user) {
           try {
             const userObj = JSON.parse(user);
             sender = userObj.name || userObj.username || "Unknown";
-          } catch {
+            userId = userObj.id || null;
+            email = userObj.email || null;
+            avatar = userObj.avatar || null;
+            console.log("[Upload] User data: userId=", userId, "email=", email);
+          } catch (err) {
+            console.warn("[Upload] Cannot parse user data:", err);
             sender = "Unknown";
           }
         }
         formData.append("sender", sender);
+        if (userId) formData.append("userId", userId);
+        if (email) formData.append("email", email);
+        if (avatar) formData.append("avatar", avatar);
 
         try {
           console.log("[Upload] Uploading with type:", actualType, "to Admin backend");
@@ -255,12 +267,21 @@ function Upload() {
     } else if (type === "text") {
       // เตรียมข้อมูลสำหรับส่งข้อความ
       let sender = "Unknown";
+      let userId = null;
+      let email = null;
+      let avatar = null;
+      
       const user = localStorage.getItem("user");
       if (user) {
         try {
           const userObj = JSON.parse(user);
           sender = userObj.name || userObj.username || "Unknown";
-        } catch {
+          userId = userObj.id || null;
+          email = userObj.email || null;
+          avatar = userObj.avatar || null;
+          console.log("[Upload Text] User data: userId=", userId, "email=", email);
+        } catch (err) {
+          console.warn("[Upload Text] Cannot parse user data:", err);
           sender = "Unknown";
         }
       }
@@ -271,6 +292,9 @@ function Upload() {
         time,
         price,
         sender,
+        userId,
+        email,
+        avatar,
         textColor,
         socialType: selectedSocial,
         socialName: socialName

@@ -174,7 +174,8 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("http://localhost:4000/api/rankings/top")
+    // เรียก API จาก CMES-ADMIN โดยตรง
+    fetch("http://localhost:5001/api/rankings/top")
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -183,7 +184,8 @@ function Home() {
         setLeaderboard(data.ranks || []);
         setRankError("");
       })
-      .catch(() => {
+      .catch((err) => {
+        console.error("[Home] Failed to fetch rankings:", err);
         setRankError("ยังไม่มีข้อมูลอันดับ");
       })
       .finally(() => setRankLoading(false));

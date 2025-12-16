@@ -405,7 +405,7 @@ app.post("/api/upload", uploadGeneric.single("file"), (req, res) => {
 // API สำหรับยืนยันการชำระเงิน
 app.post("/api/confirm-payment", async (req, res) => {
   try {
-    const { uploadId } = req.body;
+    const { uploadId, userId, email, avatar } = req.body;
 
     if (!uploadId) {
       return res.status(400).json({ success: false, message: 'Missing uploadId' });
@@ -424,7 +424,12 @@ app.post("/api/confirm-payment", async (req, res) => {
     formData.append('time', uploadData.time.toString());
     formData.append('price', uploadData.price.toString());
     formData.append('sender', uploadData.sender);
-    formData.append('textColor', uploadData.textColor || 'white'); // เพิ่มสีข้อความ
+    formData.append('textColor', uploadData.textColor || 'white');
+    
+    // เพิ่มข้อมูล user
+    if (userId) formData.append('userId', userId);
+    if (email) formData.append('email', email);
+    if (avatar) formData.append('avatar', avatar);
 
     // ส่งไฟล์หากมี
     if (uploadData.file) {
@@ -722,12 +727,19 @@ app.get("/api/gifts/order/:orderId", (req, res) => {
 
 app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   const { orderId } = req.params;
+  const { userId, email, avatar } = req.body; // รับข้อมูล user จาก frontend
+  
+  console.log("[Gift Order Confirm] orderId:", orderId);
+  console.log("[Gift Order Confirm] userId:", userId);
+  console.log("[Gift Order Confirm] email:", email);
+  console.log("[Gift Order Confirm] avatar:", avatar);
+  
   const order = giftOrders.find((item) => item.id === orderId);
   if (!order) {
     return res.status(404).json({ success: false, message: "ไม่พบคำสั่งซื้อ" });
   }
   if (order.status !== "pending_payment") {
-    return res.status(400).json({ success: false, message: "คำสั่งซื้ออยู่ในสถานะที่ไม่สามารถยืนยันได้" });
+    return res.status(400).json({ success: false, message: "คำสั่งซื้ออยู็ในสถานะที่ไม่สามารถยืนยันได้" });
   }
 
   order.status = "awaiting_admin";
@@ -735,20 +747,28 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   saveGiftOrders();
 
   try {
+    const payload = {
+      orderId: order.id,
+      sender: order.senderName,
+      userId: userId || null,
+      email: email || null,
+      avatar: avatar || null,
+      tableNumber: order.tableNumber,
+      note: order.note,
+      items: order.items,
+      totalPrice: order.totalPrice
+    };
+    
+    console.log("[Gift Order Confirm] Sending to admin:", JSON.stringify(payload, null, 2));
+    
     const adminResponse = await fetch(`${ADMIN_API_BASE}/api/gifts/order`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        orderId: order.id,
-        sender: order.senderName,
-        tableNumber: order.tableNumber,
-        note: order.note,
-        items: order.items,
-        totalPrice: order.totalPrice
-      })
+      body: JSON.stringify(payload)
     });
 
     if (!adminResponse.ok) {
+      console.error("[Gift Order Confirm] Admin response not OK:", adminResponse.status);
       order.status = "pending_payment";
       delete order.paidAt;
       saveGiftOrders();
@@ -756,6 +776,7 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
       return res.status(502).json({ success: false, message: message || "ส่งข้อมูลไปยังฝั่งแอดมินไม่สำเร็จ" });
     }
 
+    console.log("[Gift Order Confirm] Successfully sent to admin");
     res.json({ success: true, order });
   } catch (error) {
     console.error("Confirm gift order failed", error);
@@ -768,9 +789,13 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
 
 app.get("/api/rankings/top", async (req, res) => {
   try {
-    // TODO: เชื่อมต่อ Admin API หรือสร้าง Rankings Model ใน MongoDB
-    // ตอนนี้ส่ง empty rankings เพื่อหลีกเลี่ยง error
-    res.json({ success: true, ranks: [], totalUsers: 0 });
+    // Forward ไปยัง CMES-ADMIN
+    const response = await fetch(`${ADMIN_API_BASE}/api/rankings/top`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch rankings from admin");
+    }
+    const data = await response.json();
+    res.json(data);
   } catch (error) {
     console.error("Fetch rankings failed", error);
     res.status(500).json({ success: false, message: "ไม่สามารถโหลดอันดับ" });

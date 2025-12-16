@@ -62,12 +62,37 @@ function Payment() {
     setIsProcessing(true);
     setErrorMessage("");
     try {
+      // ดึงข้อมูล user จาก localStorage
+      let userId = null;
+      let email = null;
+      let avatar = null;
+      
+      try {
+        const storedUser = localStorage.getItem("user");
+        console.log("[Payment] Stored user:", storedUser);
+        
+        if (storedUser) {
+          const userObj = JSON.parse(storedUser);
+          userId = userObj.id || null;
+          email = userObj.email || null;
+          avatar = userObj.avatar || null;
+          
+          console.log("[Payment] Parsed user data - userId:", userId, "email:", email);
+        } else {
+          console.log("[Payment] No user data in localStorage");
+        }
+      } catch (err) {
+        console.warn("[Payment] Cannot parse user data:", err);
+      }
+      
       if (isGift) {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
         }
         const response = await fetch(`http://localhost:4000/api/gifts/order/${orderId}/confirm`, {
-          method: "POST"
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, email, avatar })
         });
         const data = await response.json();
         if (!response.ok || !data.success) {
