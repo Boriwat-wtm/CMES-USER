@@ -57,9 +57,9 @@ function Select() {
     if (type === "birthday") {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());
-      const newOrderValue = JSON.stringify({ type: "image", time: timeInMinutes, price: 0 });
+      const newOrderValue = JSON.stringify({ type: "birthday", time: timeInMinutes, price: 0 });
       localStorage.setItem("order", newOrderValue);
-      navigate(`/upload?type=image&time=${timeInMinutes}&price=0&free=true`);
+      navigate(`/upload?type=birthday&time=${timeInMinutes}&price=0&free=true`);
     } else {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());

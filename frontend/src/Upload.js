@@ -122,7 +122,7 @@ function Upload() {
   }, []);
 
   const handleUpload = () => {
-    if (type === "image" && !image) {
+    if ((type === "image" || type === "birthday") && !image) {
       setAlertMessage("โปรดเลือกไฟล์รูปภาพ");
       return;
     }
@@ -233,7 +233,29 @@ function Upload() {
             localStorage.setItem('pendingUploadId', result.uploadId);
             setShowPreviewModal(false);
             if (isFree) {
-              // ถ้าเป็นการใช้งานฟรี ไปที่หน้าสถานะทันที
+              // ถ้าเป็นการใช้งานฟรี บันทึก order แล้วไปที่หน้าสถานะทันที
+              const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
+              localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
+              
+              const newOrder = {
+                type: actualType || type,
+                time: time,
+                price: 0,
+                queueNumber: currentQueueNumber,
+                orderId: result.uploadId
+              };
+              
+              // เก็บ orders เป็น array
+              const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+              existingOrders.push(newOrder);
+              localStorage.setItem("orders", JSON.stringify(existingOrders));
+              // เก็บ order ล่าสุดไว้ด้วย
+              localStorage.setItem("order", JSON.stringify(newOrder));
+              
+              localStorage.removeItem("pendingUploadId");
+              localStorage.removeItem("uploadFormDraft");
+              localStorage.removeItem("uploadFormImage");
+              
               navigate("/home");
             } else {
               // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
@@ -463,7 +485,10 @@ function Upload() {
             <div className="package-info">
               <div className="package-detail">
                 <span className="label">ประเภท:</span>
-                <span className="value">{type === "image" ? "รูปภาพ + ข้อความ" : "ข้อความ"}</span>
+                <span className="value">
+                  {type === "image" ? "รูปภาพ + ข้อความ" : 
+                   type === "birthday" ? "🎂 อวยพรวันเกิด" : "ข้อความ"}
+                </span>
               </div>
               <div className="package-detail">
                 <span className="label">เวลาแสดง:</span>
@@ -475,7 +500,7 @@ function Upload() {
               </div>
             </div>
 
-            {type === "image" && (
+            {(type === "image" || type === "birthday") && (
               <div className="upload-section">
                 <h3>อัปโหลดรูปภาพ</h3>
                 <div className="file-upload-container">
@@ -770,7 +795,7 @@ function Upload() {
               </div>
               <div className="modal-body">
                 <div className="preview-container">
-                  {type === "image" && image && (
+                  {(type === "image" || type === "birthday") && image && (
                     <div className="final-preview" style={{ position: "relative" }}>
                       <img src={URL.createObjectURL(image)} alt="Preview" className="preview-image" />
                       <div
