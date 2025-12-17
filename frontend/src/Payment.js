@@ -99,24 +99,40 @@ function Payment() {
           throw new Error(data.message || "ยืนยันคำสั่งซื้อไม่สำเร็จ");
         }
         const currentQueueNumber = incrementQueueNumber();
-        localStorage.setItem("order", JSON.stringify({
+        const newOrder = {
           type: "gift",
           price: data.order.totalPrice,
           queueNumber: currentQueueNumber,
           tableNumber: data.order.tableNumber,
-          giftItems: data.order.items
-        }));
+          giftItems: data.order.items,
+          orderId: orderId
+        };
+        
+        // เก็บ orders เป็น array
+        const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        existingOrders.push(newOrder);
+        localStorage.setItem("orders", JSON.stringify(existingOrders));
+        // เก็บ order ล่าสุดไว้ด้วย (backward compatibility)
+        localStorage.setItem("order", JSON.stringify(newOrder));
         setGiftOrder(data.order);
       } else {
         const pendingUploadId = localStorage.getItem("pendingUploadId");
         console.log("[Payment] simulate success flow", pendingUploadId);
         const currentQueueNumber = incrementQueueNumber();
-        localStorage.setItem("order", JSON.stringify({
+        const newOrder = {
           type,
           time,
           price,
-          queueNumber: currentQueueNumber
-        }));
+          queueNumber: currentQueueNumber,
+          orderId: pendingUploadId
+        };
+        
+        // เก็บ orders เป็น array
+        const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        existingOrders.push(newOrder);
+        localStorage.setItem("orders", JSON.stringify(existingOrders));
+        // เก็บ order ล่าสุดไว้ด้วย (backward compatibility)
+        localStorage.setItem("order", JSON.stringify(newOrder));
         localStorage.removeItem("pendingUploadId");
         localStorage.removeItem("uploadFormDraft");
         localStorage.removeItem("uploadFormImage");
