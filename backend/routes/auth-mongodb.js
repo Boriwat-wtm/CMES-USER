@@ -1,9 +1,28 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
 import User from "../models/User.js";
 
+dotenv.config();
+
 const router = express.Router();
+
+// OTP Storage (In-memory)
+// Format: email -> { otp: "123456", expires: Date }
+const otpStore = new Map();
+
+// Nodemailer Transporter
+const transporter = nodemailer.createTransport({
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 // Utility functions
 function generateToken(userId) {
@@ -20,20 +39,96 @@ function verifyToken(token) {
   }
 }
 
+// Generate 6-digit OTP
+function generateOTP() {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// ==========================================
+// SEND EMAIL OTP
+// ==========================================
+router.post("/send-email-otp", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "กรุณาระบุอีเมล" });
+    }
+
+    // Check if email already registered
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "อีเมลนี้ถูกใช้งานแล้ว" });
+    }
+
+    const otp = generateOTP();
+    const expires = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    // Store OTP
+    otpStore.set(email, { otp, expires });
+
+    // Send Email
+    const mailOptions = {
+      from: process.env.EMAIL_USER || "CMES Support",
+      to: email,
+      subject: "รหัสยืนยันการลงทะเบียน (CMES)",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>รหัสยืนยันของคุณ</h2>
+          <p>รหัสยืนยัน (OTP) สำหรับการลงทะเบียนคือ:</p>
+          <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
+          <p>รหัสนี้จะหมดอายุใน 5 นาที</p>
+          <p>หากคุณไม่ได้ทำรายการนี้ โปรดเพิกเฉยต่ออีเมลนี้</p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ success: true, message: "ส่งรหัส OTP ไปยังอีเมลแล้ว" });
+
+  } catch (error) {
+    console.error("Send OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "ไม่สามารถส่งอีเมลได้",
+      error: error.message
+    });
+  }
+});
+
 // ==========================================
 // REGISTER (Email/Password)
 // ==========================================
 router.post("/register", async (req, res) => {
   try {
-    const { email, password, username } = req.body;
+    const { email, password, username, otp } = req.body;
 
     // Validation
-    if (!email || !password || !username) {
+    if (!email || !password || !username || !otp) {
       return res.status(400).json({
         success: false,
-        message: "Email, password, and username are required",
+        message: "กรุณากรอกข้อมูลให้ครบถ้วนและระบุรหัส OTP",
       });
     }
+
+    // Verify OTP
+    const storedOtpData = otpStore.get(email);
+    if (!storedOtpData) {
+      return res.status(400).json({ success: false, message: "กรุณาขอรหัส OTP ใหม่" });
+    }
+
+    if (Date.now() > storedOtpData.expires) {
+      otpStore.delete(email);
+      return res.status(400).json({ success: false, message: "รหัส OTP หมดอายุแล้ว" });
+    }
+
+    if (storedOtpData.otp !== otp) {
+      return res.status(400).json({ success: false, message: "รหัส OTP ไม่ถูกต้อง" });
+    }
+
+    // Clean up OTP
+    otpStore.delete(email);
 
     if (password.length < 8) {
       return res.status(400).json({
@@ -42,7 +137,7 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Check if email exists
+    // Double Check if email exists (Race condition)
     const existingEmail = await User.findOne({ email });
     if (existingEmail) {
       return res.status(400).json({
@@ -69,7 +164,7 @@ router.post("/register", async (req, res) => {
       username,
       password: hashedPassword,
       authMethod: "email",
-      emailVerified: false,
+      emailVerified: true, // Verified by OTP
     });
 
     await newUser.save();

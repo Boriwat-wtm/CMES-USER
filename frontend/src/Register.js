@@ -9,6 +9,7 @@ function Register() {
     password: "",
     confirmPassword: "",
     username: "",
+    otp: "",
   });
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -16,12 +17,15 @@ function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [activeTab, setActiveTab] = useState("register"); // register or login
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
   const navigate = useNavigate();
 
   // Load Google Sign-In script
   useEffect(() => {
     const clientId = getGoogleClientId();
-    
+
     if (!isGoogleConfigured()) {
       console.warn("Google OAuth not configured");
       return;
@@ -41,6 +45,17 @@ function Register() {
     };
     document.body.appendChild(script);
   }, []);
+
+  // Countdown timer for OTP
+  useEffect(() => {
+    let interval;
+    if (otpCooldown > 0) {
+      interval = setInterval(() => {
+        setOtpCooldown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpCooldown]);
 
   // ตรวจสอบความแรงของ password
   const checkPasswordStrength = (password) => {
@@ -79,6 +94,37 @@ function Register() {
     return password.length >= 8;
   };
 
+  // Handle Send OTP
+  const handleSendOtp = async () => {
+    if (!validateEmail(formData.email)) {
+      setErrorMessage("กรุณากรอกอีเมลให้ถูกต้อง");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch("http://localhost:4000/api/auth/send-email-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "ส่ง OTP ไม่สำเร็จ");
+      }
+
+      setShowOtpInput(true);
+      setOtpCooldown(60); // 60 seconds cooldown
+      setSuccessMessage("ส่งรหัส OTP ไปยังอีเมลแล้ว กรุณาตรวจสอบ");
+    } catch (error) {
+      setErrorMessage(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Handle Register
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -91,6 +137,11 @@ function Register() {
 
     if (!validateEmail(formData.email)) {
       setErrorMessage("กรุณากรอกอีเมลให้ถูกต้อง");
+      return;
+    }
+
+    if (!formData.otp) {
+      setErrorMessage("กรุณากรอกรหัส OTP ที่ได้รับทางอีเมล");
       return;
     }
 
@@ -113,6 +164,7 @@ function Register() {
           username: formData.username,
           email: formData.email,
           password: formData.password,
+          otp: formData.otp,
         }),
       });
 
@@ -125,7 +177,7 @@ function Register() {
       // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
+
       // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
       localStorage.setItem("username", data.user.username);
       localStorage.setItem("email", data.user.email);
@@ -175,7 +227,7 @@ function Register() {
       // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
+
       // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
       localStorage.setItem("username", data.user.username);
       localStorage.setItem("email", data.user.email);
@@ -195,7 +247,7 @@ function Register() {
   const handleGoogleResponse = async (response) => {
     try {
       setIsLoading(true);
-      
+
       // Decode the JWT token from Google
       const token = response.credential;
       const base64Url = token.split(".")[1];
@@ -229,7 +281,7 @@ function Register() {
       // บันทึก token และ user data
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      
+
       // บันทึก username, email, birthday แยกตัวแปร สำหรับหน้า Profile
       localStorage.setItem("username", data.user.username);
       localStorage.setItem("email", data.user.email);
@@ -275,15 +327,15 @@ function Register() {
     const waitForGoogle = setInterval(() => {
       if (window.google) {
         clearInterval(waitForGoogle);
-        
+
         setTimeout(() => {
           try {
             const googleBtnElement = document.getElementById("google-signin-btn");
             if (googleBtnElement) {
               window.google.accounts.id.renderButton(
                 googleBtnElement,
-                { 
-                  theme: "outline", 
+                {
+                  theme: "outline",
                   size: "large",
                   text: activeTab === "register" ? "signup_with" : "signin_with"
                 }
@@ -366,7 +418,34 @@ function Register() {
                   disabled={isLoading}
                 />
               </div>
-            </div>
+                <button
+                  type="button"
+                  className="send-otp-btn"
+                  onClick={handleSendOtp}
+                  disabled={isLoading || otpCooldown > 0 || !formData.email}
+                >
+                  {otpCooldown > 0 ? `ส่งใหม่ ${otpCooldown}s` : "ยืนยันอีเมล"}
+                </button>
+              </div>
+
+            {showOtpInput && (
+              <div className="form-group">
+                <label htmlFor="otp">รหัส OTP</label>
+                <div className="input-wrapper">
+                  <span className="input-icon"></span>
+                  <input
+                    type="text"
+                    id="otp"
+                    name="otp"
+                    placeholder="กรอกรหัส 6 หลักที่ได้รับทางอีเมล"
+                    value={formData.otp}
+                    onChange={handleInputChange}
+                    disabled={isLoading}
+                    maxLength={6}
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label htmlFor="password">รหัสผ่าน</label>

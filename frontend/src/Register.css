@@ -14,9 +14,17 @@
 }
 
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .auth-wrapper {
@@ -36,6 +44,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -64,8 +73,15 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .auth-header h1 {
@@ -255,6 +271,7 @@
     opacity: 0;
     transform: translateY(-10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -422,6 +439,52 @@
 .terms-text a:hover {
   color: #764ba2;
   text-decoration: underline;
+}
+
+/* ให้ form-group เป็น column ชัดเจน */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+/* input wrapper ปกติ */
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* === ปุ่มยืนยันอีเมล === */
+.send-otp-btn {
+  margin-top: 8px;          /* อยู่ใต้ input */
+  align-self: flex-end;     /* ชิดขวา */
+  padding: 10px 18px;
+
+  border: none;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 500;
+
+  /* สีเดียวกับปุ่มลงทะเบียน */
+  background: linear-gradient(135deg, #6c7cff, #8b5cf6);
+  color: #fff;
+
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* hover */
+.send-otp-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* disabled */
+.send-otp-btn:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ========================
