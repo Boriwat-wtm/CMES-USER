@@ -188,7 +188,7 @@ function Upload() {
           formData.append("file", finalBlob, "final.png");
           // ส่ง actualType ไปแทน type
           formData.append("type", actualType || "image");
-          formData.append("time", time || "5"); // ถ้าไม่มี time ให้ใช้ 5 นาที
+          formData.append("time", time || "60"); // ถ้าไม่มี time ให้ใช้ 60 วินาที
           formData.append("price", isFree ? "0" : (price || "1")); // ถ้าเป็น free ให้ราคาเป็น 0
           formData.append("textColor", textColor);
           formData.append("text", text);
@@ -492,7 +492,7 @@ function Upload() {
               </div>
               <div className="package-detail">
                 <span className="label">เวลาแสดง:</span>
-                <span className="value">{time} นาที</span>
+                <span className="value">{time} วินาที</span>
               </div>
               <div className="package-detail">
                 <span className="label">ราคา:</span>
@@ -904,7 +904,7 @@ function Upload() {
                     </div>
                   )}
                   <div className="preview-info">
-                    <p><strong>แสดงเป็นเวลา:</strong> {time} นาที</p>
+                    <p><strong>แสดงเป็นเวลา:</strong> {time} วินาที</p>
                     <p><strong>ราคา:</strong> ฿{price}</p>
                   </div>
                 </div>

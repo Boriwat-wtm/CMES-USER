@@ -51,22 +51,21 @@ function Select() {
     }
 
     const timeSeconds = parseInt(time, 10) || 0;
-    const timeInMinutes = Math.max(1, Math.ceil(timeSeconds / 60));
     const priceNum = Number(price) || 0;
 
     if (type === "birthday") {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());
-      const newOrderValue = JSON.stringify({ type: "birthday", time: timeInMinutes, price: 0 });
+      const newOrderValue = JSON.stringify({ type: "birthday", time: timeSeconds, price: 0 });
       localStorage.setItem("order", newOrderValue);
-      navigate(`/upload?type=birthday&time=${timeInMinutes}&price=0&free=true`);
+      navigate(`/upload?type=birthday&time=${timeSeconds}&price=0&free=true`);
     } else {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());
-      const newOrderValue = JSON.stringify({ type, time: timeInMinutes, price: priceNum });
+      const newOrderValue = JSON.stringify({ type, time: timeSeconds, price: priceNum });
       localStorage.setItem("order", newOrderValue);
       const freeParam = priceNum === 0 ? "&free=true" : "";
-      navigate(`/upload?type=${encodeURIComponent(type)}&time=${timeInMinutes}&price=${priceNum}${freeParam}`);
+      navigate(`/upload?type=${encodeURIComponent(type)}&time=${timeSeconds}&price=${priceNum}${freeParam}`);
     }
 
     setIsProcessing(false);

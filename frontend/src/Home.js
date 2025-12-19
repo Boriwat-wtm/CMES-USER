@@ -183,9 +183,9 @@ function Home() {
   useEffect(() => {
     if (!order || order === "#" || order.type === "gift") return;
     const endTime = new Date(localStorage.getItem("endTime"));
-    const timeDuration = parseInt(order.time, 10);
+    const timeDuration = parseInt(order.time, 10); // วินาที
     if (!isNaN(endTime.getTime()) && !isNaN(timeDuration)) {
-      const startTimeValue = new Date(endTime.getTime() - timeDuration * 60000);
+      const startTimeValue = new Date(endTime.getTime() - timeDuration * 1000); // คูณด้วย 1000 (มิลลิวินาที)
       const startHours = startTimeValue.getHours().toString().padStart(2, "0");
       const startMinutes = startTimeValue.getMinutes().toString().padStart(2, "0");
       const endHours = endTime.getHours().toString().padStart(2, "0");
@@ -879,19 +879,19 @@ function Home() {
                           รอตรวจสอบ
                         </span>
                       </div>
-                    ) : orderStatus?.status === 'playing' && orderStatus?.order?.remainingMinutes !== undefined ? (
+                    ) : orderStatus?.status === 'playing' && orderStatus?.order?.remainingSeconds !== undefined ? (
                       <div className="summary-item">
                         <span className="item-label">เวลาคงเหลือ:</span>
                         <span className="item-value" style={{ color: '#0ea5e9', fontWeight: '600' }}>
-                          {orderStatus.order.remainingMinutes} นาที
+                          {orderStatus.order.remainingSeconds} วินาที
                         </span>
                       </div>
                     ) : (
                       <>
-                        {orderStatus?.order?.estimatedWaitMinutes !== undefined && (
+                        {orderStatus?.order?.estimatedWaitSeconds !== undefined && (
                           <div className="summary-item">
                             <span className="item-label">เวลารอประมาณ:</span>
-                            <span className="item-value">{orderStatus.order.estimatedWaitMinutes} นาที</span>
+                            <span className="item-value">{orderStatus.order.estimatedWaitSeconds} วินาที</span>
                           </div>
                         )}
                         

@@ -240,7 +240,7 @@ function Payment() {
                     </div>
                     <div className="summary-item">
                       <span className="item-label">ระยะเวลา:</span>
-                      <span className="item-value">{time} นาที</span>
+                      <span className="item-value">{time} วินาที</span>
                     </div>
                     <div className="summary-item total-item">
                       <span className="item-label">ยอดรวม:</span>
