@@ -37,13 +37,12 @@ function Home() {
   const [showModal, setShowModal] = useState(false);
   const [showPerkModal, setShowPerkModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [order, setOrder] = useState(null);
-  const [orders, setOrders] = useState([]); // เก็บหลาย orders
-  const [selectedOrderIndex, setSelectedOrderIndex] = useState(0); // order ที่กำลังดู
-  const [orderStatus, setOrderStatus] = useState(null);
+  // State for multiple orders
+  const [orders, setOrders] = useState([]);
+  const [ordersStatus, setOrdersStatus] = useState({}); // Map { orderId: statusObj }
+
+  // Restore missing state
   const [statusLoading, setStatusLoading] = useState(false);
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [profileImage, setProfileImage] = useState(null);
   const [alertMessage, setAlertMessage] = useState("");
@@ -60,22 +59,62 @@ function Home() {
   const [rankError, setRankError] = useState("");
   const socketRef = useRef(null);
 
-  const fetchOrderStatus = async (orderId) => {
-    if (!orderId) return;
+  const fetchAllOrderStatuses = async (currentOrders) => {
+    if (!currentOrders || currentOrders.length === 0) return;
     setStatusLoading(true);
-    try {
-      const response = await fetch(`http://localhost:5001/api/order-status/${orderId}`);
-      const data = await response.json();
-      if (data.success) {
-        setOrderStatus(data);
-      } else {
-        setOrderStatus({ success: false, statusText: 'ไม่พบคำสั่งซื้อ' });
+
+    const newStatuses = {};
+
+    // Fetch parallel
+    await Promise.all(currentOrders.map(async (ord) => {
+      if (!ord.orderId) return;
+      try {
+        const response = await fetch(`http://localhost:5001/api/order-status/${ord.orderId}`);
+        const data = await response.json();
+        if (data.success) {
+          newStatuses[ord.orderId] = data;
+        } else {
+          newStatuses[ord.orderId] = { success: false, statusText: 'ไม่พบคำสั่งซื้อ (อาจถูกลบ)' };
+        }
+      } catch (err) {
+        console.error(`[Home] Error fetching status for ${ord.orderId}:`, err);
+        newStatuses[ord.orderId] = { success: false, statusText: 'เกิดข้อผิดพลาด' };
       }
-    } catch (error) {
-      console.error('[Home] Error fetching order status:', error);
-      setOrderStatus({ success: false, statusText: 'เกิดข้อผิดพลาด' });
-    } finally {
-      setStatusLoading(false);
+    }));
+
+    setOrdersStatus(prev => ({ ...prev, ...newStatuses }));
+    setStatusLoading(false);
+  };
+
+  const loadOrders = () => {
+    try {
+      // Priority 1: 'orders' array
+      const storedOrders = localStorage.getItem("orders");
+      if (storedOrders) {
+        let parsed = JSON.parse(storedOrders);
+        if (Array.isArray(parsed)) {
+          // Sort newest first if they have timestamp? Or just assume push order (oldest first).
+          // Let's reverse to show newest first
+          parsed.reverse();
+          setOrders(parsed);
+          fetchAllOrderStatuses(parsed);
+          return;
+        }
+      }
+
+      // Priority 2: Fallback to single 'order'
+      const storedOrder = localStorage.getItem("order");
+      if (storedOrder) {
+        const parsed = JSON.parse(storedOrder);
+        const singleList = [parsed];
+        setOrders(singleList);
+        fetchAllOrderStatuses(singleList);
+      } else {
+        setOrders([]);
+      }
+
+    } catch (err) {
+      console.warn("[Home] Error loading orders:", err);
     }
   };
 
@@ -89,21 +128,8 @@ function Home() {
     setIsLoggedIn(!!token);
     setProfileImage(getValidAvatar());
 
-    // 🔥 ดึงข้อมูล order จาก localStorage หลังจ่ายเงินสำเร็จ
-    const storedOrder = localStorage.getItem("order");
-    if (storedOrder) {
-      try {
-        const parsedOrder = JSON.parse(storedOrder);
-        console.log("[Home] Loaded order from localStorage:", parsedOrder);
-        setOrder(parsedOrder);
-        // ดึงสถานะของ order ทันทีเมื่อโหลด
-        if (parsedOrder.orderId) {
-          fetchOrderStatus(parsedOrder.orderId);
-        }
-      } catch (err) {
-        console.warn("[Home] Cannot parse order:", err);
-      }
-    }
+    // Load orders
+    loadOrders();
 
     const fetchUserProfile = async () => {
       if (!token) return;
@@ -132,44 +158,18 @@ function Home() {
     };
     fetchUserProfile();
 
-    // Listen for storage changes (e.g., when coming back from Profile page or after payment)
+    // Listen for storage changes
     const handleStorageChange = () => {
       setProfileImage(getValidAvatar());
-      // 🔥 อัปเดตคำสั่งซื้อเมื่อ localStorage เปลี่ยน
-      const storedOrder = localStorage.getItem("order");
-      if (storedOrder) {
-        try {
-          const parsedOrder = JSON.parse(storedOrder);
-          setOrder(parsedOrder);
-          // ดึงสถานะใหม่เมื่อ order เปลี่ยน
-          if (parsedOrder.orderId) {
-            fetchOrderStatus(parsedOrder.orderId);
-          }
-        } catch (err) {
-          console.warn("[Home] Cannot parse order on storage change:", err);
-        }
-      }
+      loadOrders();
     };
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Also listen for focus event to refresh when returning to the page
+    // Also listen for focus event
     const handleFocus = () => {
       setProfileImage(getValidAvatar());
-      // 🔥 ดึงคำสั่งซื้อล่าสุดเมื่อกลับมาที่หน้า
-      const storedOrder = localStorage.getItem("order");
-      if (storedOrder) {
-        try {
-          const parsedOrder = JSON.parse(storedOrder);
-          setOrder(parsedOrder);
-          // ดึงสถานะใหม่เมื่อกลับมาที่หน้า
-          if (parsedOrder.orderId) {
-            fetchOrderStatus(parsedOrder.orderId);
-          }
-        } catch (err) {
-          console.warn("[Home] Cannot parse order on focus:", err);
-        }
-      }
+      loadOrders();
     };
 
     window.addEventListener("focus", handleFocus);
@@ -180,20 +180,7 @@ function Home() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!order || order === "#" || order.type === "gift") return;
-    const endTime = new Date(localStorage.getItem("endTime"));
-    const timeDuration = parseInt(order.time, 10); // วินาที
-    if (!isNaN(endTime.getTime()) && !isNaN(timeDuration)) {
-      const startTimeValue = new Date(endTime.getTime() - timeDuration * 1000); // คูณด้วย 1000 (มิลลิวินาที)
-      const startHours = startTimeValue.getHours().toString().padStart(2, "0");
-      const startMinutes = startTimeValue.getMinutes().toString().padStart(2, "0");
-      const endHours = endTime.getHours().toString().padStart(2, "0");
-      const endMinutes = endTime.getMinutes().toString().padStart(2, "0");
-      setStartTime(`${startHours}:${startMinutes}`);
-      setEndTime(`${endHours}:${endMinutes}`);
-    }
-  }, [order]);
+
 
   useEffect(() => {
     const socketInstance = io("http://localhost:4005");
@@ -296,17 +283,16 @@ function Home() {
 
   const handleSelect = (type) => navigate(`/select?type=${type}`);
   const handleGift = () => navigate("/gift");
-  
+
   const handleCheckStatus = () => {
     setShowModal(true);
-    if (order?.orderId) {
-      fetchOrderStatus(order.orderId);
+    if (orders.length > 0) {
+      fetchAllOrderStatuses(orders);
     }
   };
-  
+
   const handleCloseModal = () => {
     setShowModal(false);
-    setOrderStatus(null);
   };
   const handleLogout = () => {
     localStorage.clear();
@@ -748,36 +734,55 @@ function Home() {
               </div>
 
               <div className="status-content">
-                {order ? (
-                  <div className="order-info">
-                    <div className="queue-number">
-                      <span className="queue-label">สถานะ</span>
-                      <span className="queue-value" style={{
-                        background: orderStatus?.status === 'rejected' ? '#fee2e2' : 
-                                   orderStatus?.status === 'pending' ? '#fef3c7' :
-                                   orderStatus?.status === 'playing' ? '#e0f2fe' :
-                                   orderStatus?.status === 'approved' ? '#dbeafe' : 
-                                   orderStatus?.status === 'completed' ? '#d1fae5' : '#f3f4f6',
-                        color: orderStatus?.status === 'rejected' ? '#ef4444' : 
-                               orderStatus?.status === 'pending' ? '#f59e0b' :
-                               orderStatus?.status === 'playing' ? '#0ea5e9' :
-                               orderStatus?.status === 'approved' ? '#3b82f6' : 
-                               orderStatus?.status === 'completed' ? '#10b981' : '#6b7280',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        fontSize: '16px',
-                        fontWeight: '600'
-                      }}>
-                        {orderStatus?.statusText || 'ไม่มีคำสั่งซื้อ'}
-                      </span>
-                    </div>
-                    <div className="order-details">
-                      <span className="order-type">{getOrderTypeLabel(order.type)}</span>
-                      {order.type === "gift" && (
-                        <span className="order-type">โต๊ะ #{order.tableNumber}</span>
-                      )}
-                    </div>
+                {orders.length > 0 ? (
+                  <div className="orders-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {orders.slice(0, 3).map((ord) => {
+                      const stat = ordersStatus[ord.orderId];
+                      return (
+                        <div key={ord.orderId || Math.random()} className="order-item-compact" style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px',
+                          background: '#f8fafc',
+                          borderRadius: '12px',
+                          border: '1px solid #f1f5f9'
+                        }}>
+                          <div className="order-details" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                            <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>{getOrderTypeLabel(ord.type)}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>
+                              {ord.type === "gift" ? `โต๊ะ #${ord.tableNumber}` : `฿${ord.price}`}
+                            </div>
+                          </div>
+                          <div className="queue-number">
+                            <span className="queue-value" style={{
+                              background: stat?.status === 'rejected' ? '#fee2e2' :
+                                stat?.status === 'pending' ? '#fef3c7' :
+                                  stat?.status === 'playing' ? '#e0f2fe' :
+                                    stat?.status === 'approved' ? '#dbeafe' :
+                                      stat?.status === 'completed' ? '#d1fae5' : '#f3f4f6',
+                              color: stat?.status === 'rejected' ? '#ef4444' :
+                                stat?.status === 'pending' ? '#f59e0b' :
+                                  stat?.status === 'playing' ? '#0ea5e9' :
+                                    stat?.status === 'approved' ? '#3b82f6' :
+                                      stat?.status === 'completed' ? '#10b981' : '#6b7280',
+                              border: 'none',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              {stat?.statusText || '...'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {orders.length > 3 && (
+                      <div style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
+                        +{orders.length - 3} รายการอื่นๆ
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="no-order">
@@ -827,111 +832,119 @@ function Home() {
                     <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
                     <p>กำลังตรวจสอบสถานะ...</p>
                   </div>
-                ) : order ? (
-                  <div className="order-summary">
-                    {/* สถานะออเดอร์ */}
-                    {orderStatus && (
-                      <div className="summary-item" style={{
-                        background: orderStatus.status === 'rejected' ? '#fee2e2' : 
-                                   orderStatus.status === 'pending' ? '#fef3c7' :
-                                   orderStatus.status === 'playing' ? '#e0f2fe' :
-                                   orderStatus.status === 'approved' ? '#dbeafe' : 
-                                   orderStatus.status === 'completed' ? '#d1fae5' : '#f3f4f6',
-                        padding: '16px',
-                        borderRadius: '12px',
-                        marginBottom: '16px',
-                        borderLeft: `4px solid ${
-                          orderStatus.status === 'rejected' ? '#ef4444' : 
-                          orderStatus.status === 'pending' ? '#f59e0b' :
-                          orderStatus.status === 'playing' ? '#0ea5e9' :
-                          orderStatus.status === 'approved' ? '#3b82f6' : 
-                          orderStatus.status === 'completed' ? '#10b981' : '#6b7280'
-                        }`
-                      }}>
-                        <span className="item-label" style={{ fontWeight: '700', fontSize: '16px' }}>สถานะ:</span>
-                        <span className="item-value" style={{ 
-                          fontWeight: '700', 
-                          fontSize: '16px',
-                          color: orderStatus.status === 'rejected' ? '#ef4444' : 
-                                 orderStatus.status === 'pending' ? '#f59e0b' :
-                                 orderStatus.status === 'playing' ? '#0ea5e9' :
-                                 orderStatus.status === 'approved' ? '#3b82f6' : 
-                                 orderStatus.status === 'completed' ? '#10b981' : '#6b7280'
-                        }}>
-                          {orderStatus.statusText}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {/* ตำแหน่งคิว */}
-                    {orderStatus?.order?.queuePosition && (
-                      <div className="summary-item">
-                        <span className="item-label">ตำแหน่งคิว:</span>
-                        <span className="item-value queue-highlight">#{orderStatus.order.queuePosition} / {orderStatus.order.totalQueue}</span>
-                      </div>
-                    )}
-                    
-                    {/* เวลาประมาณการ */}
-                    {orderStatus?.order?.waitingForApproval ? (
-                      <div className="summary-item">
-                        <span className="item-label">เวลาแสดงโดยประมาณ:</span>
-                        <span className="item-value" style={{ color: '#f59e0b', fontWeight: '600' }}>
-                          รอตรวจสอบ
-                        </span>
-                      </div>
-                    ) : orderStatus?.status === 'playing' && orderStatus?.order?.remainingSeconds !== undefined ? (
-                      <div className="summary-item">
-                        <span className="item-label">เวลาคงเหลือ:</span>
-                        <span className="item-value" style={{ color: '#0ea5e9', fontWeight: '600' }}>
-                          {orderStatus.order.remainingSeconds} วินาที
-                        </span>
-                      </div>
-                    ) : (
-                      <>
-                        {orderStatus?.order?.estimatedWaitSeconds !== undefined && (
+                ) : orders.length > 0 ? (
+                  <div className="order-summary-list" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                    {orders.map((ord, index) => {
+                      const stat = ordersStatus[ord.orderId];
+                      return (
+                        <div key={ord.orderId || index} className="order-summary-card" style={{ borderBottom: index < orders.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: index < orders.length - 1 ? '24px' : '0' }}>
+                          <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#64748b' }}>รายการที่ {orders.length - index}</h4>
+
+                          {/* สถานะออเดอร์ */}
+                          {stat && (
+                            <div className="summary-item" style={{
+                              background: stat.status === 'rejected' ? '#fee2e2' :
+                                stat.status === 'pending' ? '#fef3c7' :
+                                  stat.status === 'playing' ? '#e0f2fe' :
+                                    stat.status === 'approved' ? '#dbeafe' :
+                                      stat.status === 'completed' ? '#d1fae5' : '#f3f4f6',
+                              padding: '16px',
+                              borderRadius: '12px',
+                              marginBottom: '16px',
+                              borderLeft: `4px solid ${stat.status === 'rejected' ? '#ef4444' :
+                                stat.status === 'pending' ? '#f59e0b' :
+                                  stat.status === 'playing' ? '#0ea5e9' :
+                                    stat.status === 'approved' ? '#3b82f6' :
+                                      stat.status === 'completed' ? '#10b981' : '#6b7280'
+                                }`
+                            }}>
+                              <span className="item-label" style={{ fontWeight: '700', fontSize: '16px' }}>สถานะ:</span>
+                              <span className="item-value" style={{
+                                fontWeight: '700',
+                                fontSize: '16px',
+                                color: stat.status === 'rejected' ? '#ef4444' :
+                                  stat.status === 'pending' ? '#f59e0b' :
+                                    stat.status === 'playing' ? '#0ea5e9' :
+                                      stat.status === 'approved' ? '#3b82f6' :
+                                        stat.status === 'completed' ? '#10b981' : '#6b7280'
+                              }}>
+                                {stat.statusText}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* ตำแหน่งคิว */}
+                          {stat?.order?.queuePosition && (
+                            <div className="summary-item">
+                              <span className="item-label">ตำแหน่งคิว:</span>
+                              <span className="item-value queue-highlight">#{stat.order.queuePosition} / {stat.order.totalQueue}</span>
+                            </div>
+                          )}
+
+                          {/* เวลาประมาณการ */}
+                          {stat?.order?.waitingForApproval ? (
+                            <div className="summary-item">
+                              <span className="item-label">เวลาแสดงโดยประมาณ:</span>
+                              <span className="item-value" style={{ color: '#f59e0b', fontWeight: '600' }}>
+                                รอตรวจสอบ
+                              </span>
+                            </div>
+                          ) : stat?.status === 'playing' && stat?.order?.remainingSeconds !== undefined ? (
+                            <div className="summary-item">
+                              <span className="item-label">เวลาคงเหลือ:</span>
+                              <span className="item-value" style={{ color: '#0ea5e9', fontWeight: '600' }}>
+                                {stat.order.remainingSeconds} วินาที
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              {stat?.order?.estimatedWaitSeconds !== undefined && (
+                                <div className="summary-item">
+                                  <span className="item-label">เวลารอประมาณ:</span>
+                                  <span className="item-value">{stat.order.estimatedWaitSeconds} วินาที</span>
+                                </div>
+                              )}
+
+                              {stat?.order?.estimatedStartTime && (
+                                <div className="summary-item">
+                                  <span className="item-label">เวลาแสดงโดยประมาณ:</span>
+                                  <span className="item-value">
+                                    {new Date(stat.order.estimatedStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                    {' - '}
+                                    {new Date(stat.order.estimatedEndTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+
                           <div className="summary-item">
-                            <span className="item-label">เวลารอประมาณ:</span>
-                            <span className="item-value">{orderStatus.order.estimatedWaitSeconds} วินาที</span>
+                            <span className="item-label">ประเภท:</span>
+                            <span className="item-value">{getOrderTypeLabel(ord.type, { includeEmoji: false })}</span>
                           </div>
-                        )}
-                        
-                        {orderStatus?.order?.estimatedStartTime && (
+                          {ord.type === "gift" ? (
+                            <>
+                              <div className="summary-item">
+                                <span className="item-label">โต๊ะ:</span>
+                                <span className="item-value">#{ord.tableNumber}</span>
+                              </div>
+                              {ord.giftItems && ord.giftItems.length > 0 && (
+                                <div className="summary-item">
+                                  <span className="item-label">รายการ:</span>
+                                  <span className="item-value gift-items-value">
+                                    {ord.giftItems.map((item) => `${item.name} x${item.quantity}`).join(", ")}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : null}
                           <div className="summary-item">
-                            <span className="item-label">เวลาแสดงโดยประมาณ:</span>
-                            <span className="item-value">
-                              {new Date(orderStatus.order.estimatedStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                              {' - '}
-                              {new Date(orderStatus.order.estimatedEndTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-                            </span>
+                            <span className="item-label">ราคา:</span>
+                            <span className="item-value price-highlight">฿{ord.price}</span>
                           </div>
-                        )}
-                      </>
-                    )}
-                    
-                    <div className="summary-item">
-                      <span className="item-label">ประเภท:</span>
-                      <span className="item-value">{getOrderTypeLabel(order.type, { includeEmoji: false })}</span>
-                    </div>
-                    {order.type === "gift" ? (
-                      <>
-                        <div className="summary-item">
-                          <span className="item-label">โต๊ะ:</span>
-                          <span className="item-value">#{order.tableNumber}</span>
                         </div>
-                        {order.giftItems && order.giftItems.length > 0 && (
-                          <div className="summary-item">
-                            <span className="item-label">รายการ:</span>
-                            <span className="item-value gift-items-value">
-                              {order.giftItems.map((item) => `${item.name} x${item.quantity}`).join(", ")}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    ) : null}
-                    <div className="summary-item">
-                      <span className="item-label">ราคา:</span>
-                      <span className="item-value price-highlight">฿{order.price}</span>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="no-order-modal">
