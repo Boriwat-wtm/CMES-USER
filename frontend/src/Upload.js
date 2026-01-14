@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; 
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Upload.css";
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";
@@ -11,7 +11,7 @@ function Upload() {
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type");
-  const time = parseInt(queryParams.get("time")); 
+  const time = parseInt(queryParams.get("time"));
   const price = queryParams.get("price");
   const isFree = queryParams.get("free") === "true";
 
@@ -24,6 +24,7 @@ function Upload() {
   const [selectedSocial, setSelectedSocial] = useState(""); // social ที่เลือก
   const [socialName, setSocialName] = useState(""); // ชื่อ social
   const [actualType, setActualType] = useState(type); // เพื่อเก็บ type จริง (birthday หรือ image/text)
+  const [qrCodeFile, setQrCodeFile] = useState(null); // QR Code file
 
   const MAX_TEXT_LENGTH = 36;
 
@@ -40,7 +41,7 @@ function Upload() {
           setSocialName(data.socialName || "");
           // *** ไม่ต้อง setImage(data.image) ***
         }
-      } catch {}
+      } catch { }
     }
 
     // ดึง actual type จาก order (set โดย Select.js)
@@ -101,6 +102,18 @@ function Upload() {
     }
   };
 
+  const handleQRCodeChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setAlertMessage("QR Code ต้องไม่เกิน 2MB");
+        return;
+      }
+      setQrCodeFile(file);
+      setAlertMessage("");
+    }
+  };
+
   // โหลดรูปจาก localStorage (base64) ตอน mount
   useEffect(() => {
     const saved = localStorage.getItem("uploadFormImage");
@@ -140,144 +153,149 @@ function Upload() {
   // สร้างข้อความ socialText และ socialOnImage ใหม่
   const socialText = selectedSocial && socialName
     ? (() => {
-        switch (selectedSocial) {
-          case "ig": return `IG: ${socialName}`;
-          case "fb": return `Facebook: ${socialName}`;
-          case "line": return `Line: ${socialName}`;
-          case "tiktok": return `Tiktok: ${socialName}`;
-          default: return "";
-        }
-      })()
+      switch (selectedSocial) {
+        case "ig": return `IG: ${socialName}`;
+        case "fb": return `Facebook: ${socialName}`;
+        case "line": return `Line: ${socialName}`;
+        case "tiktok": return `Tiktok: ${socialName}`;
+        default: return "";
+      }
+    })()
     : "";
 
   const socialOnImage = selectedSocial && socialName
     ? (() => {
-        const logoMap = {
-          ig: igLogo,
-          fb: fbLogo,
-          line: lineLogo,
-          tiktok: tiktokLogo
-        };
-        
-        const logoSrc = logoMap[selectedSocial];
-        if (!logoSrc) return null;
-        
-        return (
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <img 
-              src={logoSrc} 
-              alt={selectedSocial.toUpperCase()} 
-              style={{ width: "22px", height: "22px", objectFit: "contain" }} 
-            />
-            <span style={{ 
-              fontWeight: "700", 
-              fontSize: "20px",
-              textShadow: "0 2px 6px rgba(0,0,0,0.8)"
-            }}>{socialName}</span>
-          </span>
-        );
-      })()
+      const logoMap = {
+        ig: igLogo,
+        fb: fbLogo,
+        line: lineLogo,
+        tiktok: tiktokLogo
+      };
+
+      const logoSrc = logoMap[selectedSocial];
+      if (!logoSrc) return null;
+
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <img
+            src={logoSrc}
+            alt={selectedSocial.toUpperCase()}
+            style={{ width: "22px", height: "22px", objectFit: "contain" }}
+          />
+          <span style={{
+            fontWeight: "700",
+            fontSize: "20px",
+            textShadow: "0 2px 6px rgba(0,0,0,0.8)"
+          }}>{socialName}</span>
+        </span>
+      );
+    })()
     : null;
 
   const handleAccept = async () => {
     console.log("[Upload] handleAccept called, type:", type, "actualType:", actualType, "isFree:", isFree);
-    
+
     if ((type === "image" || type === "birthday") && image) {
-      generateFinalImage(image, text, textColor, selectedSocial, socialName, async (finalBlob) => {
-          const formData = new FormData();
-          formData.append("file", finalBlob, "final.png");
-          // ส่ง actualType ไปแทน type
-          formData.append("type", actualType || "image");
-          formData.append("time", time || "60"); // ถ้าไม่มี time ให้ใช้ 60 วินาที
-          formData.append("price", isFree ? "0" : (price || "1")); // ถ้าเป็น free ให้ราคาเป็น 0
-          formData.append("textColor", textColor);
-          formData.append("text", text);
-          formData.append("socialType", selectedSocial);
-          formData.append("socialName", socialName);
-          formData.append("composed", "1");
+      // ไม่ composite ข้อความลงรูปอีกต่อไป - ส่งรูปต้นฉบับ
+      const formData = new FormData();
+      formData.append("file", image); // ส่งรูปต้นฉบับ
 
-        let sender = "Unknown";
-        let userId = null;
-        let email = null;
-        let avatar = null;
-        
-        const user = localStorage.getItem("user");
-        if (user) {
-          try {
-            const userObj = JSON.parse(user);
-            sender = userObj.name || userObj.username || "Unknown";
-            userId = userObj.id || null;
-            email = userObj.email || null;
-            avatar = userObj.avatar || null;
-            console.log("[Upload] User data: userId=", userId, "email=", email);
-          } catch (err) {
-            console.warn("[Upload] Cannot parse user data:", err);
-            sender = "Unknown";
-          }
-        }
-        formData.append("sender", sender);
-        if (userId) formData.append("userId", userId);
-        if (email) formData.append("email", email);
-        if (avatar) formData.append("avatar", avatar);
+      // ส่ง QR Code ถ้ามี
+      if (qrCodeFile) {
+        formData.append("qrCode", qrCodeFile);
+      }
 
+      // ส่ง actualType ไปแทน type
+      formData.append("type", actualType || "image");
+      formData.append("time", time || "60");
+      formData.append("price", isFree ? "0" : (price || "1"));
+      formData.append("textColor", textColor);
+      formData.append("text", text);
+      formData.append("socialType", selectedSocial);
+      formData.append("socialName", socialName);
+      formData.append("composed", "0"); // ไม่ใช่ composed อีกต่อไป
+
+      let sender = "Unknown";
+      let userId = null;
+      let email = null;
+      let avatar = null;
+
+      const user = localStorage.getItem("user");
+      if (user) {
         try {
-          console.log("[Upload] Uploading with type:", actualType, "to Admin backend");
-          const response = await fetch("http://localhost:5001/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            console.log("[Upload] Upload success:", result);
-            localStorage.setItem('pendingUploadId', result.uploadId);
-            setShowPreviewModal(false);
-            if (isFree) {
-              // ถ้าเป็นการใช้งานฟรี บันทึก order แล้วไปที่หน้าสถานะทันที
-              const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
-              localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
-              
-              const newOrder = {
-                type: actualType || type,
-                time: time,
-                price: 0,
-                queueNumber: currentQueueNumber,
-                orderId: result.uploadId
-              };
-              
-              // เก็บ orders เป็น array
-              const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-              existingOrders.push(newOrder);
-              localStorage.setItem("orders", JSON.stringify(existingOrders));
-              // เก็บ order ล่าสุดไว้ด้วย
-              localStorage.setItem("order", JSON.stringify(newOrder));
-              
-              localStorage.removeItem("pendingUploadId");
-              localStorage.removeItem("uploadFormDraft");
-              localStorage.removeItem("uploadFormImage");
-              
-              navigate("/home");
-            } else {
-              // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
-              navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${actualType}&time=${time}`);
-            }
-          } else {
-            const errText = await response.text();
-            console.error("[Upload] Upload failed:", response.status, errText);
-            throw new Error(`Upload failed: ${response.status} ${errText}`);
-          }
-        } catch (error) {
-          console.error('[Upload] Error uploading:', error);
-          setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
+          const userObj = JSON.parse(user);
+          sender = userObj.name || userObj.username || "Unknown";
+          userId = userObj.id || null;
+          email = userObj.email || null;
+          avatar = userObj.avatar || null;
+          console.log("[Upload] User data: userId=", userId, "email=", email);
+        } catch (err) {
+          console.warn("[Upload] Cannot parse user data:", err);
+          sender = "Unknown";
         }
-      });
+      }
+      formData.append("sender", sender);
+      if (userId) formData.append("userId", userId);
+      if (email) formData.append("email", email);
+      if (avatar) formData.append("avatar", avatar);
+
+      try {
+        console.log("[Upload] Uploading with type:", actualType, "to Admin backend");
+        const response = await fetch("http://localhost:5001/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log("[Upload] Upload success:", result);
+          localStorage.setItem('pendingUploadId', result.uploadId);
+          setShowPreviewModal(false);
+          if (isFree) {
+            // ถ้าเป็นการใช้งานฟรี บันทึก order แล้วไปที่หน้าสถานะทันที
+            const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
+            localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
+
+            const newOrder = {
+              type: actualType || type,
+              time: time,
+              price: 0,
+              queueNumber: currentQueueNumber,
+              orderId: result.uploadId
+            };
+
+            // เก็บ orders เป็น array
+            const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+            existingOrders.push(newOrder);
+            localStorage.setItem("orders", JSON.stringify(existingOrders));
+            // เก็บ order ล่าสุดไว้ด้วย
+            localStorage.setItem("order", JSON.stringify(newOrder));
+
+            localStorage.removeItem("pendingUploadId");
+            localStorage.removeItem("uploadFormDraft");
+            localStorage.removeItem("uploadFormImage");
+
+            navigate("/home");
+          } else {
+            // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
+            navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${actualType}&time=${time}`);
+          }
+        } else {
+          const errText = await response.text();
+          console.error("[Upload] Upload failed:", response.status, errText);
+          throw new Error(`Upload failed: ${response.status} ${errText}`);
+        }
+      } catch (error) {
+        console.error('[Upload] Error uploading:', error);
+        setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
+      }
     } else if (type === "text") {
       // เตรียมข้อมูลสำหรับส่งข้อความ
       let sender = "Unknown";
       let userId = null;
       let email = null;
       let avatar = null;
-      
+
       const user = localStorage.getItem("user");
       if (user) {
         try {
@@ -415,10 +433,10 @@ function Upload() {
           logoImg.onload = () => {
             // ตั้งค่าฟอนต์สำหรับ social name
             ctx.font = `700 ${socialFontSize}px Prompt, Kanit, sans-serif`;
-            
+
             const textWidth = ctx.measureText(socialName).width;
             const totalWidth = logoSize + padding + textWidth;
-            
+
             // คำนวณตำแหน่งให้อยู่กลางด้านบน
             const startX = (canvas.width - totalWidth) / 2;
             const socialY = socialCenterY ?? centerY;
@@ -473,7 +491,7 @@ function Upload() {
         <header className="upload-header">
           <button className="back-btn" onClick={handleGoBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
           <h1>สร้างเนื้อหา</h1>
@@ -486,8 +504,8 @@ function Upload() {
               <div className="package-detail">
                 <span className="label">ประเภท:</span>
                 <span className="value">
-                  {type === "image" ? "รูปภาพ + ข้อความ" : 
-                   type === "birthday" ? "🎂 อวยพรวันเกิด" : "ข้อความ"}
+                  {type === "image" ? "รูปภาพ + ข้อความ" :
+                    type === "birthday" ? "🎂 อวยพรวันเกิด" : "ข้อความ"}
                 </span>
               </div>
               <div className="package-detail">
@@ -504,9 +522,9 @@ function Upload() {
               <div className="upload-section">
                 <h3>อัปโหลดรูปภาพ</h3>
                 <div className="file-upload-container">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    accept="image/*"
                     onChange={handleImageChange}
                     id="file-upload"
                     className="file-input"
@@ -515,16 +533,16 @@ function Upload() {
                     {image ? (
                       <div className="file-selected">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20 6L9 17l-5-5"/>
+                          <path d="M20 6L9 17l-5-5" />
                         </svg>
                         <span>เลือกไฟล์แล้ว: {image.name}</span>
                       </div>
                     ) : (
                       <div className="file-placeholder">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <path d="M21 15l-5-5L5 21"/>
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
                         </svg>
                         <span>คลิกเพื่อเลือกรูปภาพ</span>
                         <small>รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB</small>
@@ -534,57 +552,117 @@ function Upload() {
                 </div>
 
                 {image && (
-                  <div className="image-preview-container" style={{ position: "relative" }}>
-                    <img src={URL.createObjectURL(image)} alt="Preview" className="preview-image" />
-                    <div
-                      className="preview-overlay-center"
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        width: "90%",
-                        zIndex: 2,
-                        textAlign: "center",
-                        pointerEvents: "none"
-                      }}
-                    >
-                      {socialOnImage && (
-                        <div className="preview-social-overlay" style={{
-                          marginBottom: "8px",
-                          color: "#fff",
-                          padding: "6px 16px",
-                          borderRadius: "8px",
-                          fontWeight: "700",
-                          fontSize: "20px",
-                          textShadow: "0 2px 8px rgba(0,0,0,0.8)",
-                          maxWidth: "100%",
-                          wordBreak: "break-all"
-                        }}>
-                          {socialOnImage}
-                        </div>
-                      )}
-                      <div
-                        className="preview-text-overlay"
-                        style={{
-                          color: textColor,
-                          borderRadius: "8px",
-                          padding: "6px 16px",
-                          fontWeight: "400",
-                          fontSize: "18px",
-                          textShadow: textColor === "white"
-                            ? "0 2px 8px rgba(0,0,0,0.8)"
-                            : "0 2px 8px rgba(255,255,255,0.8)",
-                          maxWidth: "100%",
-                          wordBreak: "break-all"
-                        }}
-                      >
-                        {text}
-                      </div>
+                  <div style={{ display: 'flex', gap: '20px', marginTop: '12px', alignItems: 'flex-start' }}>
+                    {/* รูปภาพด้านซ้าย */}
+                    <div style={{ flex: '0 0 auto', maxWidth: '400px' }}>
+                      <img src={URL.createObjectURL(image)} alt="Preview" className="preview-image" style={{ width: '100%', borderRadius: '8px' }} />
                     </div>
+
+                    {/* ข้อความและ QR Code ด้านขวา */}
+                    {(text || socialOnImage || qrCodeFile) && (
+                      <div style={{
+                        flex: '1',
+                        background: 'rgba(0, 0, 0, 0.6)',
+                        padding: '20px',
+                        borderRadius: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        alignItems: 'center',
+                        minWidth: '200px'
+                      }}>
+                        {/* Social */}
+                        {socialOnImage && (
+                          <div style={{
+                            color: '#fff',
+                            fontWeight: '700',
+                            fontSize: '20px',
+                            textShadow: '0 2px 8px rgba(0,0,0,0.8)'
+                          }}>
+                            {socialOnImage}
+                          </div>
+                        )}
+
+                        {/* Text */}
+                        {text && (
+                          <div style={{
+                            color: textColor,
+                            fontWeight: '400',
+                            fontSize: '18px',
+                            textShadow: textColor === 'white' ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)',
+                            textAlign: 'center',
+                            wordBreak: 'break-word'
+                          }}>
+                            {text}
+                          </div>
+                        )}
+
+                        {/* QR Code */}
+                        {qrCodeFile && (
+                          <div style={{ marginTop: '8px' }}>
+                            <img
+                              src={URL.createObjectURL(qrCodeFile)}
+                              alt="QR Code Preview"
+                              style={{
+                                width: '120px',
+                                height: '120px',
+                                borderRadius: '12px',
+                                background: 'white',
+                                padding: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* QR Code Upload Section for IG */}
+            {selectedSocial === "ig" && (type === "image" || type === "birthday") && (
+              <div className="upload-section">
+                <h3>QR Code Instagram (ไม่บังคับ)</h3>
+                <div className="file-upload-container">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQRCodeChange}
+                    id="qrcode-upload"
+                    className="file-input"
+                  />
+                  <label htmlFor="qrcode-upload" className="file-upload-label">
+                    {qrCodeFile ? (
+                      <div className="file-selected">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                        <span>QR Code: {qrCodeFile.name}</span>
+                      </div>
+                    ) : (
+                      <div className="file-placeholder">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                        <span>คลิกเพื่อเลือก QR Code</span>
+                        <small>ไม่บังคับ - ขนาดไม่เกิน 2MB</small>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                {qrCodeFile && (
+                  <div className="qr-preview">
+                    <img src={URL.createObjectURL(qrCodeFile)} alt="QR Code Preview" style={{
+                      maxWidth: "300px",
+                      maxHeight: "300px",
+                      borderRadius: "8px",
+                      marginTop: "12px"
+                    }} />
                   </div>
                 )}
               </div>
@@ -653,9 +731,9 @@ function Upload() {
                   className="social-input"
                   placeholder={
                     selectedSocial === "ig" ? "ชื่อ IG" :
-                    selectedSocial === "fb" ? "ชื่อ Facebook" :
-                    selectedSocial === "line" ? "ชื่อ Line" :
-                    selectedSocial === "tiktok" ? "ชื่อ Tiktok" : "ชื่อช่องทาง"
+                      selectedSocial === "fb" ? "ชื่อ Facebook" :
+                        selectedSocial === "line" ? "ชื่อ Line" :
+                          selectedSocial === "tiktok" ? "ชื่อ Tiktok" : "ชื่อช่องทาง"
                   }
                   maxLength={32}
                   value={socialName}
@@ -721,9 +799,9 @@ function Upload() {
             {alertMessage && (
               <div className="alert-message">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
                 {alertMessage}
               </div>
@@ -732,16 +810,16 @@ function Upload() {
             <div className="action-buttons">
               <button className="secondary-btn" onClick={handleShowModal}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M9,9h6a3,3,0,0,1,0,6H9"/>
-                  <path d="M9,15V9"/>
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M9,9h6a3,3,0,0,1,0,6H9" />
+                  <path d="M9,15V9" />
                 </svg>
                 ข้อกำหนด
               </button>
               <button className="primary-btn" onClick={handleUpload}>
                 ดำเนินการต่อ
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                  <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
               </button>
             </div>
@@ -756,8 +834,8 @@ function Upload() {
                 <h3>ข้อกำหนดการใช้งาน</h3>
                 <button className="close-button" onClick={handleCloseModal}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -788,65 +866,90 @@ function Upload() {
                 <h3>ยืนยันเนื้อหา</h3>
                 <button className="close-button" onClick={handleEdit}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
               <div className="modal-body">
                 <div className="preview-container">
                   {(type === "image" || type === "birthday") && image && (
-                    <div className="final-preview" style={{ position: "relative" }}>
-                      <img src={URL.createObjectURL(image)} alt="Preview" className="preview-image" />
-                      <div
-                        className="preview-overlay-center"
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          left: "50%",
-                          transform: "translate(-50%, -50%)",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          width: "90%",
-                          zIndex: 2,
-                          textAlign: "center",
-                          pointerEvents: "none"
-                        }}
-                      >
-                        {socialOnImage && (
-                          <div className="preview-social-overlay" style={{
-                            marginBottom: "8px",
-                            color: "#fff",
-                            padding: "6px 16px",
-                            borderRadius: "8px",
-                            fontWeight: "700",
-                            fontSize: "20px",
-                            textShadow: "0 2px 8px rgba(0,0,0,0.8)",
-                            maxWidth: "100%",
-                            wordBreak: "break-all"
-                          }}>
-                            {socialOnImage}
-                          </div>
-                        )}
-                        <div
-                          className="preview-text-overlay"
+                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+                      {/* รูปภาพด้านซ้าย */}
+                      <div style={{ flex: '0 0 auto', maxWidth: '500px' }}>
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt="Preview"
                           style={{
-                            color: textColor,
-                            borderRadius: "8px",
-                            padding: "6px 16px",
-                            fontWeight: "400",
-                            fontSize: "18px",
-                            textShadow: textColor === "white"
-                              ? "0 2px 8px rgba(0,0,0,0.8)"
-                              : "0 2px 8px rgba(255,255,255,0.8)",
-                            maxWidth: "100%",
-                            wordBreak: "break-all"
+                            width: '100%',
+                            borderRadius: '12px',
+                            maxHeight: '60vh',
+                            objectFit: 'contain'
                           }}
-                        >
-                          {text}
-                        </div>
+                        />
                       </div>
+
+                      {/* ข้อความและ QR Code ด้านขวา */}
+                      {(text || socialOnImage || qrCodeFile) && (
+                        <div style={{
+                          flex: '1',
+                          background: 'rgba(0, 0, 0, 0.7)',
+                          padding: '24px',
+                          borderRadius: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '20px',
+                          alignItems: 'center',
+                          minWidth: '250px'
+                        }}>
+                          {/* Social */}
+                          {socialOnImage && (
+                            <div style={{
+                              color: '#fff',
+                              fontWeight: '700',
+                              fontSize: '24px',
+                              textShadow: '0 2px 8px rgba(0,0,0,0.8)'
+                            }}>
+                              {socialOnImage}
+                            </div>
+                          )}
+
+                          {/* Text */}
+                          {text && (
+                            <div style={{
+                              color: textColor,
+                              fontWeight: '400',
+                              fontSize: '20px',
+                              textShadow: textColor === 'white' ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)',
+                              textAlign: 'center',
+                              wordBreak: 'break-word'
+                            }}>
+                              {text}
+                            </div>
+                          )}
+
+                          {/* QR Code */}
+                          {qrCodeFile && (
+                            <div style={{ marginTop: '12px' }}>
+                              <div style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '8px', textAlign: 'center' }}>
+                                QR Code Instagram
+                              </div>
+                              <img
+                                src={URL.createObjectURL(qrCodeFile)}
+                                alt="QR Code Preview"
+                                style={{
+                                  width: '150px',
+                                  height: '150px',
+                                  borderRadius: '16px',
+                                  background: 'white',
+                                  padding: '12px',
+                                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                   {type === "text" && (
