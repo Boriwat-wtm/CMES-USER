@@ -418,15 +418,15 @@ function Register() {
                   disabled={isLoading}
                 />
               </div>
-                <button
-                  type="button"
-                  className="send-otp-btn"
-                  onClick={handleSendOtp}
-                  disabled={isLoading || otpCooldown > 0 || !formData.email}
-                >
-                  {otpCooldown > 0 ? `ส่งใหม่ ${otpCooldown}s` : "ยืนยันอีเมล"}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="send-otp-btn"
+                onClick={handleSendOtp}
+                disabled={isLoading || otpCooldown > 0 || !formData.email}
+              >
+                {otpCooldown > 0 ? `ส่งใหม่ ${otpCooldown}s` : "ยืนยันอีเมล"}
+              </button>
+            </div>
 
             {showOtpInput && (
               <div className="form-group">

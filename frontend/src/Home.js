@@ -57,6 +57,12 @@ function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [rankLoading, setRankLoading] = useState(true);
   const [rankError, setRankError] = useState("");
+  const [birthdayEligibility, setBirthdayEligibility] = useState({
+    eligible: false,
+    totalSpent: 0,
+    required: 100,
+    reason: "not_checked"
+  });
   const socketRef = useRef(null);
 
   const fetchAllOrderStatuses = async (currentOrders) => {
@@ -264,6 +270,48 @@ function Home() {
     setIsBirthday(day === today.getDate() && month === today.getMonth() + 1);
   }, [isLoggedIn]);
 
+  // Check birthday eligibility (spending requirement)
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setBirthdayEligibility({
+        eligible: false,
+        totalSpent: 0,
+        required: 100,
+        reason: "not_logged_in"
+      });
+      return;
+    }
+
+    const email = localStorage.getItem("email");
+    if (!email) {
+      setBirthdayEligibility({
+        eligible: false,
+        totalSpent: 0,
+        required: 100,
+        reason: "no_email"
+      });
+      return;
+    }
+
+    // Fetch eligibility from admin backend using email
+    const encodedEmail = encodeURIComponent(email);
+    fetch(`http://localhost:5001/api/birthday-eligibility/${encodedEmail}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          setBirthdayEligibility({
+            eligible: data.eligible,
+            totalSpent: data.totalSpent || 0,
+            required: data.required || 100,
+            reason: data.reason || "unknown"
+          });
+        }
+      })
+      .catch(err => {
+        console.error("[Home] Failed to check birthday eligibility:", err);
+      });
+  }, [isLoggedIn]);
+
   useEffect(() => {
     if (!showProfileMenu) return;
     const handleClickOutside = (event) => {
@@ -305,10 +353,21 @@ function Home() {
       setAlertMessage("เข้าสู่ระบบเพื่อรับสิทธิ์วันเกิดฟรี");
       return;
     }
-    if (isBirthday === false) {
-      setAlertMessage("ฟีเจอร์นี้ใช้ได้เฉพาะวันเกิดของคุณ");
+
+    // Check spending requirement first
+    if (!birthdayEligibility.eligible) {
+      const remaining = birthdayEligibility.required - birthdayEligibility.totalSpent;
+      setAlertMessage(`ต้องใช้จ่ายอีก ${remaining.toLocaleString()} บาท เพื่อปลดล็อกฟีเจอร์วันเกิด`);
       return;
     }
+
+    // Then check if it's birthday
+    if (isBirthday === false) {
+      setAlertMessage(`คุณใช้จ่ายครบแล้ว! รอถึงวันเกิดของคุณเพื่อใช้งานฟรี 🎂`);
+      return;
+    }
+
+    // If both conditions met, proceed
     if (isBirthday) navigate("/select?type=birthday");
   };
 
@@ -649,14 +708,14 @@ function Home() {
                     className="service-card birthday-service"
                     onClick={handleBirthdayCardClick}
                     style={{
-                      cursor: !isLoggedIn || isBirthday === false ? "not-allowed" : "pointer",
-                      pointerEvents: !isLoggedIn || isBirthday === false ? "none" : "auto",
+                      cursor: !isLoggedIn || isBirthday === false || !birthdayEligibility.eligible ? "not-allowed" : "pointer",
+                      pointerEvents: !isLoggedIn || isBirthday === false || !birthdayEligibility.eligible ? "none" : "auto",
                       background:
-                        !isLoggedIn || isBirthday === false
+                        !isLoggedIn || isBirthday === false || !birthdayEligibility.eligible
                           ? "linear-gradient(90deg, #cbd5e1, #94a3b8)"
                           : "linear-gradient(90deg, #fbbf24, #f472b6)",
                       color: "#fff",
-                      opacity: !isLoggedIn || isBirthday === false ? 0.7 : 1,
+                      opacity: !isLoggedIn || isBirthday === false || !birthdayEligibility.eligible ? 0.7 : 1,
                     }}
                   >
                     <div className="card-header">
@@ -673,17 +732,39 @@ function Home() {
                       <h3>อวยพรวันเกิด</h3>
                       <p>
                         อัปโหลดรูปภาพพร้อมข้อความแสดงบนหน้าจอดิจิทัล
-                        {isLoggedIn && " (ฟรีในวันเกิดของคุณ!)"}
+                        {isLoggedIn && birthdayEligibility.eligible && isBirthday && " (ฟรีในวันเกิดของคุณ!)"}
                       </p>
                       <div className="card-features">
-                        <span className="feature">🎉 สิทธิ์ฟรีสำหรับเจ้าของวันเกิด</span>
-                        <span className="feature">📸 รองรับ JPG, PNG, GIF</span>
-                        <span className="feature">💬 เพิ่มข้อความได้</span>
+                        {isLoggedIn && !birthdayEligibility.eligible ? (
+                          <>
+                            <span className="feature">💰 ใช้จ่ายแล้ว ฿{birthdayEligibility.totalSpent.toLocaleString()}</span>
+                            <span className="feature">🎯 ต้องใช้ครบ ฿{birthdayEligibility.required.toLocaleString()}</span>
+                            <span className="feature">📈 เหลืออีก ฿{(birthdayEligibility.required - birthdayEligibility.totalSpent).toLocaleString()}</span>
+                          </>
+                        ) : isLoggedIn && birthdayEligibility.eligible && !isBirthday ? (
+                          <>
+                            <span className="feature">✅ ใช้จ่ายครบแล้ว ฿{birthdayEligibility.totalSpent.toLocaleString()}</span>
+                            <span className="feature">🎂 รอวันเกิดเพื่อใช้งานฟรี</span>
+                            <span className="feature">📸 รองรับ JPG, PNG, GIF</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="feature">🎉 สิทธิ์ฟรีสำหรับเจ้าของวันเกิด</span>
+                            <span className="feature">📸 รองรับ JPG, PNG, GIF</span>
+                            <span className="feature">💬 เพิ่มข้อความได้</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="card-footer">
                       <span className="price-from">
-                        {isLoggedIn ? "ฟรีในวันเกิดของคุณ" : "เข้าสู่ระบบเพื่อรับสิทธิ์"}
+                        {!isLoggedIn
+                          ? "เข้าสู่ระบบเพื่อรับสิทธิ์"
+                          : !birthdayEligibility.eligible
+                            ? `ใช้จ่ายครบ ฿${birthdayEligibility.required.toLocaleString()} เพื่อปลดล็อก`
+                            : isBirthday
+                              ? "✨ พร้อมใช้งาน - ฟรีในวันเกิด!"
+                              : "✅ พร้อมแล้ว - รอวันเกิดของคุณ"}
                       </span>
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M5 12h14M12 5l7 7-7 7" />
