@@ -24,6 +24,8 @@ function Gift() {
 	const [giftDisabled, setGiftDisabled] = useState(false);
 	const [statusChecked, setStatusChecked] = useState(false);
 	const [giftStatusMessage, setGiftStatusMessage] = useState("");
+	const [showConfirmModal, setShowConfirmModal] = useState(false);
+	const [userAvatar, setUserAvatar] = useState(null);
 
 	useEffect(() => {
 		const storedUser = localStorage.getItem("user");
@@ -31,6 +33,12 @@ function Gift() {
 			try {
 				const parsed = JSON.parse(storedUser);
 				setSenderName(parsed.name || parsed.username || "");
+				if (parsed.avatar) {
+					const avatarUrl = parsed.avatar.startsWith('http') 
+						? parsed.avatar 
+						: `${API_BASE}${parsed.avatar}`;
+					setUserAvatar(avatarUrl);
+				}
 			} catch {
 				/* ignore */
 			}
@@ -110,8 +118,7 @@ function Gift() {
 		setQuantities({});
 	};
 
-	const handleSubmit = async () => {
-		if (submitting) return;
+	const handleSubmit = () => {
 		setErrorMessage("");
 
 		if (selectedItems.length === 0) {
@@ -123,6 +130,11 @@ function Gift() {
 			return;
 		}
 
+		setShowConfirmModal(true);
+	};
+
+	const handleConfirmSubmit = async () => {
+		if (submitting) return;
 		setSubmitting(true);
 		try {
 			const payload = {
@@ -130,6 +142,7 @@ function Gift() {
 				note,
 				tableNumber: Number(tableNumber),
 				items: selectedItems.map((item) => ({ id: item.id, quantity: item.quantity })),
+				avatar: userAvatar || null
 			};
 
 				const response = await fetch(`${API_BASE}/api/gifts/order`, {
@@ -324,6 +337,115 @@ function Gift() {
 					</div>
 				</aside>
 			</main>
+
+			{/* Cyberpunk Confirmation Modal */}
+			{showConfirmModal && (
+				<div className="cyberpunk-modal-overlay" onClick={() => setShowConfirmModal(false)}>
+					<div className="cyberpunk-modal-card" onClick={(e) => e.stopPropagation()}>
+						{/* Header */}
+						<div className="cyberpunk-header">
+							<span className="neon-sparkle">✨</span>
+							<h2 className="neon-title">NEW GIFT INCOMING!</h2>
+							<span className="neon-sparkle">✨</span>
+						</div>
+
+						{/* Sender Avatar Section */}
+						<div className="cyberpunk-sender">
+							<div className="avatar-halo">
+								<div className="avatar-inner">
+									{userAvatar ? (
+										<img 
+											src={userAvatar} 
+											alt={senderName || 'User'}
+											className="avatar-image"
+											onError={(e) => {
+												e.target.style.display = 'none';
+												e.target.nextSibling.style.display = 'flex';
+											}}
+										/>
+									) : null}
+									<span 
+										className="avatar-initial"
+										style={{ display: userAvatar ? 'none' : 'flex' }}
+									>
+										{(senderName || 'A').charAt(0).toUpperCase()}
+									</span>
+								</div>
+							</div>
+							<h3 className="sender-display">
+								⭐ คุณ {senderName || 'ผู้ใจดี'} ⭐
+							</h3>
+						</div>
+
+						{/* Action Indicator */}
+						<div className="cyberpunk-action">
+							⬇️ Sending to ⬇️
+						</div>
+
+						{/* Receiver Table */}
+						<div className="cyberpunk-receiver">
+							<div className="neon-table-number">โต๊ะ {tableNumber}</div>
+						</div>
+
+						{/* Divider */}
+						<div className="cyberpunk-divider"></div>
+
+						{/* Item Grid */}
+						<div className="cyberpunk-items">
+							{selectedItems.map((item) => (
+								<div key={item.id} className="cyberpunk-item-box">
+									{item.imageUrl ? (
+										<img 
+											src={resolveImageSrc(item.imageUrl)} 
+											alt={item.name}
+											className="item-icon"
+										/>
+									) : (
+										<div className="item-icon-placeholder">
+											{item.name.charAt(0)}
+										</div>
+									)}
+									<span className="item-quantity-badge">x{item.quantity}</span>
+									<p className="item-name-label">{item.name}</p>
+								</div>
+							))}
+						</div>
+
+						{/* Divider */}
+						<div className="cyberpunk-divider"></div>
+
+						{/* Message */}
+						{note && (
+							<div className="cyberpunk-message">
+								<p>"{note}"</p>
+							</div>
+						)}
+
+						{/* Total */}
+						<div className="cyberpunk-total">
+							<span>Total Price</span>
+							<strong>{formatCurrency(totalPrice)}</strong>
+						</div>
+
+						{/* Action Buttons */}
+						<div className="cyberpunk-actions">
+							<button 
+								className="cyberpunk-btn cancel"
+								onClick={() => setShowConfirmModal(false)}
+							>
+								ยกเลิก
+							</button>
+							<button 
+								className="cyberpunk-btn confirm"
+								onClick={handleConfirmSubmit}
+								disabled={submitting}
+							>
+								{submitting ? 'กำลังดำเนินการ...' : 'ยืนยันและชำระเงิน'}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
