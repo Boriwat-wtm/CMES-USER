@@ -141,7 +141,13 @@ function Gift() {
 				senderName,
 				note,
 				tableNumber: Number(tableNumber),
-				items: selectedItems.map((item) => ({ id: item.id, quantity: item.quantity })),
+				items: selectedItems.map((item) => ({ 
+					id: item.id, 
+					name: item.name,
+					price: item.price,
+					image: item.image,
+					quantity: item.quantity 
+				})),
 				avatar: userAvatar || null
 			};
 
