@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import "./Home.css";
@@ -65,7 +65,7 @@ function Home() {
   });
   const socketRef = useRef(null);
 
-  const fetchAllOrderStatuses = async (currentOrders) => {
+  const fetchAllOrderStatuses = useCallback(async (currentOrders) => {
     if (!currentOrders || currentOrders.length === 0) return;
     setStatusLoading(true);
 
@@ -90,9 +90,9 @@ function Home() {
 
     setOrdersStatus(prev => ({ ...prev, ...newStatuses }));
     setStatusLoading(false);
-  };
+  }, []);
 
-  const loadOrders = () => {
+  const loadOrders = useCallback(() => {
     try {
       // Priority 1: 'orders' array
       const storedOrders = localStorage.getItem("orders");
@@ -122,7 +122,7 @@ function Home() {
     } catch (err) {
       console.warn("[Home] Error loading orders:", err);
     }
-  };
+  }, [fetchAllOrderStatuses]);
 
   useEffect(() => {
     const getValidAvatar = () => {
@@ -184,7 +184,7 @@ function Home() {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [loadOrders]);
 
 
 

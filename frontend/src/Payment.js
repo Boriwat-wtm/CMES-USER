@@ -117,7 +117,26 @@ function Payment() {
         setGiftOrder(data.order);
       } else {
         const pendingUploadId = localStorage.getItem("pendingUploadId");
-        console.log("[Payment] simulate success flow", pendingUploadId);
+        console.log("[Payment] Confirming payment for upload:", pendingUploadId);
+        
+        if (!pendingUploadId) {
+          throw new Error("ไม่พบข้อมูลการอัปโหลด");
+        }
+
+        // เรียก API ยืนยันการชำระเงิน
+        const response = await fetch(`http://localhost:5001/api/confirm-payment/${pendingUploadId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, email, avatar })
+        });
+        
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "ยืนยันการชำระเงินไม่สำเร็จ");
+        }
+
+        console.log("[Payment] Payment confirmed successfully");
+        
         const currentQueueNumber = incrementQueueNumber();
         const newOrder = {
           type,
