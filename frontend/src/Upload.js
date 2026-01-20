@@ -196,25 +196,7 @@ function Upload() {
     console.log("[Upload] handleAccept called, type:", type, "actualType:", actualType, "isFree:", isFree);
 
     if ((type === "image" || type === "birthday") && image) {
-      // ไม่ composite ข้อความลงรูปอีกต่อไป - ส่งรูปต้นฉบับ
-      const formData = new FormData();
-      formData.append("file", image); // ส่งรูปต้นฉบับ
-
-      // ส่ง QR Code ถ้ามี
-      if (qrCodeFile) {
-        formData.append("qrCode", qrCodeFile);
-      }
-
-      // ส่ง actualType ไปแทน type
-      formData.append("type", actualType || "image");
-      formData.append("time", time || "60");
-      formData.append("price", isFree ? "0" : (price || "1"));
-      formData.append("textColor", textColor);
-      formData.append("text", text);
-      formData.append("socialType", selectedSocial);
-      formData.append("socialName", socialName);
-      formData.append("composed", "0"); // ไม่ใช่ composed อีกต่อไป
-
+      // ดึงข้อมูล user
       let sender = "Unknown";
       let userId = null;
       let email = null;
@@ -234,25 +216,37 @@ function Upload() {
           sender = "Unknown";
         }
       }
-      formData.append("sender", sender);
-      if (userId) formData.append("userId", userId);
-      if (email) formData.append("email", email);
-      if (avatar) formData.append("avatar", avatar);
 
-      try {
-        console.log("[Upload] Uploading with type:", actualType, "to Admin backend");
-        const response = await fetch("http://localhost:5001/api/upload", {
-          method: "POST",
-          body: formData,
-        });
+      if (isFree) {
+        // ถ้าฟรี ส่งรูปไปเลย
+        const formData = new FormData();
+        formData.append("file", image);
+        if (qrCodeFile) formData.append("qrCode", qrCodeFile);
+        formData.append("type", actualType || "image");
+        formData.append("time", time || "60");
+        formData.append("price", "0");
+        formData.append("textColor", textColor);
+        formData.append("text", text);
+        formData.append("socialType", selectedSocial);
+        formData.append("socialName", socialName);
+        formData.append("composed", "0");
+        formData.append("status", "approved");
+        formData.append("sender", sender);
+        if (userId) formData.append("userId", userId);
+        if (email) formData.append("email", email);
+        if (avatar) formData.append("avatar", avatar);
 
-        if (response.ok) {
-          const result = await response.json();
-          console.log("[Upload] Upload success:", result);
-          localStorage.setItem('pendingUploadId', result.uploadId);
-          setShowPreviewModal(false);
-          if (isFree) {
-            // ถ้าเป็นการใช้งานฟรี บันทึก order แล้วไปที่หน้าสถานะทันที
+        try {
+          console.log("[Upload] Uploading FREE item with type:", actualType, "to Admin backend");
+          const response = await fetch("http://localhost:5001/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            console.log("[Upload] Upload success:", result);
+            
             const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
             localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
 
@@ -264,30 +258,71 @@ function Upload() {
               orderId: result.uploadId
             };
 
-            // เก็บ orders เป็น array
             const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
             existingOrders.push(newOrder);
             localStorage.setItem("orders", JSON.stringify(existingOrders));
-            // เก็บ order ล่าสุดไว้ด้วย
             localStorage.setItem("order", JSON.stringify(newOrder));
 
-            localStorage.removeItem("pendingUploadId");
             localStorage.removeItem("uploadFormDraft");
             localStorage.removeItem("uploadFormImage");
 
+            setShowPreviewModal(false);
             navigate("/home");
           } else {
-            // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
-            navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${actualType}&time=${time}`);
+            const errText = await response.text();
+            console.error("[Upload] Upload failed:", response.status, errText);
+            throw new Error(`Upload failed: ${response.status} ${errText}`);
           }
-        } else {
-          const errText = await response.text();
-          console.error("[Upload] Upload failed:", response.status, errText);
-          throw new Error(`Upload failed: ${response.status} ${errText}`);
+        } catch (error) {
+          console.error('[Upload] Error uploading:', error);
+          setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
-      } catch (error) {
-        console.error('[Upload] Error uploading:', error);
-        setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
+      } else {
+        // ถ้าไม่ฟรี เก็บข้อมูลลง localStorage แล้วไปหน้า Payment
+        try {
+          // แปลง image และ qrCodeFile เป็น base64
+          const imageBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(image);
+          });
+
+          let qrCodeBase64 = null;
+          if (qrCodeFile) {
+            qrCodeBase64 = await new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.onload = (e) => resolve(e.target.result);
+              reader.readAsDataURL(qrCodeFile);
+            });
+          }
+
+          const uploadData = {
+            imageBase64,
+            qrCodeBase64,
+            imageName: image.name,
+            qrCodeName: qrCodeFile ? qrCodeFile.name : null,
+            type: actualType || "image",
+            time: time || "60",
+            price: price || "1",
+            textColor,
+            text,
+            socialType: selectedSocial,
+            socialName,
+            sender,
+            userId,
+            email,
+            avatar
+          };
+
+          localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+          console.log("[Upload] Saved upload data to localStorage, navigating to Payment");
+
+          setShowPreviewModal(false);
+          navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}`);
+        } catch (error) {
+          console.error('[Upload] Error saving upload data:', error);
+          setAlertMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่");
+        }
       }
     } else if (type === "text") {
       // เตรียมข้อมูลสำหรับส่งข้อความ
@@ -311,46 +346,80 @@ function Upload() {
         }
       }
 
-      const payload = {
-        type,
-        text,
-        time,
-        price,
-        sender,
-        userId,
-        email,
-        avatar,
-        textColor,
-        socialType: selectedSocial,
-        socialName: socialName
-      };
+      if (isFree) {
+        // ถ้าฟรี ส่งข้อความไปเลย
+        const payload = {
+          type,
+          text,
+          time,
+          price: 0,
+          sender,
+          userId,
+          email,
+          avatar,
+          textColor,
+          socialType: selectedSocial,
+          socialName: socialName,
+          status: "approved"
+        };
 
-      try {
-        const response = await fetch("http://localhost:5001/api/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        });
+        try {
+          const response = await fetch("http://localhost:5001/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
 
-        if (response.ok) {
-          const result = await response.json();
-          localStorage.setItem('pendingUploadId', result.uploadId);
-          setShowPreviewModal(false);
-          if (isFree) {
-            // ถ้าเป็นการใช้งานฟรี ไปที่หน้าสถานะทันที
+          if (response.ok) {
+            const result = await response.json();
+            const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
+            localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
+
+            const newOrder = {
+              type,
+              time,
+              price: 0,
+              queueNumber: currentQueueNumber,
+              orderId: result.uploadId
+            };
+
+            const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+            existingOrders.push(newOrder);
+            localStorage.setItem("orders", JSON.stringify(existingOrders));
+            localStorage.setItem("order", JSON.stringify(newOrder));
+
+            localStorage.removeItem("uploadFormDraft");
+
+            setShowPreviewModal(false);
             navigate("/home");
           } else {
-            // ถ้าไม่ฟรี ไปที่หน้าชำระเงิน
-            navigate(`/payment?uploadId=${result.uploadId}&price=${price}&type=${type}&time=${time}`);
+            throw new Error('Failed to upload');
           }
-        } else {
-          throw new Error('Failed to upload');
+        } catch (error) {
+          console.error('Error uploading:', error);
+          setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
-      } catch (error) {
-        console.error('Error uploading:', error);
-        setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
+      } else {
+        // ถ้าไม่ฟรี เก็บข้อมูลลง localStorage
+        const uploadData = {
+          type,
+          text,
+          time,
+          price,
+          sender,
+          userId,
+          email,
+          avatar,
+          textColor,
+          socialType: selectedSocial,
+          socialName
+        };
+
+        localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+        console.log("[Upload] Saved text upload data to localStorage, navigating to Payment");
+
+        setShowPreviewModal(false);
+        navigate(`/payment?price=${price}&type=${type}&time=${time}`);
       }
     }
   };
@@ -552,70 +621,45 @@ function Upload() {
                 </div>
 
                 {image && (
-                  <div style={{ display: 'flex', gap: '20px', marginTop: '12px', alignItems: 'flex-start' }}>
-                    {/* รูปภาพด้านซ้าย */}
-                    <div style={{ flex: '0 0 auto', maxWidth: '400px' }}>
-                      <img src={URL.createObjectURL(image)} alt="Preview" className="preview-image" style={{ width: '100%', borderRadius: '8px' }} />
+                  <div className="upload-preview-container">
+                    {/* รูปภาพซ้าย - Fix Size ไม่มีกรอบ */}
+                    <div className="upload-preview-image-box">
+                      <img src={URL.createObjectURL(image)} alt="Preview" />
                     </div>
 
-                    {/* ข้อความและ QR Code ด้านขวา */}
-                    {(text || socialOnImage || qrCodeFile) && (
-                      <div style={{
-                        flex: '1',
-                        background: 'rgba(0, 0, 0, 0.6)',
-                        padding: '20px',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '16px',
-                        alignItems: 'center',
-                        minWidth: '200px'
-                      }}>
+                    {/* Sidebar ขวา */}
+                    <div className={`upload-preview-sidebar ${qrCodeFile ? 'has-qr' : ''}`}>
+                      {/* Social + Text */}
+                      <div className="upload-preview-content">
                         {/* Social */}
                         {socialOnImage && (
-                          <div style={{
-                            color: '#fff',
-                            fontWeight: '700',
-                            fontSize: '20px',
-                            textShadow: '0 2px 8px rgba(0,0,0,0.8)'
-                          }}>
+                          <div className="upload-social-display">
                             {socialOnImage}
                           </div>
                         )}
 
                         {/* Text */}
                         {text && (
-                          <div style={{
-                            color: textColor,
-                            fontWeight: '400',
-                            fontSize: '18px',
-                            textShadow: textColor === 'white' ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)',
-                            textAlign: 'center',
-                            wordBreak: 'break-word'
-                          }}>
+                          <div 
+                            className="upload-text-display"
+                            style={{ color: textColor }}
+                          >
                             {text}
                           </div>
                         )}
-
-                        {/* QR Code */}
-                        {qrCodeFile && (
-                          <div style={{ marginTop: '8px' }}>
-                            <img
-                              src={URL.createObjectURL(qrCodeFile)}
-                              alt="QR Code Preview"
-                              style={{
-                                width: '120px',
-                                height: '120px',
-                                borderRadius: '12px',
-                                background: 'white',
-                                padding: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
-                              }}
-                            />
-                          </div>
-                        )}
                       </div>
-                    )}
+
+                      {/* QR Code ด้านล่าง */}
+                      {qrCodeFile && (
+                        <div className="upload-qr-display">
+                          <span className="upload-qr-label">สแกนเลย!</span>
+                          <img
+                            src={URL.createObjectURL(qrCodeFile)}
+                            alt="QR Code"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -874,82 +918,48 @@ function Upload() {
               <div className="modal-body">
                 <div className="preview-container">
                   {(type === "image" || type === "birthday") && image && (
-                    <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
-                      {/* รูปภาพด้านซ้าย */}
-                      <div style={{ flex: '0 0 auto', maxWidth: '500px' }}>
+                    <div className="upload-preview-container modal-view">
+                      {/* รูปภาพซ้าย - Fix Size ไม่มีกรอบ */}
+                      <div className="upload-preview-image-box">
                         <img
                           src={URL.createObjectURL(image)}
                           alt="Preview"
-                          style={{
-                            width: '100%',
-                            borderRadius: '12px',
-                            maxHeight: '60vh',
-                            objectFit: 'contain'
-                          }}
                         />
                       </div>
 
-                      {/* ข้อความและ QR Code ด้านขวา */}
-                      {(text || socialOnImage || qrCodeFile) && (
-                        <div style={{
-                          flex: '1',
-                          background: 'rgba(0, 0, 0, 0.7)',
-                          padding: '24px',
-                          borderRadius: '16px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '20px',
-                          alignItems: 'center',
-                          minWidth: '250px'
-                        }}>
+                      {/* Sidebar ขวา */}
+                      <div className={`upload-preview-sidebar ${qrCodeFile ? 'has-qr' : ''}`}>
+                        {/* Social + Text */}
+                        <div className="upload-preview-content">
                           {/* Social */}
                           {socialOnImage && (
-                            <div style={{
-                              color: '#fff',
-                              fontWeight: '700',
-                              fontSize: '24px',
-                              textShadow: '0 2px 8px rgba(0,0,0,0.8)'
-                            }}>
+                            <div className="upload-social-display">
                               {socialOnImage}
                             </div>
                           )}
 
                           {/* Text */}
                           {text && (
-                            <div style={{
-                              color: textColor,
-                              fontWeight: '400',
-                              fontSize: '20px',
-                              textShadow: textColor === 'white' ? '0 2px 8px rgba(0,0,0,0.8)' : '0 2px 8px rgba(255,255,255,0.8)',
-                              textAlign: 'center',
-                              wordBreak: 'break-word'
-                            }}>
+                            <div 
+                              className="upload-text-display"
+                              style={{ color: textColor }}
+                            >
                               {text}
                             </div>
                           )}
-
-                          {/* QR Code */}
-                          {qrCodeFile && (
-                            <div style={{ marginTop: '12px' }}>
-                              <div style={{ fontSize: '12px', color: '#cbd5e1', marginBottom: '8px', textAlign: 'center' }}>
-                                QR Code Instagram
-                              </div>
-                              <img
-                                src={URL.createObjectURL(qrCodeFile)}
-                                alt="QR Code Preview"
-                                style={{
-                                  width: '150px',
-                                  height: '150px',
-                                  borderRadius: '16px',
-                                  background: 'white',
-                                  padding: '12px',
-                                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)'
-                                }}
-                              />
-                            </div>
-                          )}
                         </div>
-                      )}
+
+                        {/* QR Code ด้านล่าง */}
+                        {qrCodeFile && (
+                          <div className="upload-qr-display">
+                            <span className="upload-qr-label">สแกนเลย!</span>
+                            <img
+                              src={URL.createObjectURL(qrCodeFile)}
+                              alt="QR Code"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                   {type === "text" && (
