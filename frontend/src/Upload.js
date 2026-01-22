@@ -4,7 +4,7 @@ import "./Upload.css";
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";
 import lineLogo from "./data-icon/line-logo.png";
-import tiktokLogo from "./data-icon/x-logo.png";
+import tiktokLogo from "./data-icon/tiktok-logo.png";
 
 function Upload() {
   const location = useLocation();
@@ -434,125 +434,6 @@ function Upload() {
   const handleGoBack = () => {
     navigate(-1);
   };
-
-  // เพิ่มฟังก์ชันนี้ใน Upload.js
-  function generateFinalImage(imageFile, text, textColor, socialType, socialName, callback) {
-    const img = new window.Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-
-      // คำนวณสเกลเทียบกับกล่องพรีวิวสูง ~400px เพื่อให้ขนาดตัวอักษรสัมพันธ์กับภาพจริง
-      const basePreviewHeight = 400;
-      const scale = Math.max(canvas.height / basePreviewHeight, 1);
-      const socialFontSize = 20 * scale;
-      const textFontSize = 18 * scale;
-      const logoSize = 28 * scale;
-      const padding = 12 * scale;
-      const spacing = 8 * scale;
-      const shadowBlur = 8 * scale;
-      const centerY = canvas.height / 2;
-      const hasText = Boolean(text);
-      const hasSocial = Boolean(socialType && socialName);
-      const stackSpacing = hasSocial && hasText ? spacing : 0;
-      const totalHeight =
-        (hasSocial ? logoSize : 0) + stackSpacing + (hasText ? textFontSize : 0);
-      const stackTop = centerY - totalHeight / 2;
-      const socialCenterY = hasSocial ? stackTop + logoSize / 2 : null;
-      const textCenterY = hasText
-        ? hasSocial
-          ? stackTop + logoSize + stackSpacing + textFontSize / 2
-          : stackTop + textFontSize / 2
-        : null;
-
-      // ฟังก์ชันวาดทั้งหมด (รอโหลด logo ก่อนจะวาด)
-      const drawContent = () => {
-        // วาดข้อความ (กลางภาพ - ขนาดเล็กกว่า social)
-        if (text) {
-          ctx.font = `400 ${textFontSize}px Prompt, Kanit, sans-serif`;
-          ctx.fillStyle = textColor || "#fff";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.shadowColor = textColor === "white" ? "#000" : "#fff";
-          ctx.shadowBlur = shadowBlur;
-          ctx.fillText(text, canvas.width / 2, textCenterY ?? centerY);
-          ctx.shadowBlur = 0;
-        }
-
-        canvas.toBlob((blob) => {
-          callback(blob);
-        }, "image/png");
-      };
-
-      // วาด Social Logo + Name (ด้านบนของภาพ)
-      if (socialType && socialName) {
-        const logoMap = {
-          ig: igLogo,
-          fb: fbLogo,
-          line: lineLogo,
-          tiktok: tiktokLogo
-        };
-
-        const logoSrc = logoMap[socialType];
-        if (logoSrc) {
-          const logoImg = new window.Image();
-          logoImg.onload = () => {
-            // ตั้งค่าฟอนต์สำหรับ social name
-            ctx.font = `700 ${socialFontSize}px Prompt, Kanit, sans-serif`;
-
-            const textWidth = ctx.measureText(socialName).width;
-            const totalWidth = logoSize + padding + textWidth;
-
-            // คำนวณตำแหน่งให้อยู่กลางด้านบน
-            const startX = (canvas.width - totalWidth) / 2;
-            const socialY = socialCenterY ?? centerY;
-            const startY = socialY - logoSize / 2;
-
-            // วาด Logo
-            ctx.drawImage(logoImg, startX, startY, logoSize, logoSize);
-
-            // วาดชื่อ Social (ไม่มี box พื้นหลัง)
-            ctx.font = `700 ${socialFontSize}px Prompt, Kanit, sans-serif`;
-            ctx.fillStyle = "#fff";
-            ctx.textAlign = "left";
-            ctx.textBaseline = "middle";
-            ctx.shadowColor = "#000";
-            ctx.shadowBlur = shadowBlur;
-            ctx.fillText(socialName, startX + logoSize + padding, socialY);
-            ctx.shadowBlur = 0;
-
-            drawContent();
-          };
-          logoImg.onerror = () => {
-            // ถ้าโหลด logo ไม่สำเร็จ ใช้ text แทน
-            const fallbackFont = Math.max(32 * scale, socialFontSize);
-            ctx.font = `700 ${fallbackFont}px Prompt, Kanit, sans-serif`;
-            ctx.fillStyle = "#fff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.shadowColor = "#000";
-            ctx.shadowBlur = shadowBlur;
-            ctx.fillText(
-              `${socialType.toUpperCase()}: ${socialName}`,
-              canvas.width / 2,
-              (socialCenterY ?? centerY)
-            );
-            ctx.shadowBlur = 0;
-            drawContent();
-          };
-          logoImg.src = logoSrc;
-        } else {
-          drawContent();
-        }
-      } else {
-        drawContent();
-      }
-    };
-    img.src = URL.createObjectURL(imageFile);
-  }
 
   return (
     <div className="upload-container">
