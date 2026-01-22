@@ -398,7 +398,10 @@ function Gift() {
 
 						{/* Item Grid */}
 						<div className="cyberpunk-items">
-							{selectedItems.map((item) => (
+							{selectedItems
+								.sort((a, b) => (b.price * b.quantity) - (a.price * a.quantity)) // เรียงตามมูลค่ารวมสูงสุด
+								.slice(0, 3) // แสดงเฉพาะ Top 3
+								.map((item) => (
 								<div key={item.id} className="cyberpunk-item-box">
 									{item.imageUrl ? (
 										<img 

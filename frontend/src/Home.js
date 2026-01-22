@@ -56,7 +56,6 @@ function Home() {
   });
   const [leaderboard, setLeaderboard] = useState([]);
   const [rankLoading, setRankLoading] = useState(true);
-  const [rankError, setRankError] = useState("");
   const [rankingType, setRankingType] = useState("alltime"); // PUBLIC BROADCAST STATE
   const [birthdayEligibility, setBirthdayEligibility] = useState({
     eligible: false,
@@ -251,11 +250,9 @@ function Home() {
           throw new Error("FAILED");
         }
         setLeaderboard(data.ranks || []);
-        setRankError("");
       })
       .catch((err) => {
         console.error("[Home] Failed to fetch rankings:", err);
-        setRankError("ยังไม่มีข้อมูลอันดับ");
       })
       .finally(() => setRankLoading(false));
   }, [rankingType]); // Reload when rankingType changes
