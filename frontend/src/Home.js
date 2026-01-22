@@ -57,6 +57,7 @@ function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [rankLoading, setRankLoading] = useState(true);
   const [rankError, setRankError] = useState("");
+  const [rankingType, setRankingType] = useState("alltime"); // PUBLIC BROADCAST STATE
   const [birthdayEligibility, setBirthdayEligibility] = useState({
     eligible: false,
     totalSpent: 0,
@@ -213,6 +214,13 @@ function Home() {
         birthdayOn: socketStatus.enableBirthday ?? prev.birthdayOn,
       }));
     });
+
+    // Listen for public ranking type broadcasts from Admin
+    socketInstance.on("publicRankingTypeUpdated", (data) => {
+      console.log("[User] Public ranking type updated:", data.type);
+      setRankingType(data.type);
+    });
+
     socketInstance.emit("getConfig");
     return () => socketInstance.disconnect();
   }, []);
@@ -234,8 +242,9 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    // เรียก API จาก CMES-ADMIN โดยตรง
-    fetch("http://localhost:5001/api/rankings/top")
+    // เรียก API จาก CMES-ADMIN โดยตรง with ranking type parameter
+    setRankLoading(true);
+    fetch(`http://localhost:5001/api/rankings/top?type=${rankingType}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -249,7 +258,7 @@ function Home() {
         setRankError("ยังไม่มีข้อมูลอันดับ");
       })
       .finally(() => setRankLoading(false));
-  }, []);
+  }, [rankingType]); // Reload when rankingType changes
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -634,7 +643,12 @@ function Home() {
               <div className="rank-panel-header">
                 <div>
                   <span>VIP Supporters Club</span>
-                  <small>สะสมยอดสนับสนุนเพื่อปลดล็อกสิทธิพิเศษ</small>
+                  <small>
+                    {rankingType === "daily" && "อันดับรายวัน"}
+                    {rankingType === "monthly" && "อันดับรายเดือน"}
+                    {rankingType === "alltime" && "อันดับตลอดกาล"}
+                    {" • "}สะสมยอดสนับสนุนเพื่อปลดล็อกสิทธิพิเศษ
+                  </small>
                 </div>
                 <div className="rank-total">
                   <label>ยอดรวมสัปดาห์นี้</label>
@@ -644,28 +658,42 @@ function Home() {
               <div className="rank-panel-body">
                 {rankLoading ? (
                   <span className="rank-empty">กำลังโหลด...</span>
-                ) : leaderboard.length === 0 ? (
-                  <span className="rank-empty">{rankError || "ยังไม่มีผู้สนับสนุน"}</span>
                 ) : (
-                  leaderboard.slice(0, 3).map((entry, index) => (
-                    <div
-                      key={entry.name || index}
-                      className={`rank-card tier-${index + 1} position-${index + 1}`}
-                    >
-                      <div className="rank-profile">
-                        <img
-                          src={entry.avatar || `/avatars/default-${index + 1}.png`}
-                          alt={entry.name || `rank-${index + 1}`}
-                        />
-                        <div className="rank-index">#{index + 1}</div>
+                  Array.from({ length: 3 }).map((_, index) => {
+                    const entry = leaderboard[index];
+                    
+                    // Get points based on entry existence and ranking type
+                    let points = 0;
+                    if (entry) {
+                      if (rankingType === "daily") points = entry.dailyPoints || 0;
+                      else if (rankingType === "monthly") points = entry.monthlyPoints || 0;
+                      else points = entry.points || 0;
+                    }
+                    
+                    return (
+                      <div
+                        key={entry ? (entry.name || index) : `unknown-${index}`}
+                        className={`rank-card tier-${index + 1} position-${index + 1}`}
+                      >
+                        <div className="rank-profile">
+                          <img
+                            src={entry?.avatar || `/avatars/default-${index + 1}.png`}
+                            alt={entry?.name || `Unknown`}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = `/avatars/default-${index + 1}.png`;
+                            }}
+                          />
+                          <div className="rank-index">#{index + 1}</div>
+                        </div>
+                        <div className="rank-details">
+                          <strong>{entry ? entry.name : "Unknown"}</strong>
+                          <span>฿{formatCurrency(points)}</span>
+                        </div>
+                        <div className="rank-badge">{index === 0 ? "Diamond" : index === 1 ? "Gold" : "Silver"}</div>
                       </div>
-                      <div className="rank-details">
-                        <strong>{entry.name}</strong>
-                        <span>฿{formatCurrency(entry.points)}</span>
-                      </div>
-                      <div className="rank-badge">{index === 0 ? "Diamond" : index === 1 ? "Gold" : "Silver"}</div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
               <button className="rank-cta" onClick={() => setShowPerkModal(true)}>ดูสิทธิพิเศษสำหรับพรีเมี่ยม</button>

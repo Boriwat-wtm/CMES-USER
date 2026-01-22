@@ -468,10 +468,16 @@
   flex-direction: column;
   gap: 0.2rem;
   text-align: center;
+  width: 100%; /* Ensure full width for truncation */
 }
 
 .rank-details strong {
   font-size: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block; /* Required for max-width to work */
 }
 
 .rank-details span {
