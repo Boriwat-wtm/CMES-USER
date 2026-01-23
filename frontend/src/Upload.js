@@ -230,7 +230,7 @@ function Upload() {
         formData.append("socialType", selectedSocial);
         formData.append("socialName", socialName);
         formData.append("composed", "0");
-        formData.append("status", "approved");
+        formData.append("status", "pending");
         formData.append("sender", sender);
         if (userId) formData.append("userId", userId);
         if (email) formData.append("email", email);
