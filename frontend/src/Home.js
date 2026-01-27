@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useNavigate, Link } from "react-router-dom";
 import { io } from "socket.io-client";
 import "./Home.css";
+import unknownPersonIcon from "./data-icon/unknown-person-icon.png";
 
 const NOTICE_STYLE = {
   width: "100%",
@@ -674,11 +675,11 @@ function Home() {
                       >
                         <div className="rank-profile">
                           <img
-                            src={entry?.avatar || `/avatars/default-${index + 1}.png`}
+                            src={entry?.avatar || unknownPersonIcon}
                             alt={entry?.name || `Unknown`}
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = `/avatars/default-${index + 1}.png`;
+                              e.target.src = unknownPersonIcon;
                             }}
                           />
                           <div className="rank-index">#{index + 1}</div>
