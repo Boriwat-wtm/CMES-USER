@@ -246,7 +246,7 @@ function Upload() {
           if (response.ok) {
             const result = await response.json();
             console.log("[Upload] Upload success:", result);
-            
+
             const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
             localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
 
@@ -314,8 +314,27 @@ function Upload() {
             avatar
           };
 
-          localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-          console.log("[Upload] Saved upload data to localStorage, navigating to Payment");
+          try {
+            localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+            console.log("[Upload] Saved upload data to localStorage, navigating to Payment");
+          } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+              console.warn('[Upload] localStorage full, clearing old data...');
+              // ลบข้อมูลเก่าที่ไม่จำเป็น
+              localStorage.removeItem("uploadFormImage");
+              localStorage.removeItem("uploadFormDraft");
+              // ลองอีกครั้ง
+              try {
+                localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+                console.log("[Upload] Retry: Saved upload data after cleanup");
+              } catch (retryError) {
+                console.error('[Upload] Failed to save even after cleanup:', retryError);
+                throw new Error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
+              }
+            } else {
+              throw e;
+            }
+          }
 
           setShowPreviewModal(false);
           navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}`);
@@ -415,8 +434,27 @@ function Upload() {
           socialName
         };
 
-        localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-        console.log("[Upload] Saved text upload data to localStorage, navigating to Payment");
+        try {
+          localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+          console.log("[Upload] Saved text upload data to localStorage, navigating to Payment");
+        } catch (e) {
+          if (e.name === 'QuotaExceededError') {
+            console.warn('[Upload] localStorage full for text, clearing...');
+            localStorage.removeItem("uploadFormImage");
+            localStorage.removeItem("uploadFormDraft");
+            try {
+              localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+              console.log("[Upload] Retry: Saved text data after cleanup");
+            } catch (retryError) {
+              console.error('[Upload] Failed to save text data:', retryError);
+              setAlertMessage("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่");
+              return;
+            }
+          } else {
+            setAlertMessage("เกิดข้อผิดพลาด กรุณาลองใหม่");
+            return;
+          }
+        }
 
         setShowPreviewModal(false);
         navigate(`/payment?price=${price}&type=${type}&time=${time}`);
@@ -521,7 +559,7 @@ function Upload() {
 
                         {/* Text */}
                         {text && (
-                          <div 
+                          <div
                             className="upload-text-display"
                             style={{ color: textColor }}
                           >
@@ -821,7 +859,7 @@ function Upload() {
 
                           {/* Text */}
                           {text && (
-                            <div 
+                            <div
                               className="upload-text-display"
                               style={{ color: textColor }}
                             >
