@@ -386,7 +386,7 @@ DATABASE_NAME=cmes-user
 # External Services
 ADMIN_API_BASE=http://localhost:5001
 GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CLIENT_SECRET=<get-from-google-cloud-console>
 
 # Email (Optional - for verification)
 SMTP_HOST=smtp.gmail.com
@@ -412,6 +412,34 @@ REACT_APP_ENV=development
 ---
 
 ## 🔒 Security
+
+### ⚠️ Critical Security Notes
+
+**NEVER expose sensitive information in version control:**
+- ❌ Do NOT commit `.env` files to GitHub
+- ❌ Do NOT hardcode passwords or API keys in code
+- ❌ Do NOT include real connection strings in documentation
+- ❌ Do NOT share JWT secrets or database credentials
+- ❌ Never push email passwords to repositories
+
+**What to Keep Secret:**
+```
+- JWT_SECRET (use 32+ character random string)
+- MONGODB_URI with credentials
+- API keys (Google, Twilio, SendGrid, etc.)
+- Email passwords or app tokens
+- Database passwords and connection strings
+- Any personal or authentication data
+```
+
+**Use .gitignore to protect:**
+```
+.env
+.env.local
+.env.*.local
+node_modules/
+uploads/
+```
 
 ### Implementation
 - ✅ Passwords hashed with bcryptjs (10 salt rounds)
