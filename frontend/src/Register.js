@@ -105,7 +105,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/send-email-otp", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-email-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email }),
@@ -159,7 +159,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -211,7 +211,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -263,7 +263,7 @@ function Register() {
       const googleData = JSON.parse(jsonPayload);
 
       // Send to backend
-      const response2 = await fetch("/api/auth/google", {
+      const response2 = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

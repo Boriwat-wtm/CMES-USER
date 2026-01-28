@@ -78,7 +78,7 @@ function Home() {
     await Promise.all(currentOrders.map(async (ord) => {
       if (!ord.orderId) return;
       try {
-        const response = await fetch(`http://localhost:5001/api/order-status/${ord.orderId}`);
+        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/order-status/${ord.orderId}`);
         const data = await response.json();
         if (data.success) {
           newStatuses[ord.orderId] = data;
@@ -143,7 +143,7 @@ function Home() {
     const fetchUserProfile = async () => {
       if (!token) return;
       try {
-        const response = await fetch("/api/auth/profile", {
+        const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -192,7 +192,9 @@ function Home() {
 
 
   useEffect(() => {
-    const socketInstance = io("http://localhost:4005");
+    // Use Realtime Server URL from Admin Backend
+    const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "http://localhost:4005";
+    const socketInstance = io(REALTIME_URL);
     socketRef.current = socketInstance;
 
     socketInstance.on("configUpdate", (newConfig) => {
@@ -229,7 +231,7 @@ function Home() {
 
   // ดึงสถานะล่าสุดจาก backend เมื่อเข้า Home
   useEffect(() => {
-    fetch("/api/status")
+    fetch(`${API_BASE_URL}/api/status`)
       .then((res) => res.json())
       .then((data) => {
         setStatus({
@@ -246,7 +248,7 @@ function Home() {
   useEffect(() => {
     // เรียก API จาก CMES-ADMIN โดยตรง with ranking type parameter
     setRankLoading(true);
-    fetch(`http://localhost:5001/api/rankings/top?type=${rankingType}`)
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/rankings/top?type=${rankingType}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -304,7 +306,7 @@ function Home() {
 
     // Fetch eligibility from admin backend using email
     const encodedEmail = encodeURIComponent(email);
-    fetch(`http://localhost:5001/api/birthday-eligibility/${encodedEmail}`)
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/birthday-eligibility/${encodedEmail}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
