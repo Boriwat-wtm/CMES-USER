@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import API_BASE_URL from "./config/apiConfig";
 import "./Register.css";
 import { getGoogleClientId, isGoogleConfigured } from "./config/googleConfig";
 
@@ -103,7 +105,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:4000/api/auth/send-email-otp", {
+      const response = await fetch("/api/auth/send-email-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email }),
@@ -157,7 +159,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:4000/api/auth/register", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -209,7 +211,7 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch("http://localhost:4000/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -261,7 +263,7 @@ function Register() {
       const googleData = JSON.parse(jsonPayload);
 
       // Send to backend
-      const response2 = await fetch("http://localhost:4000/api/auth/google", {
+      const response2 = await fetch("/api/auth/google", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

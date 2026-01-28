@@ -29,7 +29,7 @@ function SlipUpload({ price, onSuccess }) {
     formData.append("amount", price);
 
     try {
-      const response = await axios.post("http://localhost:4000/verify-slip", formData, {
+      const response = await axios.post("/verify-slip", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data.success) {

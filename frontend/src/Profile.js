@@ -189,7 +189,7 @@ function Profile() {
         const formData = new FormData();
         formData.append("avatar", selectedFile);
 
-        const uploadRes = await fetch("http://localhost:4000/api/upload-avatar", {
+        const uploadRes = await fetch("/api/upload-avatar", {
           method: "POST",
           body: formData
         });
@@ -232,7 +232,7 @@ function Profile() {
       // ส่งข้อมูลไปยัง backend เพื่อบันทึก
       const token = localStorage.getItem("token");
       if (token) {
-        fetch("http://localhost:4000/api/auth/profile", {
+        fetch("/api/auth/profile", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

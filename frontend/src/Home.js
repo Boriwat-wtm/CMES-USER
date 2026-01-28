@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "./config/apiConfig";
 import { io } from "socket.io-client";
 import "./Home.css";
+import "./Report.css";
 import unknownPersonIcon from "./data-icon/unknown-person-icon.png";
 
 const NOTICE_STYLE = {
@@ -141,7 +143,7 @@ function Home() {
     const fetchUserProfile = async () => {
       if (!token) return;
       try {
-        const response = await fetch("http://localhost:4000/api/auth/profile", {
+        const response = await fetch("/api/auth/profile", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -227,7 +229,7 @@ function Home() {
 
   // ดึงสถานะล่าสุดจาก backend เมื่อเข้า Home
   useEffect(() => {
-    fetch("http://localhost:4000/api/status")
+    fetch("/api/status")
       .then((res) => res.json())
       .then((data) => {
         setStatus({
@@ -659,7 +661,7 @@ function Home() {
                 ) : (
                   Array.from({ length: 3 }).map((_, index) => {
                     const entry = leaderboard[index];
-                    
+
                     // Get points based on entry existence and ranking type
                     let points = 0;
                     if (entry) {
@@ -667,7 +669,7 @@ function Home() {
                       else if (rankingType === "monthly") points = entry.monthlyPoints || 0;
                       else points = entry.points || 0;
                     }
-                    
+
                     return (
                       <div
                         key={entry ? (entry.name || index) : `unknown-${index}`}
