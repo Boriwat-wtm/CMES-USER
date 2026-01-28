@@ -2,9 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Gift.css";
 
-const API_BASE = "http://localhost:4000";
-const REALTIME_BASE = "http://localhost:4005";
-const ADMIN_API_BASE = "http://localhost:5001";
+import API_BASE_URL from './config/apiConfig';
+
+const API_BASE = API_BASE_URL;
+const REALTIME_BASE = process.env.REACT_APP_REALTIME_URL || 'http://localhost:4005';
+const ADMIN_API_BASE = process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001';
+
 
 const resolveImageSrc = (url) => {
 	if (!url) return "";
@@ -34,8 +37,8 @@ function Gift() {
 				const parsed = JSON.parse(storedUser);
 				setSenderName(parsed.name || parsed.username || "");
 				if (parsed.avatar) {
-					const avatarUrl = parsed.avatar.startsWith('http') 
-						? parsed.avatar 
+					const avatarUrl = parsed.avatar.startsWith('http')
+						? parsed.avatar
 						: `${API_BASE}${parsed.avatar}`;
 					setUserAvatar(avatarUrl);
 				}
@@ -141,17 +144,17 @@ function Gift() {
 				senderName,
 				note,
 				tableNumber: Number(tableNumber),
-				items: selectedItems.map((item) => ({ 
-					id: item.id, 
+				items: selectedItems.map((item) => ({
+					id: item.id,
 					name: item.name,
 					price: item.price,
 					image: item.image,
-					quantity: item.quantity 
+					quantity: item.quantity
 				})),
 				avatar: userAvatar || null
 			};
 
-				const response = await fetch(`${API_BASE}/api/gifts/order`, {
+			const response = await fetch(`${API_BASE}/api/gifts/order`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload),
@@ -360,8 +363,8 @@ function Gift() {
 							<div className="avatar-halo">
 								<div className="avatar-inner">
 									{userAvatar ? (
-										<img 
-											src={userAvatar} 
+										<img
+											src={userAvatar}
 											alt={senderName || 'User'}
 											className="avatar-image"
 											onError={(e) => {
@@ -370,7 +373,7 @@ function Gift() {
 											}}
 										/>
 									) : null}
-									<span 
+									<span
 										className="avatar-initial"
 										style={{ display: userAvatar ? 'none' : 'flex' }}
 									>
@@ -402,22 +405,22 @@ function Gift() {
 								.sort((a, b) => (b.price * b.quantity) - (a.price * a.quantity)) // เรียงตามมูลค่ารวมสูงสุด
 								.slice(0, 3) // แสดงเฉพาะ Top 3
 								.map((item) => (
-								<div key={item.id} className="cyberpunk-item-box">
-									{item.imageUrl ? (
-										<img 
-											src={resolveImageSrc(item.imageUrl)} 
-											alt={item.name}
-											className="item-icon"
-										/>
-									) : (
-										<div className="item-icon-placeholder">
-											{item.name.charAt(0)}
-										</div>
-									)}
-									<span className="item-quantity-badge">x{item.quantity}</span>
-									<p className="item-name-label">{item.name}</p>
-								</div>
-							))}
+									<div key={item.id} className="cyberpunk-item-box">
+										{item.imageUrl ? (
+											<img
+												src={resolveImageSrc(item.imageUrl)}
+												alt={item.name}
+												className="item-icon"
+											/>
+										) : (
+											<div className="item-icon-placeholder">
+												{item.name.charAt(0)}
+											</div>
+										)}
+										<span className="item-quantity-badge">x{item.quantity}</span>
+										<p className="item-name-label">{item.name}</p>
+									</div>
+								))}
 						</div>
 
 						{/* Divider */}
@@ -438,13 +441,13 @@ function Gift() {
 
 						{/* Action Buttons */}
 						<div className="cyberpunk-actions">
-							<button 
+							<button
 								className="cyberpunk-btn cancel"
 								onClick={() => setShowConfirmModal(false)}
 							>
 								ยกเลิก
 							</button>
-							<button 
+							<button
 								className="cyberpunk-btn confirm"
 								onClick={handleConfirmSubmit}
 								disabled={submitting}

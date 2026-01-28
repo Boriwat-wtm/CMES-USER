@@ -21,7 +21,32 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
+
+// CORS Configuration - รองรับ Development และ Production
+const allowedOrigins = [
+  'http://localhost:3000',                    // User Frontend (Dev)
+  'http://localhost:3001',                    // Admin Frontend (Dev)
+  process.env.USER_FRONTEND_URL,              // User Frontend (Production)
+  process.env.ADMIN_FRONTEND_URL,             // Admin Frontend (Production)
+].filter(Boolean); // กรอง undefined ออก
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // อนุญาต requests ที่ไม่มี origin (เช่น mobile apps, Postman)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "http://localhost:5001").replace(/\/$/, "");
@@ -425,7 +450,7 @@ app.post("/api/confirm-payment", async (req, res) => {
     formData.append('price', uploadData.price.toString());
     formData.append('sender', uploadData.sender);
     formData.append('textColor', uploadData.textColor || 'white');
-    
+
     // เพิ่มข้อมูล user
     if (userId) formData.append('userId', userId);
     if (email) formData.append('email', email);
@@ -728,12 +753,12 @@ app.get("/api/gifts/order/:orderId", (req, res) => {
 app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   const { orderId } = req.params;
   const { userId, email, avatar } = req.body; // รับข้อมูล user จาก frontend
-  
+
   console.log("[Gift Order Confirm] orderId:", orderId);
   console.log("[Gift Order Confirm] userId:", userId);
   console.log("[Gift Order Confirm] email:", email);
   console.log("[Gift Order Confirm] avatar:", avatar);
-  
+
   const order = giftOrders.find((item) => item.id === orderId);
   if (!order) {
     return res.status(404).json({ success: false, message: "ไม่พบคำสั่งซื้อ" });
@@ -758,9 +783,9 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
       items: order.items,
       totalPrice: order.totalPrice
     };
-    
+
     console.log("[Gift Order Confirm] Sending to admin:", JSON.stringify(payload, null, 2));
-    
+
     const adminResponse = await fetch(`${ADMIN_API_BASE}/api/gifts/order`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
