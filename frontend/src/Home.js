@@ -665,9 +665,9 @@ function Home() {
             </div>
             <div className="rank-panel premium">
               <div className="rank-panel-header">
-                <div>
-                  <span>VIP Supporters Club</span>
-                  <small>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+                  <span style={{ fontSize: '1.5rem', fontWeight: '800', lineHeight: '1.2' }}>VIP Supporters Club</span>
+                  <small style={{ fontSize: '0.85rem', opacity: 0.9, fontWeight: '400' }}>
                     {rankingType === "daily" && "อันดับรายวัน"}
                     {rankingType === "monthly" && "อันดับรายเดือน"}
                     {rankingType === "alltime" && "อันดับตลอดกาล"}
