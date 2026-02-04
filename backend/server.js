@@ -16,6 +16,8 @@ import http from "http";
 import { Server as SocketIoServer } from "socket.io";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth-mongodb.js";
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +75,18 @@ mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
 
 // ===== AUTH ROUTES =====
 app.use("/api/auth", authRoutes);
+
+// ===== CLOUDINARY CONFIGURATION =====
+cloudinary.config({ 
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt', 
+  api_key: process.env.CLOUDINARY_API_KEY || '396185692714272', 
+  api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file
+});
+
+console.log("✓ Cloudinary configured:", {
+  cloud_name: cloudinary.config().cloud_name,
+  api_key: cloudinary.config().api_key ? '***' + cloudinary.config().api_key.slice(-4) : 'NOT SET'
+});
 
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
@@ -207,38 +221,37 @@ app.use("/uploads/avatars", express.static(avatarDir));
 app.use("/uploads/slips", express.static(slipDir));
 app.use("/uploads", express.static(genericDir)); // fallback or others
 
-// ----- Multer Storage Configs -----
+// ----- Cloudinary Storage Configs -----
 
-// 1. Avatar Storage
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, avatarDir);
-  },
-  filename: (req, file, cb) => {
-    // user-avatar-{timestamp}.ext
-    cb(null, `avatar-${Date.now()}${path.extname(file.originalname)}`);
-  },
+// 1. Avatar Storage (Cloudinary)
+const avatarStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cmes/avatars',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 500, height: 500, crop: 'limit' }],
+    public_id: (req, file) => `avatar-${Date.now()}`
+  }
 });
 
-// 2. Slip Storage
-const slipStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, slipDir);
-  },
-  filename: (req, file, cb) => {
-    // slip-{timestamp}.ext
-    cb(null, `slip-${Date.now()}${path.extname(file.originalname)}`);
-  },
+// 2. Slip Storage (Cloudinary)
+const slipStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cmes/slips',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf'],
+    public_id: (req, file) => `slip-${Date.now()}`
+  }
 });
 
-// 3. Generic Storage (Fallback)
-const genericStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, genericDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `file-${Date.now()}${path.extname(file.originalname)}`);
-  },
+// 3. Generic Storage (Cloudinary)
+const genericStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'cmes/others',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'pdf'],
+    public_id: (req, file) => `file-${Date.now()}`
+  }
 });
 
 const uploadAvatar = multer({ storage: avatarStorage });
@@ -331,8 +344,9 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
 
   try {
     console.log("===> เริ่ม OCR");
+    console.log("===> Slip URL:", req.file.path); // Cloudinary URL
     const { data: { text } } = await Tesseract.recognize(
-      req.file.path,
+      req.file.path, // Cloudinary URL (Tesseract supports URLs)
       "tha+eng"
     );
     const textArabic = thaiToArabic(text);
@@ -459,15 +473,10 @@ app.post("/api/confirm-payment", async (req, res) => {
     if (avatar) formData.append('avatar', avatar);
 
     // ส่งไฟล์หากมี
-    if (uploadData.file) {
-      // NOTE: ต้องชี้ไปที่ genericDir หรือโฟลเดอร์ที่ถูกต้อง
-      // เดิมคือ uploads/ แต่ตอนนี้เราเปลี่ยนเป็น uploads/others (genericDir)
-      // หรือต้องเช็คว่า uploadData.filePath ชี้ไปไหน
-      // req.file.path ของ multer จะเก็บ full path ไว้
-      const filePath = uploadData.filePath;
-      if (filePath && fs.existsSync(filePath)) {
-        formData.append('file', fs.createReadStream(filePath));
-      }
+    if (uploadData.filePath) {
+      // Cloudinary URL - ส่งเป็น URL ตรงๆ ไม่ต้อง stream file
+      formData.append('imageUrl', uploadData.filePath);
+      console.log('✓ Sending Cloudinary URL:', uploadData.filePath);
     }
 
     // ส่งข้อมูลไปยัง Admin backend
@@ -523,9 +532,9 @@ app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
-    // Return full URL
-    const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
-    const imageUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
+    // Cloudinary returns URL in req.file.path
+    const imageUrl = req.file.path;
+    console.log("✓ Avatar uploaded to Cloudinary:", imageUrl);
     res.json({ success: true, imageUrl });
   } catch (error) {
     console.error("Upload avatar failed", error);
@@ -535,8 +544,10 @@ app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
 
 // API เดิมสำหรับอัปโหลดรูปภาพ (Generic)
 app.post("/upload", uploadGeneric.single("image"), (req, res) => {
-  const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
-  res.json({ imageUrl: `${baseUrl}/uploads/others/${req.file.filename}` });
+  // Cloudinary returns URL in req.file.path
+  const imageUrl = req.file.path;
+  console.log("✓ Generic file uploaded to Cloudinary:", imageUrl);
+  res.json({ imageUrl });
 });
 
 // Endpoint สำหรับส่ง OTP
