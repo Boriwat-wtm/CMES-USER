@@ -60,6 +60,7 @@ function Home() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [rankLoading, setRankLoading] = useState(true);
   const [rankingType, setRankingType] = useState("alltime"); // PUBLIC BROADCAST STATE
+  const [userRank, setUserRank] = useState(999); // อันดับของ user (default 999 ถ้าไม่มีในระบบ)
   const [birthdayEligibility, setBirthdayEligibility] = useState({
     eligible: false,
     totalSpent: 0,
@@ -261,6 +262,27 @@ function Home() {
       })
       .finally(() => setRankLoading(false));
   }, [rankingType]); // Reload when rankingType changes
+
+  // หาอันดับของ user จาก leaderboard
+  useEffect(() => {
+    if (!isLoggedIn || leaderboard.length === 0) {
+      setUserRank(999);
+      return;
+    }
+
+    const userEmail = localStorage.getItem("email");
+    if (!userEmail) {
+      setUserRank(999);
+      return;
+    }
+
+    const userIndex = leaderboard.findIndex(entry => entry.email === userEmail);
+    if (userIndex === -1) {
+      setUserRank(999); // ไม่พบ user ในระบบ
+    } else {
+      setUserRank(userIndex + 1); // อันดับเริ่มจาก 1
+    }
+  }, [leaderboard, isLoggedIn]);
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -653,8 +675,8 @@ function Home() {
                   </small>
                 </div>
                 <div className="rank-total">
-                  <label>ยอดรวมสัปดาห์นี้</label>
-                  <strong>฿{formatCurrency(weeklyTotal)}</strong>
+                  <label>{isLoggedIn ? "อันดับของคุณ" : "เข้าสู่ระบบเพื่อดูอันดับ"}</label>
+                  <strong style={{ fontSize: '28px', fontWeight: '800' }}>#{userRank.toString().padStart(2, '0')}</strong>
                 </div>
               </div>
               <div className="rank-panel-body">
