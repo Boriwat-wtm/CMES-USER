@@ -254,9 +254,20 @@ const genericStorage = new CloudinaryStorage({
   }
 });
 
-const uploadAvatar = multer({ storage: avatarStorage });
-const uploadSlip = multer({ storage: slipStorage });
-const uploadGeneric = multer({ storage: genericStorage });
+const uploadAvatar = multer({ 
+  storage: avatarStorage,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB
+});
+
+const uploadSlip = multer({ 
+  storage: slipStorage,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB
+});
+
+const uploadGeneric = multer({ 
+  storage: genericStorage,
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB
+});
 
 // ----- Gift Orders Storage -----
 const giftOrdersPath = path.join(__dirname, "gift-orders.json");
@@ -443,37 +454,71 @@ let pendingUploads = new Map();
 
 // API สำหรับบันทึกข้อมูลรอชำระเงิน (ใช้ generic หรือแยกก็ได้ แต่เดิมใช้ upload.single("file"))
 // User ส่ง file ขึ้นหน้าจอ (ไม่ใช่สลิป ไม่ใช่อวตาร) -> ใช้ Generic หรือ User Uploads
-app.post("/api/upload", uploadGeneric.single("file"), (req, res) => {
-  const { text, type, time, price, sender } = req.body;
-  const uploadId = Date.now().toString();
+// Upload endpoint รองรับ file + qrCode
+const uploadFields = uploadGeneric.fields([
+  { name: 'file', maxCount: 1 },
+  { name: 'qrCode', maxCount: 1 }
+]);
 
-  const uploadData = {
-    id: uploadId,
-    text,
-    type,
-    time,
-    price,
-    sender,
-    file: req.file ? req.file.filename : null,
-    filePath: req.file ? req.file.path : null,
-    timestamp: new Date(),
-    status: 'pending',
-    socialType: req.body.socialType,
-    socialName: req.body.socialName,
-  };
+app.post("/api/upload", uploadFields, (req, res) => {
+  try {
+    const { text, type, time, price, sender, userId, email, avatar, textColor, socialType, socialName } = req.body;
+    const uploadId = Date.now().toString();
 
-  // เก็บข้อมูลรอชำระเงิน
-  pendingUploads.set(uploadId, uploadData);
+    console.log('[/api/upload] Request received:', {
+      type,
+      hasFile: !!req.files?.file,
+      hasQR: !!req.files?.qrCode,
+      sender,
+      userId
+    });
 
-  // ตั้งเวลายกเลิก 10 นาที
-  setTimeout(() => {
-    if (pendingUploads.has(uploadId)) {
-      console.log(`Upload ${uploadId} expired after 10 minutes`);
-      pendingUploads.delete(uploadId);
-    }
-  }, 10 * 60 * 1000); // 10 นาที
+    const uploadData = {
+      id: uploadId,
+      text: text || '',
+      type,
+      time,
+      price,
+      sender: sender || 'Unknown',
+      userId: userId || 'guest',
+      email: email || '',
+      avatar: avatar || '',
+      textColor: textColor || 'white',
+      socialType: socialType || '',
+      socialName: socialName || '',
+      file: req.files?.file?.[0]?.filename || null,
+      filePath: req.files?.file?.[0]?.path || null, // Cloudinary URL
+      qrCodeFile: req.files?.qrCode?.[0]?.filename || null,
+      qrCodePath: req.files?.qrCode?.[0]?.path || null, // Cloudinary URL
+      timestamp: new Date(),
+      status: 'pending'
+    };
 
-  res.json({ success: true, uploadId });
+    // เก็บข้อมูลรอชำระเงิน
+    pendingUploads.set(uploadId, uploadData);
+    console.log(`[/api/upload] ✓ Upload ${uploadId} saved, expires in 10 mins`);
+
+    // ตั้งเวลายกเลิก 10 นาที
+    setTimeout(() => {
+      if (pendingUploads.has(uploadId)) {
+        console.log(`[/api/upload] Upload ${uploadId} expired after 10 minutes`);
+        pendingUploads.delete(uploadId);
+      }
+    }, 10 * 60 * 1000); // 10 นาที
+
+    res.json({ 
+      success: true, 
+      uploadId,
+      fileUrl: uploadData.filePath,
+      qrCodeUrl: uploadData.qrCodePath
+    });
+  } catch (error) {
+    console.error('[/api/upload] Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Upload failed: ' + error.message 
+    });
+  }
 });
 
 // API สำหรับยืนยันการชำระเงิน
@@ -499,17 +544,24 @@ app.post("/api/confirm-payment", async (req, res) => {
     formData.append('price', uploadData.price.toString());
     formData.append('sender', uploadData.sender);
     formData.append('textColor', uploadData.textColor || 'white');
+    formData.append('socialType', uploadData.socialType || '');
+    formData.append('socialName', uploadData.socialName || '');
 
     // เพิ่มข้อมูล user
     if (userId) formData.append('userId', userId);
     if (email) formData.append('email', email);
     if (avatar) formData.append('avatar', avatar);
 
-    // ส่งไฟล์หากมี
+    // ส่งไฟล์หากมี (Cloudinary URL)
     if (uploadData.filePath) {
-      // Cloudinary URL - ส่งเป็น URL ตรงๆ ไม่ต้อง stream file
       formData.append('imageUrl', uploadData.filePath);
-      console.log('✓ Sending Cloudinary URL:', uploadData.filePath);
+      console.log('[/api/confirm-payment] ✓ Sending image URL:', uploadData.filePath);
+    }
+
+    // ส่ง QR Code หากมี (Cloudinary URL)
+    if (uploadData.qrCodePath) {
+      formData.append('qrCodeUrl', uploadData.qrCodePath);
+      console.log('[/api/confirm-payment] ✓ Sending QR Code URL:', uploadData.qrCodePath);
     }
 
     // ส่งข้อมูลไปยัง Admin backend
