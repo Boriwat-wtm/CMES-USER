@@ -78,7 +78,7 @@ function Home() {
     await Promise.all(currentOrders.map(async (ord) => {
       if (!ord.orderId) return;
       try {
-        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/order-status/${ord.orderId}`);
+        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}`);
         const data = await response.json();
         if (data.success) {
           newStatuses[ord.orderId] = data;
@@ -193,7 +193,7 @@ function Home() {
 
   useEffect(() => {
     // Use Realtime Server URL from Admin Backend
-    const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "http://localhost:4005";
+    const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "https://cmes-admin-realtime.onrender.com";
     const socketInstance = io(REALTIME_URL);
     socketRef.current = socketInstance;
 
@@ -248,7 +248,7 @@ function Home() {
   useEffect(() => {
     // เรียก API จาก CMES-ADMIN โดยตรง with ranking type parameter
     setRankLoading(true);
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/rankings/top?type=${rankingType}`)
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/rankings/top?type=${rankingType}`)
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -306,7 +306,7 @@ function Home() {
 
     // Fetch eligibility from admin backend using email
     const encodedEmail = encodeURIComponent(email);
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001'}/api/birthday-eligibility/${encodedEmail}`)
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {

@@ -43,7 +43,7 @@ function Report() {
     setMessage("");
 
     try {
-      const res = await fetch("http://localhost:5001/api/report", {
+      const res = await fetch("https://cmes-admin-server.onrender.com/api/report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
