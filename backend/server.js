@@ -26,8 +26,10 @@ const app = express();
 const allowedOrigins = [
   'http://localhost:3000',                    // User Frontend (Dev)
   'http://localhost:3001',                    // Admin Frontend (Dev)
-  process.env.USER_FRONTEND_URL,              // User Frontend (Production)
-  process.env.ADMIN_FRONTEND_URL,             // Admin Frontend (Production)
+  'https://cmesuserfrontend.vercel.app',      // User Frontend (Production)
+  'https://cmesadminfrontend.vercel.app',     // Admin Frontend (Production)
+  process.env.USER_FRONTEND_URL,              // User Frontend (Custom)
+  process.env.ADMIN_FRONTEND_URL,             // Admin Frontend (Custom)
 ].filter(Boolean); // กรอง undefined ออก
 
 app.use(cors({
@@ -49,7 +51,7 @@ app.use(cors({
 
 
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
-const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "http://localhost:5001").replace(/\/$/, "");
+const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "https://cmes-admin-server.onrender.com").replace(/\/$/, "");
 
 const expectedAmount = parseInt(process.env.EXPECTED_AMOUNT, 10);
 
@@ -319,7 +321,7 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   if (!req.file) {
     console.log("===> ไม่พบไฟล์สลิป");
     detail = "ไม่พบไฟล์สลิป";
-    await fetch("http://localhost:4000/api/stat-slip", {
+    await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ category: "payment", detail, status, amount }),
@@ -506,7 +508,8 @@ app.get("/api/upload-status/:uploadId", (req, res) => {
 // API สำหรับอัปโหลดรูปภาพและข้อความ (Generic)
 app.post("/upload-content", uploadGeneric.single("image"), (req, res) => {
   const { message } = req.body;
-  const imageUrl = req.file ? `http://localhost:${port}/uploads/others/${req.file.filename}` : null;
+  const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
+  const imageUrl = req.file ? `${baseUrl}/uploads/others/${req.file.filename}` : null;
 
   console.log("Message:", message);
   console.log("Image URL:", imageUrl);
@@ -521,7 +524,8 @@ app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
       return res.status(400).json({ success: false, message: "No file uploaded" });
     }
     // Return full URL
-    const imageUrl = `http://localhost:${port}/uploads/avatars/${req.file.filename}`;
+    const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
+    const imageUrl = `${baseUrl}/uploads/avatars/${req.file.filename}`;
     res.json({ success: true, imageUrl });
   } catch (error) {
     console.error("Upload avatar failed", error);
@@ -531,7 +535,8 @@ app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
 
 // API เดิมสำหรับอัปโหลดรูปภาพ (Generic)
 app.post("/upload", uploadGeneric.single("image"), (req, res) => {
-  res.json({ imageUrl: `http://localhost:${port}/uploads/others/${req.file.filename}` });
+  const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
+  res.json({ imageUrl: `${baseUrl}/uploads/others/${req.file.filename}` });
 });
 
 // Endpoint สำหรับส่ง OTP
