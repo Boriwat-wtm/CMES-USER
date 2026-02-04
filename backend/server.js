@@ -369,10 +369,28 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
 
     console.log("match1:", match1, "match2:", match2, "match3:", match3, "match4:", match4);
 
+    // ลบสลิปออกจาก Cloudinary หลัง OCR เสร็จ (ไม่ว่าจะผ่านหรือไม่ผ่าน)
+    const deleteSlip = async () => {
+      if (req.file && req.file.filename) {
+        try {
+          // Extract public_id from Cloudinary URL
+          const publicId = req.file.filename; // Cloudinary storage จะเก็บ public_id ไว้ใน filename
+          await cloudinary.uploader.destroy(publicId);
+          console.log("✓ Deleted slip from Cloudinary:", publicId);
+        } catch (err) {
+          console.error("Failed to delete slip:", err);
+        }
+      }
+    };
+
     if (match1 || match2 || match3 || match4) {
       status = "success";
       detail = `ชำระเงินสำเร็จ จำนวนเงิน: ${amount}`;
       console.log("===> ตรวจพบจำนวนเงินในสลิป");
+      
+      // ลบสลิปทันทีหลังยืนยันการชำระเงิน
+      await deleteSlip();
+      
       await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -382,6 +400,10 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
     } else {
       detail = "ชำระเงินไม่ถูกต้อง หรือจำนวนเงินไม่ตรง";
       console.log("===> ชำระเงินไม่ถูกต้อง หรือจำนวนเงินไม่ตรง");
+      
+      // ลบสลิปแม้จะไม่ผ่านเพื่อป้องกันการเก็บสะสม
+      await deleteSlip();
+      
       await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -392,6 +414,17 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   } catch (err) {
     detail = "OCR ผิดพลาด";
     console.log("===> OCR ผิดพลาด", err);
+    
+    // ลบสลิปแม้เกิด error
+    if (req.file && req.file.filename) {
+      try {
+        await cloudinary.uploader.destroy(req.file.filename);
+        console.log("✓ Deleted slip after error");
+      } catch (delErr) {
+        console.error("Failed to delete slip:", delErr);
+      }
+    }
+    
     await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
