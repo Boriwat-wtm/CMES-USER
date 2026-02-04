@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ADMIN_API_URL } from "./config/apiConfig";
+import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
 import "./Upload.css";
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";

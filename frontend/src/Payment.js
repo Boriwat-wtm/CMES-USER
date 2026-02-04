@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ADMIN_API_URL } from "./config/apiConfig";
+import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
 // import axios from "axios"; // ลบออกถ้าไม่ได้ใช้
 import "./Payment.css";
 import promptpayLogo from "./data-icon/promptpay-logo.png";
