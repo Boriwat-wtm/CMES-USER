@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Gift.css";
 
-import API_BASE_URL from './config/apiConfig';
+import { API_BASE_URL, REALTIME_URL } from './config/apiConfig';	
 
 const API_BASE = API_BASE_URL;
-const REALTIME_BASE = process.env.REACT_APP_REALTIME_URL || 'http://localhost:4005';
-const ADMIN_API_BASE = process.env.REACT_APP_ADMIN_API_URL || 'http://localhost:5001';
+const REALTIME_BASE = REALTIME_URL;
+
+const ADMIN_API_BASE = process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin.onrender.com';
 
 
 const resolveImageSrc = (url) => {

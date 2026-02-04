@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
-import "./Select.css";
+import "./Select.css";  
+import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";
 
 function Select() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ function Select() {
   const [packages, setPackages] = useState([]);
 
   useEffect(() => {
-    const socket = io("http://localhost:4005");
+    const socket = io(REALTIME_URL);
     
     socket.on("status", (data) => {
       console.log("Received status event:", data);

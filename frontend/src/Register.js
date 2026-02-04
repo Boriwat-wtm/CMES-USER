@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import API_BASE_URL from "./config/apiConfig";
+import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";
 import "./Register.css";
 import { getGoogleClientId, isGoogleConfigured } from "./config/googleConfig";
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Report.css";
+import "./Report.css";  
+import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";  
 
 function Report() {
   const navigate = useNavigate();
