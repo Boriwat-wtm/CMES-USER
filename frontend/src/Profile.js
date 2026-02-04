@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
+import API_BASE_URL from "./config/apiConfig";
 
 function Profile() {
   const navigate = useNavigate();
@@ -189,7 +190,7 @@ function Profile() {
         const formData = new FormData();
         formData.append("avatar", selectedFile);
 
-        const uploadRes = await fetch("/api/upload-avatar", {
+        const uploadRes = await fetch(`${API_BASE_URL}/api/upload-avatar`, {
           method: "POST",
           body: formData
         });
@@ -232,7 +233,7 @@ function Profile() {
       // ส่งข้อมูลไปยัง backend เพื่อบันทึก
       const token = localStorage.getItem("token");
       if (token) {
-        fetch("/api/auth/profile", {
+        fetch(`${API_BASE_URL}/api/auth/profile`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

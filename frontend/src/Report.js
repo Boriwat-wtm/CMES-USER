@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Report.css";
-// ✅ แก้ไขจุดที่ 1: เอาปีกกา { } ออก เพราะ apiConfig ส่งออกแบบ Default
 import API_BASE_URL from "./config/apiConfig"; 
 
 function Report() {
