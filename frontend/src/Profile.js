@@ -46,29 +46,97 @@ function Profile() {
 
   // load user data once
   useEffect(() => {
-    const userData = {
-      username: localStorage.getItem("username") || "User",
-      email: localStorage.getItem("email") || "user@example.com",
-      avatar: localStorage.getItem("avatar") || null,
-      birthday: localStorage.getItem("birthday") || "",
-      lastBirthdayEdit: localStorage.getItem("lastBirthdayEdit") || ""
+    const loadUserData = async () => {
+      const token = localStorage.getItem("token");
+      
+      if (token) {
+        try {
+          // ดึงข้อมูลจาก backend
+          const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+            method: "GET",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              const userData = {
+                username: data.user.username || "User",
+                email: data.user.email || "user@example.com",
+                avatar: data.user.avatar || null,
+                birthday: data.user.birthday || "",
+                lastBirthdayEdit: data.user.lastBirthdayEdit || data.user.lastBirthdayUpdate || ""
+              };
+              setUser(userData);
+              setTempUser(userData);
+              
+              // อัพเดท localStorage
+              localStorage.setItem("username", userData.username);
+              localStorage.setItem("email", userData.email);
+              if (userData.avatar) localStorage.setItem("avatar", userData.avatar);
+              if (userData.birthday) localStorage.setItem("birthday", userData.birthday);
+              if (userData.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", userData.lastBirthdayEdit);
+              
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("[Profile] Error loading user data from backend:", error);
+        }
+      }
+      
+      // ถ้าไม่มี token หรือโหลดจาก backend ไม่ได้ ใช้ localStorage
+      const userData = {
+        username: localStorage.getItem("username") || "User",
+        email: localStorage.getItem("email") || "user@example.com",
+        avatar: localStorage.getItem("avatar") || null,
+        birthday: localStorage.getItem("birthday") || "",
+        lastBirthdayEdit: localStorage.getItem("lastBirthdayEdit") || ""
+      };
+      setUser(userData);
+      setTempUser(userData);
     };
-    setUser(userData);
-    setTempUser(userData);
+
+    loadUserData();
   }, []);
 
-  // compute nextEditIfChangedNow (always now + 3 months)
+  // compute nextEditIfChangedNow (always now + 90 days)
   useEffect(() => {
     const now = new Date();
     const nxt = new Date(now);
-    nxt.setMonth(nxt.getMonth() + 3);
+    nxt.setDate(nxt.getDate() + 90);
     setNextEditIfChangedNow(nxt);
   }, []);
 
   // compute nextEditFromLast and canEditBirthday whenever user.lastBirthdayEdit changes
   useEffect(() => {
-    setNextEditFromLast(null);
-    setCanEditBirthday(true);
+    const lastEdit = user.lastBirthdayEdit;
+    if (!lastEdit) {
+      // ไม่เคยแก้ไขวันเกิดมาก่อน สามารถแก้ไขได้
+      setNextEditFromLast(null);
+      setCanEditBirthday(true);
+      return;
+    }
+
+    const parsed = parsePossibleDate(lastEdit);
+    if (!parsed || isNaN(parsed.getTime())) {
+      // ไม่สามารถ parse ได้ ให้แก้ไขได้
+      setNextEditFromLast(null);
+      setCanEditBirthday(true);
+      return;
+    }
+
+    // คำนวณวันที่สามารถแก้ไขได้อีกครั้ง (90 วันจากการแก้ไขครั้งล่าสุด)
+    const nextAllowed = new Date(parsed);
+    nextAllowed.setDate(nextAllowed.getDate() + 90);
+    setNextEditFromLast(nextAllowed);
+
+    // เช็คว่าตอนนี้สามารถแก้ไขได้หรือยัง
+    const now = new Date();
+    setCanEditBirthday(now >= nextAllowed);
   }, [user.lastBirthdayEdit, user.birthday]);
 
   // hasChanges
@@ -170,7 +238,7 @@ function Profile() {
       // show the date from last edit if available, otherwise fallback to if-changed-now
       const showDate = nextEditFromLast || nextEditIfChangedNow;
       if (showDate) {
-        alert(`สามารถแก้ไขวันเกิดได้ทุก 3 เดือนเท่านั้น\nแก้ไขได้อีกครั้งในวันที่ ${showDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+        alert(`สามารถแก้ไขวันเกิดได้ทุก 90 วัน\nแก้ไขได้อีกครั้งในวันที่ ${showDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
       } else {
         alert("ไม่สามารถแก้ไขวันเกิดได้ในขณะนี้");
       }
@@ -216,24 +284,10 @@ function Profile() {
         lastBirthdayEdit: isBirthdayChanged ? new Date().toISOString() : user.lastBirthdayEdit
       };
 
-      // persist locally and update state
-      setUser(newUser);
-      setTempUser(newUser);
-      localStorage.setItem("username", newUser.username);
-      localStorage.setItem("email", newUser.email);
-      if (newUser.avatar) localStorage.setItem("avatar", newUser.avatar); else localStorage.removeItem("avatar");
-      if (newUser.birthday) {
-        localStorage.setItem("birthday", newUser.birthday);
-        if (newUser.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
-      } else {
-        localStorage.removeItem("birthday");
-        localStorage.removeItem("lastBirthdayEdit");
-      }
-
       // ส่งข้อมูลไปยัง backend เพื่อบันทึก
       const token = localStorage.getItem("token");
       if (token) {
-        fetch(`${API_BASE_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -246,53 +300,65 @@ function Profile() {
             birthday: newUser.birthday,
             lastBirthdayEdit: newUser.lastBirthdayEdit
           })
-        })
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              console.log("[Profile] Profile updated on backend");
-              // อัปเดต localStorage เพื่อเก็บข้อมูล
-              localStorage.setItem("username", newUser.username);
-              localStorage.setItem("email", newUser.email);
-              localStorage.setItem("birthday", newUser.birthday || "");
-              if (newUser.avatar) {
-                localStorage.setItem("avatar", newUser.avatar);
-              }
-              if (newUser.lastBirthdayEdit) {
-                localStorage.setItem("lastBirthdayEdit", newUser.lastBirthdayEdit);
-              }
-              // อัปเดต user data ใน localStorage
-              const updatedUser = { ...data.user };
-              localStorage.setItem("user", JSON.stringify(updatedUser));
+        });
 
-              // Clean up state
-              setSelectedFile(null);
-              setPreviewUrl(null); // Clear preview since we saved
-            } else {
-              console.error("[Profile] Failed to update profile on backend:", data.message);
-              alert("บันทึกข้อมูลไม่สำเร็จ: " + data.message);
-            }
-          })
-          .catch(err => {
-            console.error("[Profile] Error updating profile on backend:", err);
-            alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
-          });
+        const data = await response.json();
+        
+        if (!response.ok) {
+          // จัดการกรณีที่ backend ตอบกลับด้วย error
+          if (data.message) {
+            alert(data.message);
+          } else {
+            alert("บันทึกข้อมูลไม่สำเร็จ");
+          }
+          
+          // ย้อนค่ากลับเป็นค่าเดิม
+          setTempUser({ ...user });
+          setSelectedFile(null);
+          setPreviewUrl(user.avatar);
+          return;
+        }
+        
+        if (data.success) {
+          console.log("[Profile] Profile updated on backend");
+          
+          // อัปเดตข้อมูลจาก response ของ backend
+          const updatedUserData = {
+            username: data.user.username || newUser.username,
+            email: data.user.email || newUser.email,
+            avatar: data.user.avatar || newUser.avatar,
+            birthday: data.user.birthday || newUser.birthday,
+            lastBirthdayEdit: data.user.lastBirthdayEdit || data.user.lastBirthdayUpdate || newUser.lastBirthdayEdit
+          };
+          
+          // อัปเดต state
+          setUser(updatedUserData);
+          setTempUser(updatedUserData);
+          
+          // อัปเดต localStorage เพื่อเก็บข้อมูล
+          localStorage.setItem("username", updatedUserData.username);
+          localStorage.setItem("email", updatedUserData.email);
+          localStorage.setItem("birthday", updatedUserData.birthday || "");
+          if (updatedUserData.avatar) {
+            localStorage.setItem("avatar", updatedUserData.avatar);
+          } else {
+            localStorage.removeItem("avatar");
+          }
+          if (updatedUserData.lastBirthdayEdit) {
+            localStorage.setItem("lastBirthdayEdit", updatedUserData.lastBirthdayEdit);
+          }
+
+          // Clean up state
+          setSelectedFile(null);
+          setPreviewUrl(null); // Clear preview since we saved
+          
+          // navigate to home
+          navigate("/home");
+        } else {
+          console.error("[Profile] Failed to update profile on backend:", data.message);
+          alert("บันทึกข้อมูลไม่สำเร็จ: " + (data.message || "เกิดข้อผิดพลาด"));
+        }
       }
-
-      // update nextEditFromLast immediately
-      const parsed = parsePossibleDate(newUser.lastBirthdayEdit);
-      if (parsed) {
-        const nxt = new Date(parsed);
-        nxt.setMonth(nxt.getMonth() + 3);
-        setNextEditFromLast(nxt);
-        setCanEditBirthday(new Date() >= nxt);
-      } else {
-        setNextEditFromLast(null);
-        setCanEditBirthday(true);
-      }
-
-      // navigate to home
-      navigate("/home");
 
     } catch (error) {
       console.error("Profile save error:", error);
@@ -374,13 +440,13 @@ function Profile() {
                 {birthdayError && <div className="validation-error">{birthdayError}</div>}
 
                 {/* Show helpful message ALWAYS:
-                   - if cannot edit (due to last edit less than 3 months) -> show nextEditFromLast
+                   - if cannot edit (due to last edit less than 90 days) -> show nextEditFromLast
                    - if can edit now -> show "ถ้าเปลี่ยนตอนนี้ จะสามารถเปลี่ยนได้อีกครั้งในวันที่ ..." using nextEditIfChangedNow
                    - if parsed failed -> show friendly fallback */}
                 <div className="info-message" style={{ marginTop: 8 }}>
                   {canEditBirthday === false ? (
                     nextEditFromLast ? (
-                      <>สามารถแก้ไขวันเกิดได้ทุก 3 เดือนเท่านั้น<br />แก้ไขได้อีกครั้งในวันที่ {nextEditFromLast.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
+                      <>สามารถแก้ไขวันเกิดได้ทุก 90 วันเท่านั้น<br />แก้ไขได้อีกครั้งในวันที่ {nextEditFromLast.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}</>
                     ) : (
                       <>ไม่สามารถคำนวณวันที่ถัดไปได้ (ข้อมูลที่เก็บอาจไม่ถูกต้อง)</>
                     )

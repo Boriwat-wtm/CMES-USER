@@ -334,7 +334,29 @@ router.put("/profile", (req, res) => {
       user.avatar = avatar;
     }
 
-    if (birthday) {
+    // ตรวจสอบการแก้ไขวันเกิด
+    if (birthday !== undefined && birthday !== user.birthday) {
+      // มีการเปลี่ยนแปลงวันเกิด ต้องเช็คว่าผ่าน 90 วันหรือยัง
+      if (user.lastBirthdayUpdate) {
+        const lastEdit = new Date(user.lastBirthdayUpdate);
+        const now = new Date();
+        const daysDiff = Math.floor((now - lastEdit) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff < 90) {
+          // ยังไม่ครบ 90 วัน
+          const nextAllowedDate = new Date(lastEdit);
+          nextAllowedDate.setDate(nextAllowedDate.getDate() + 90);
+          
+          return res.status(400).json({
+            success: false,
+            message: `สามารถแก้ไขวันเกิดได้ทุก 90 วันเท่านั้น แก้ไขได้อีกครั้งในวันที่ ${nextAllowedDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+            nextAllowedDate: nextAllowedDate.toISOString(),
+            daysRemaining: 90 - daysDiff
+          });
+        }
+      }
+      
+      // อนุญาตให้แก้ไขได้ อัพเดทวันเกิดและวันที่แก้ไขล่าสุด
       user.birthday = birthday;
       user.lastBirthdayUpdate = new Date().toISOString();
     }
@@ -492,11 +514,35 @@ router.put("/profile", (req, res) => {
       user.avatar = avatar;
     }
 
-    if (birthday) {
+    // ตรวจสอบการแก้ไขวันเกิด
+    if (birthday !== undefined && birthday !== user.birthday) {
+      // มีการเปลี่ยนแปลงวันเกิด ต้องเช็คว่าผ่าน 90 วันหรือยัง
+      if (user.lastBirthdayEdit) {
+        const lastEdit = new Date(user.lastBirthdayEdit);
+        const now = new Date();
+        const daysDiff = Math.floor((now - lastEdit) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff < 90) {
+          // ยังไม่ครบ 90 วัน
+          const nextAllowedDate = new Date(lastEdit);
+          nextAllowedDate.setDate(nextAllowedDate.getDate() + 90);
+          
+          return res.status(400).json({
+            success: false,
+            message: `สามารถแก้ไขวันเกิดได้ทุก 90 วันเท่านั้น แก้ไขได้อีกครั้งในวันที่ ${nextAllowedDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+            nextAllowedDate: nextAllowedDate.toISOString(),
+            daysRemaining: 90 - daysDiff
+          });
+        }
+      }
+      
+      // อนุญาตให้แก้ไขได้ อัพเดทวันเกิดและวันที่แก้ไขล่าสุด
       user.birthday = birthday;
+      user.lastBirthdayEdit = new Date().toISOString();
     }
 
-    if (lastBirthdayEdit) {
+    if (lastBirthdayEdit && birthday === user.birthday) {
+      // กรณีที่ frontend ส่ง lastBirthdayEdit มาโดยไม่มีการเปลี่ยนวันเกิด
       user.lastBirthdayEdit = lastBirthdayEdit;
     }
 
