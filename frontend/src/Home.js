@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";
+import API_BASE_URL from "./config/apiConfig";
 import { io } from "socket.io-client";
 import "./Home.css";
 import "./Report.css";

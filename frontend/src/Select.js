@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
-import "./Select.css";  
-import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";
+import "./Select.css";
+import API_BASE_URL, { REALTIME_URL } from "./config/apiConfig";
 
 function Select() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ function Select() {
 
   useEffect(() => {
     const socket = io(REALTIME_URL);
-    
+
     socket.on("status", (data) => {
       console.log("Received status event:", data);
       if (data.settings) {
@@ -89,7 +89,7 @@ function Select() {
         <header className="select-header">
           <button className="back-btn" onClick={handleGoBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="header-content">
@@ -105,39 +105,39 @@ function Select() {
               <div className="type-icon">
                 {type === "image" ? (
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <circle cx="8.5" cy="8.5" r="1.5"/>
-                    <path d="M21 15l-5-5L5 21"/>
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    <circle cx="8.5" cy="8.5" r="1.5" />
+                    <path d="M21 15l-5-5L5 21" />
                   </svg>
                 ) : (
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14,2 14,8 20,8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <line x1="10" y1="9" x2="8" y2="9"/>
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14,2 14,8 20,8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <line x1="10" y1="9" x2="8" y2="9" />
                   </svg>
                 )}
               </div>
               <div className="type-details">
                 <h2>
-                  {type === "image" 
-                    ? "รูปภาพ + ข้อความ" 
+                  {type === "image"
+                    ? "รูปภาพ + ข้อความ"
                     : type === "text"
-                    ? "ข้อความเท่านั้น"
-                    : type === "birthday"
-                    ? "อวยพรวันเกิด"
-                    : "รูปภาพ + ข้อความ"
+                      ? "ข้อความเท่านั้น"
+                      : type === "birthday"
+                        ? "อวยพรวันเกิด"
+                        : "รูปภาพ + ข้อความ"
                   }
                 </h2>
                 <p>
-                  {type === "image" 
-                    ? "อัปโหลดรูปภาพพร้อมข้อความ" 
-                    : type === "text"
-                    ? "ส่งข้อความไปแสดงบนจอ"
-                    : type === "birthday"
+                  {type === "image"
                     ? "อัปโหลดรูปภาพพร้อมข้อความ"
-                    : "อัปโหลดรูปภาพพร้อมข้อความ"
+                    : type === "text"
+                      ? "ส่งข้อความไปแสดงบนจอ"
+                      : type === "birthday"
+                        ? "อัปโหลดรูปภาพพร้อมข้อความ"
+                        : "อัปโหลดรูปภาพพร้อมข้อความ"
                   }
                 </p>
               </div>
@@ -161,8 +161,8 @@ function Select() {
                     <div className="package-header">
                       <div className="package-icon">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="12" r="10"/>
-                          <polyline points="12,6 12,12 16,14"/>
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12,6 12,12 16,14" />
                         </svg>
                       </div>
                       <h4>{pkg.duration}</h4>
@@ -174,20 +174,20 @@ function Select() {
                       <div className="package-features">
                         <div className="feature-item">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 6L9 17l-5-5"/>
+                            <path d="M20 6L9 17l-5-5" />
                           </svg>
                           <span>แสดงผล {pkg.duration}</span>
                         </div>
                         <div className="feature-item">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 6L9 17l-5-5"/>
+                            <path d="M20 6L9 17l-5-5" />
                           </svg>
                           <span>คุณภาพ HD</span>
                         </div>
                         {(type === "image" || type === "birthday") && (
                           <div className="feature-item">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M20 6L9 17l-5-5"/>
+                              <path d="M20 6L9 17l-5-5" />
                             </svg>
                             <span>รูปภาพ + ข้อความ</span>
                           </div>
@@ -198,7 +198,7 @@ function Select() {
                       {selectedOption === index && (
                         <div className="selected-indicator">
                           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M20 6L9 17l-5-5"/>
+                            <path d="M20 6L9 17l-5-5" />
                           </svg>
                           <span>เลือกแล้ว</span>
                         </div>
@@ -213,9 +213,9 @@ function Select() {
           {alertMessage && (
             <div className="alert-message error">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               {alertMessage}
             </div>
@@ -224,14 +224,14 @@ function Select() {
           <div className="action-buttons">
             <button className="secondary-btn" onClick={() => setShowRestrictions(true)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
               </svg>
               ข้อกำหนด
             </button>
-            <button 
-              className="primary-btn" 
+            <button
+              className="primary-btn"
               onClick={handleNext}
               disabled={selectedOption === null || isProcessing}
             >
@@ -244,7 +244,7 @@ function Select() {
                 <>
                   ดำเนินการต่อ
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                    <path d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 </>
               )}
@@ -260,8 +260,8 @@ function Select() {
                 <h3>ข้อกำหนดการใช้งาน</h3>
                 <button className="close-button" onClick={() => setShowRestrictions(false)}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
@@ -275,13 +275,13 @@ function Select() {
                     <li>การคุกคามหรือผิดกฎหมาย</li>
                     {(type === "image" || type === "birthday") && <li>QR Code หรือลิงก์ในรูปภาพ</li>}
                   </ul>
-                  
+
                   <div className="warning-note">
                     <div className="warning-icon">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                        <line x1="12" y1="9" x2="12" y2="13"/>
-                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                        <line x1="12" y1="9" x2="12" y2="13" />
+                        <line x1="12" y1="17" x2="12.01" y2="17" />
                       </svg>
                     </div>
                     <div>

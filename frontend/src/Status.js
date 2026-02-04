@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { API_BASE_URL, REALTIME_URL } from "./config/apiConfig";
+import API_BASE_URL from "./config/apiConfig";
 
 function Status() {
   const [status, setStatus] = useState([]);
