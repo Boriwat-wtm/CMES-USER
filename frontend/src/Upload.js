@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ADMIN_API_URL } from "./config/apiConfig";
 import "./Upload.css";
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";
@@ -238,7 +239,7 @@ function Upload() {
 
         try {
           console.log("[Upload] Uploading FREE item with type:", actualType, "to Admin backend");
-          const response = await fetch("http://localhost:5001/api/upload", {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
             body: formData,
           });
@@ -383,7 +384,7 @@ function Upload() {
         };
 
         try {
-          const response = await fetch("http://localhost:5001/api/upload", {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { ADMIN_API_URL } from "./config/apiConfig";
 // import axios from "axios"; // ลบออกถ้าไม่ได้ใช้
 import "./Payment.css";
 import promptpayLogo from "./data-icon/promptpay-logo.png";
@@ -66,17 +67,17 @@ function Payment() {
       let userId = null;
       let email = null;
       let avatar = null;
-      
+
       try {
         const storedUser = localStorage.getItem("user");
         console.log("[Payment] Stored user:", storedUser);
-        
+
         if (storedUser) {
           const userObj = JSON.parse(storedUser);
           userId = userObj.id || null;
           email = userObj.email || null;
           avatar = userObj.avatar || null;
-          
+
           console.log("[Payment] Parsed user data - userId:", userId, "email:", email);
         } else {
           console.log("[Payment] No user data in localStorage");
@@ -84,7 +85,7 @@ function Payment() {
       } catch (err) {
         console.warn("[Payment] Cannot parse user data:", err);
       }
-      
+
       if (isGift) {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
@@ -107,7 +108,7 @@ function Payment() {
           giftItems: data.order.items,
           orderId: orderId
         };
-        
+
         // เก็บ orders เป็น array
         const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
         existingOrders.push(newOrder);
@@ -119,7 +120,7 @@ function Payment() {
         // ดึงข้อมูลจาก localStorage
         const savedData = localStorage.getItem("pendingUploadData");
         console.log("[Payment] Saved upload data:", savedData);
-        
+
         if (!savedData) {
           throw new Error("ไม่พบข้อมูลการอัปโหลด");
         }
@@ -131,7 +132,7 @@ function Payment() {
         if (uploadData.imageBase64) {
           // กรณีมีรูปภาพ - ใช้ FormData
           const formData = new FormData();
-          
+
           // แปลง base64 กลับเป็น File
           const imageBlob = await fetch(uploadData.imageBase64).then(r => r.blob());
           const imageFile = new File([imageBlob], uploadData.imageName, { type: imageBlob.type });
@@ -157,7 +158,7 @@ function Payment() {
           if (uploadData.email) formData.append("email", uploadData.email);
           if (uploadData.avatar) formData.append("avatar", uploadData.avatar);
 
-          const response = await fetch("http://localhost:5001/api/upload", {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
             body: formData,
           });
@@ -204,7 +205,7 @@ function Payment() {
             status: "pending"
           };
 
-          const response = await fetch("http://localhost:5001/api/upload", {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
@@ -250,10 +251,10 @@ function Payment() {
 
   const handlePaymentSelection = (method) => {
     if (!method) return;
-     if (isGift && (isLoadingOrder || !giftOrder)) {
-       setErrorMessage("กำลังโหลดข้อมูลคำสั่งซื้อ กรุณารอสักครู่");
-       return;
-     }
+    if (isGift && (isLoadingOrder || !giftOrder)) {
+      setErrorMessage("กำลังโหลดข้อมูลคำสั่งซื้อ กรุณารอสักครู่");
+      return;
+    }
     setPaymentMethod(method);
     setShowPopup(true);
     setErrorMessage("");
@@ -280,7 +281,7 @@ function Payment() {
         <header className="payment-header">
           <button className="back-btn" onClick={handleGoBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
+              <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
           </button>
           <h1>ชำระเงิน</h1>
@@ -294,15 +295,15 @@ function Payment() {
               <div className="summary-header">
                 <div className="summary-icon">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M9 12l2 2 4-4"/>
-                    <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3"/>
-                    <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3"/>
-                    <path d="M3 12h6m6 0h6"/>
+                    <path d="M9 12l2 2 4-4" />
+                    <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3" />
+                    <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3" />
+                    <path d="M3 12h6m6 0h6" />
                   </svg>
                 </div>
                 <h2>สรุปรายการ</h2>
               </div>
-              
+
               <div className="summary-details">
                 {isGift ? (
                   <>
@@ -320,8 +321,8 @@ function Payment() {
                         {giftOrder?.items && giftOrder.items.length > 0
                           ? giftOrder.items.map((item) => `${item.name} x${item.quantity}`).join(", ")
                           : isLoadingOrder
-                          ? "กำลังโหลด..."
-                          : "ยังไม่มีรายการ"}
+                            ? "กำลังโหลด..."
+                            : "ยังไม่มีรายการ"}
                       </span>
                     </div>
                     <div className="summary-item total-item">
@@ -368,7 +369,7 @@ function Payment() {
                   <div className="method-check">
                     {paymentMethod === "promptpay" && (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M20 6L9 17l-5-5"/>
+                        <path d="M20 6L9 17l-5-5" />
                       </svg>
                     )}
                   </div>
@@ -382,12 +383,12 @@ function Payment() {
               <div className={`alert-message ${errorMessage.includes("✅") ? 'success' : 'error'}`}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   {errorMessage.includes("✅") ? (
-                    <path d="M20 6L9 17l-5-5"/>
+                    <path d="M20 6L9 17l-5-5" />
                   ) : (
                     <>
-                      <circle cx="12" cy="12" r="10"/>
-                      <line x1="12" y1="8" x2="12" y2="12"/>
-                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
                     </>
                   )}
                 </svg>
@@ -399,7 +400,7 @@ function Payment() {
             <div className="action-buttons">
               <button className="secondary-btn" onClick={handleGoBack}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
                 </svg>
                 ย้อนกลับ
               </button>
@@ -417,7 +418,7 @@ function Payment() {
                   <>
                     ดำเนินการชำระเงิน
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                      <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </>
                 )}
@@ -434,8 +435,8 @@ function Payment() {
                 <h3>ชำระเงินผ่าน PromptPay</h3>
                 <button className="close-button" onClick={closePopup}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
                   </svg>
                 </button>
               </div>
