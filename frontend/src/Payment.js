@@ -117,7 +117,7 @@ function Payment() {
         localStorage.setItem("order", JSON.stringify(newOrder));
         setGiftOrder(data.order);
       } else {
-        // ดึงข้อมูลจาก localStorage
+        // ไฟล์ถูกอัพโหลดไว้แล้วตอน Upload.js (ใช้ uploadId)
         const savedData = localStorage.getItem("pendingUploadData");
         console.log("[Payment] Saved upload data:", savedData);
 
@@ -126,116 +126,51 @@ function Payment() {
         }
 
         const uploadData = JSON.parse(savedData);
-        console.log("[Payment] Uploading after payment confirmation");
+        const uploadId = uploadData.uploadId;
 
-        // สร้าง FormData หรือ JSON payload ตามประเภท
-        if (uploadData.imageBase64) {
-          // กรณีมีรูปภาพ - ใช้ FormData
-          const formData = new FormData();
+        if (!uploadId) {
+          throw new Error("ไม่พบ uploadId กรุณาอัพโหลดใหม่");
+        }
 
-          // แปลง base64 กลับเป็น File
-          const imageBlob = await fetch(uploadData.imageBase64).then(r => r.blob());
-          const imageFile = new File([imageBlob], uploadData.imageName, { type: imageBlob.type });
-          formData.append("file", imageFile);
+        console.log("[Payment] Confirming payment for uploadId:", uploadId);
 
-          if (uploadData.qrCodeBase64) {
-            const qrBlob = await fetch(uploadData.qrCodeBase64).then(r => r.blob());
-            const qrFile = new File([qrBlob], uploadData.qrCodeName, { type: qrBlob.type });
-            formData.append("qrCode", qrFile);
-          }
-
-          formData.append("type", uploadData.type);
-          formData.append("time", uploadData.time);
-          formData.append("price", uploadData.price);
-          formData.append("textColor", uploadData.textColor);
-          formData.append("text", uploadData.text);
-          formData.append("socialType", uploadData.socialType || "");
-          formData.append("socialName", uploadData.socialName || "");
-          formData.append("composed", "0");
-          formData.append("status", "pending");
-          formData.append("sender", uploadData.sender);
-          if (uploadData.userId) formData.append("userId", uploadData.userId);
-          if (uploadData.email) formData.append("email", uploadData.email);
-          if (uploadData.avatar) formData.append("avatar", uploadData.avatar);
-
-          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
-            method: "POST",
-            body: formData,
-          });
-
-          if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Upload failed: ${response.status} ${errText}`);
-          }
-
-          const result = await response.json();
-          console.log("[Payment] Upload success after payment:", result);
-
-          const currentQueueNumber = incrementQueueNumber();
-          const newOrder = {
-            type: uploadData.type,
-            time: uploadData.time,
-            price: uploadData.price,
-            queueNumber: currentQueueNumber,
-            orderId: result.uploadId
-          };
-
-          const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-          existingOrders.push(newOrder);
-          localStorage.setItem("orders", JSON.stringify(existingOrders));
-          localStorage.setItem("order", JSON.stringify(newOrder));
-
-          localStorage.removeItem("pendingUploadData");
-          localStorage.removeItem("uploadFormDraft");
-          localStorage.removeItem("uploadFormImage");
-        } else {
-          // กรณีข้อความอย่างเดียว - ใช้ JSON
-          const payload = {
-            type: uploadData.type,
-            text: uploadData.text,
-            time: uploadData.time,
-            price: uploadData.price,
-            sender: uploadData.sender,
+        // เรียก API confirm-payment
+        const response = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uploadId,
             userId: uploadData.userId,
             email: uploadData.email,
-            avatar: uploadData.avatar,
-            textColor: uploadData.textColor,
-            socialType: uploadData.socialType,
-            socialName: uploadData.socialName,
-            status: "pending"
-          };
+            avatar: uploadData.avatar
+          })
+        });
 
-          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-
-          if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Upload failed: ${response.status} ${errText}`);
-          }
-
-          const result = await response.json();
-          console.log("[Payment] Text upload success after payment:", result);
-
-          const currentQueueNumber = incrementQueueNumber();
-          const newOrder = {
-            type: uploadData.type,
-            time: uploadData.time,
-            price: uploadData.price,
-            queueNumber: currentQueueNumber,
-            orderId: result.uploadId
-          };
-
-          const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-          existingOrders.push(newOrder);
-          localStorage.setItem("orders", JSON.stringify(existingOrders));
-          localStorage.setItem("order", JSON.stringify(newOrder));
-
-          localStorage.removeItem("pendingUploadData");
-          localStorage.removeItem("uploadFormDraft");
+        if (!response.ok) {
+          const errText = await response.text();
+          throw new Error(`Payment confirmation failed: ${response.status} ${errText}`);
         }
+
+        const result = await response.json();
+        console.log("[Payment] Payment confirmed:", result);
+
+        const currentQueueNumber = incrementQueueNumber();
+        const newOrder = {
+          type: uploadData.type,
+          time: uploadData.time,
+          price: uploadData.price,
+          queueNumber: currentQueueNumber,
+          orderId: result.uploadId || uploadId
+        };
+
+        const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+        existingOrders.push(newOrder);
+        localStorage.setItem("orders", JSON.stringify(existingOrders));
+        localStorage.setItem("order", JSON.stringify(newOrder));
+
+        localStorage.removeItem("pendingUploadData");
+        localStorage.removeItem("uploadFormDraft");
+        localStorage.removeItem("uploadFormImage");
       }
 
       setShowPopup(false);

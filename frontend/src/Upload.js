@@ -279,69 +279,61 @@ function Upload() {
           setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
       } else {
-        // ถ้าไม่ฟรี เก็บข้อมูลลง localStorage แล้วไปหน้า Payment
+        // ถ้าไม่ฟรี ส่งไฟล์ไปที่ backend ทันที แล้วเก็บแค่ uploadId
         try {
-          // แปลง image และ qrCodeFile เป็น base64
-          const imageBase64 = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(image);
+          const formData = new FormData();
+          formData.append("file", image);
+          if (qrCodeFile) {
+            formData.append("qrCode", qrCodeFile);
+          }
+          formData.append("type", actualType || "image");
+          formData.append("time", time || "60");
+          formData.append("price", price || "1");
+          formData.append("text", text || "");
+          formData.append("textColor", textColor || "white");
+          formData.append("sender", sender);
+          formData.append("userId", userId || "guest");
+          formData.append("email", email || "");
+          formData.append("avatar", avatar || "");
+          formData.append("socialType", selectedSocial || "");
+          formData.append("socialName", socialName || "");
+
+          console.log("[Upload] Sending file to backend...");
+          const response = await fetch(`${API_BASE_URL}/api/upload`, {
+            method: "POST",
+            body: formData
           });
 
-          let qrCodeBase64 = null;
-          if (qrCodeFile) {
-            qrCodeBase64 = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onload = (e) => resolve(e.target.result);
-              reader.readAsDataURL(qrCodeFile);
-            });
+          if (!response.ok) {
+            throw new Error("Failed to upload file");
           }
 
+          const data = await response.json();
+          if (!data.success || !data.uploadId) {
+            throw new Error("Invalid response from server");
+          }
+
+          console.log("[Upload] File uploaded, uploadId:", data.uploadId);
+
+          // เก็บแค่ uploadId และข้อมูลสำคัญ (ไม่เก็บไฟล์)
           const uploadData = {
-            imageBase64,
-            qrCodeBase64,
-            imageName: image.name,
-            qrCodeName: qrCodeFile ? qrCodeFile.name : null,
+            uploadId: data.uploadId,
             type: actualType || "image",
             time: time || "60",
             price: price || "1",
-            textColor,
-            text,
-            socialType: selectedSocial,
-            socialName,
             sender,
             userId,
-            email,
-            avatar
+            email
           };
 
-          try {
-            localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-            console.log("[Upload] Saved upload data to localStorage, navigating to Payment");
-          } catch (e) {
-            if (e.name === 'QuotaExceededError') {
-              console.warn('[Upload] localStorage full, clearing old data...');
-              // ลบข้อมูลเก่าที่ไม่จำเป็น
-              localStorage.removeItem("uploadFormImage");
-              localStorage.removeItem("uploadFormDraft");
-              // ลองอีกครั้ง
-              try {
-                localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-                console.log("[Upload] Retry: Saved upload data after cleanup");
-              } catch (retryError) {
-                console.error('[Upload] Failed to save even after cleanup:', retryError);
-                throw new Error('ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่');
-              }
-            } else {
-              throw e;
-            }
-          }
+          localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
+          console.log("[Upload] Saved uploadId to localStorage");
 
           setShowPreviewModal(false);
-          navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}`);
+          navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}&uploadId=${data.uploadId}`);
         } catch (error) {
-          console.error('[Upload] Error saving upload data:', error);
-          setAlertMessage("เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่");
+          console.error('[Upload] Error uploading file:', error);
+          setAlertMessage("เกิดข้อผิดพลาดในการอัพโหลดไฟล์ กรุณาลองใหม่");
         }
       }
     } else if (type === "text") {
