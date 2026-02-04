@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API_BASE_URL from "./config/apiConfig";
 
 function SlipUpload({ price, onSuccess }) {
   const [slipFile, setSlipFile] = useState(null);
@@ -29,7 +30,7 @@ function SlipUpload({ price, onSuccess }) {
     formData.append("amount", price);
 
     try {
-      const response = await axios.post("/verify-slip", formData, {
+      const response = await axios.post(`${API_BASE_URL}/verify-slip`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       if (response.data.success) {
