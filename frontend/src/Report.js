@@ -43,9 +43,21 @@ function Report() {
     setMessage("");
 
     try {
+      // ดึง token จาก localStorage
+      const token = localStorage.getItem("token");
+      
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      
+      // เพิ่ม Authorization header ถ้ามี token
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/report`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: headers,
         body: JSON.stringify({
           category,
           detail

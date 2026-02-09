@@ -5,7 +5,7 @@ const reportSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ["display", "technical", "payment", "other"],
+      enum: ["technical", "display", "payment", "upload", "account", "suggestion", "other"],
     },
     detail: String,
     userId: {

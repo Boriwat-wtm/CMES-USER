@@ -16,6 +16,8 @@ import http from "http";
 import { Server as SocketIoServer } from "socket.io";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth-mongodb.js";
+import Report from "./models/Report.js";
+import { optionalAuth } from "./middleware/authMiddleware.js";
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
@@ -296,26 +298,54 @@ async function fetchGiftSettingsFromAdmin() {
   return response.json();
 }
 
-app.post("/api/report", async (req, res) => {
+app.post("/api/report", optionalAuth, async (req, res) => {
   const { category, detail } = req.body;
   if (!category || !detail) {
     return res.status(400).json({ status: "error", message: "category and detail are required" });
   }
+  
   try {
-    const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category, detail }),
-    });
-    const adminData = await adminRes.json();
-    if (adminRes.ok) {
-      res.json({ status: "ok" });
-    } else {
-      res.status(500).json({ status: "error", message: adminData.message });
+    // บันทึกลง MongoDB ก่อน (พร้อม userId ถ้ามี)
+    const reportData = {
+      category,
+      detail,
+      userId: req.userId || null,  // จาก optionalAuth middleware
+      status: "open"
+    };
+    
+    const newReport = await Report.create(reportData);
+    console.log("✓ Report saved to MongoDB:", newReport._id);
+    
+    // พยายามส่งไป Admin API (แต่ไม่ให้ล้มถ้า Admin API มีปัญหา)
+    try {
+      const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, detail }),
+      });
+      
+      if (adminRes.ok) {
+        console.log("✓ Report forwarded to Admin API");
+      } else {
+        console.warn("⚠ Admin API returned error, but report saved locally");
+      }
+    } catch (adminErr) {
+      console.warn("⚠ Failed to forward to Admin API, but report saved locally:", adminErr.message);
     }
+    
+    // ส่ง response สำเร็จ (เพราะบันทึกลง MongoDB แล้ว)
+    res.json({ 
+      status: "ok", 
+      message: "Report saved successfully",
+      reportId: newReport._id 
+    });
+    
   } catch (err) {
-    console.error("ส่งข้อมูลไป admin ไม่สำเร็จ:", err); // เพิ่ม log error
-    res.status(500).json({ status: "error", message: "ส่งข้อมูลไป admin ไม่สำเร็จ" });
+    console.error("✗ Failed to save report:", err);
+    res.status(500).json({ 
+      status: "error", 
+      message: "Failed to save report to database" 
+    });
   }
 });
 
