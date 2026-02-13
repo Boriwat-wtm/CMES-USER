@@ -67,6 +67,12 @@ function Home() {
     required: 100,
     reason: "not_checked"
   });
+  const [perks, setPerks] = useState([
+    "🎁 แสดงชื่อและโปรไฟล์บนหน้าจออันดับผู้สนับสนุน",
+    "🌟 ป้าย Diamond/Gold/Silver ที่ช่วยแยกความโดดเด่น",
+    "🚀 สิทธิ์เข้าถึงโปรโมชั่นหรือกิจกรรมก่อนใคร",
+    "💬 ช่องทางติดต่อพิเศษสำหรับเคสเร่งด่วน"
+  ]); // default perks
   const socketRef = useRef(null);
 
   const fetchAllOrderStatuses = useCallback(async (currentOrders) => {
@@ -183,6 +189,22 @@ function Home() {
       }
     };
     fetchUserProfile();
+
+    // Load perks from Admin config
+    const fetchPerks = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/config/perks`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.perks && data.perks.length > 0) {
+            setPerks(data.perks);
+          }
+        }
+      } catch (error) {
+        console.error("[Home] Error fetching perks:", error);
+      }
+    };
+    fetchPerks();
 
     // Listen for storage changes
     const handleStorageChange = () => {
@@ -1116,10 +1138,9 @@ function Home() {
               </div>
               <div className="modal-body">
                 <ul className="perk-list">
-                  <li>🎁 แสดงชื่อและโปรไฟล์บนหน้าจออันดับผู้สนับสนุน</li>
-                  <li>🌟 ป้าย Diamond/Gold/Silver ที่ช่วยแยกความโดดเด่น</li>
-                  <li>🚀 สิทธิ์เข้าถึงโปรโมชั่นหรือกิจกรรมก่อนใคร</li>
-                  <li>💬 ช่องทางติดต่อพิเศษสำหรับเคสเร่งด่วน</li>
+                  {perks.map((perk, index) => (
+                    <li key={index}>{perk}</li>
+                  ))}
                 </ul>
                 <button className="primary-btn perk-action" onClick={() => navigate("/select?type=image")}>เริ่มต้นสนับสนุน</button>
               </div>
