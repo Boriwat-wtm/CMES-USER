@@ -143,6 +143,15 @@ function Profile() {
               if (userData.birthday) localStorage.setItem("birthday", userData.birthday);
               if (userData.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", userData.lastBirthdayEdit);
               
+              // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
+              localStorage.setItem("user", JSON.stringify({
+                id: data.user._id || data.user.id,
+                username: userData.username || "",
+                email: userData.email || "",
+                avatar: userData.avatar || null,
+                birthday: userData.birthday || ""
+              }));
+              
               return;
             }
           }
@@ -447,6 +456,15 @@ function Profile() {
           if (updatedUserData.lastBirthdayEdit) {
             localStorage.setItem("lastBirthdayEdit", updatedUserData.lastBirthdayEdit);
           }
+          
+          // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
+          localStorage.setItem("user", JSON.stringify({
+            id: updatedUserData._id || updatedUserData.id,
+            username: updatedUserData.username || "",
+            email: updatedUserData.email || "",
+            avatar: updatedUserData.avatar || null,
+            birthday: updatedUserData.birthday || ""
+          }));
 
           // Clean up state
           setSelectedFile(null);

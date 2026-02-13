@@ -182,6 +182,15 @@ function Home() {
               localStorage.removeItem("avatar");
               setProfileImage(null);
             }
+            
+            // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
+            localStorage.setItem("user", JSON.stringify({
+              id: data.user._id || data.user.id,
+              username: data.user.username || "",
+              email: data.user.email || "",
+              avatar: data.user.avatar || null,
+              birthday: data.user.birthday || ""
+            }));
           }
         }
       } catch (error) {
