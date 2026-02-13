@@ -232,6 +232,20 @@ function Profile() {
     if (!hasChanges) return;
     if (birthdayError) return;
 
+    // Confirmation popup
+    const confirmSave = window.confirm(
+      "คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?\n\n" +
+      "ข้อมูลที่จะอัปเดต:\n" +
+      (user.username !== tempUser.username ? `• ชื่อผู้ใช้: ${tempUser.username}\n` : "") +
+      (user.email !== tempUser.email ? `• อีเมล: ${tempUser.email}\n` : "") +
+      (user.birthday !== tempUser.birthday ? `• วันเกิด: ${tempUser.birthday}\n` : "") +
+      (selectedFile || (user.avatar !== tempUser.avatar) ? `• รูปโปรไฟล์: อัปเดตแล้ว\n` : "")
+    );
+
+    if (!confirmSave) {
+      return;
+    }
+
     // if trying to change birthday but not allowed
     const isBirthdayChanged = user.birthday !== tempUser.birthday;
     if (isBirthdayChanged && canEditBirthday === false) {
@@ -351,6 +365,9 @@ function Profile() {
           // Clean up state
           setSelectedFile(null);
           setPreviewUrl(null); // Clear preview since we saved
+          
+          // Show success message
+          alert("✅ บันทึกข้อมูลสำเร็จ!\n\nข้อมูลโปรไฟล์ของคุณได้รับการอัปเดตแล้ว");
           
           // navigate to home
           navigate("/home");
