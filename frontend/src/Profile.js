@@ -366,10 +366,7 @@ function Profile() {
           setSelectedFile(null);
           setPreviewUrl(null); // Clear preview since we saved
           
-          // Show success message
-          alert("✅ บันทึกข้อมูลสำเร็จ!\n\nข้อมูลโปรไฟล์ของคุณได้รับการอัปเดตแล้ว");
-          
-          // navigate to home
+          // navigate to home (ไม่แจ้งเตือน popup เพราะจะรบกวนผู้ใช้)
           navigate("/home");
         } else {
           console.error("[Profile] Failed to update profile on backend:", data.message);
