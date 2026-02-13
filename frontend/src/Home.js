@@ -193,15 +193,21 @@ function Home() {
     // Load perks from Admin config
     const fetchPerks = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/config/perks`);
+        const API_URL = process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com';
+        console.log("[Home] 📥 Fetching perks from:", `${API_URL}/api/config/perks`);
+        const response = await fetch(`${API_URL}/api/config/perks`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.perks && data.perks.length > 0) {
+          console.log("[Home] 📦 Perks fetched:", data);
+          if (data.success && data.perks) {
+            console.log("[Home] ✅ Setting initial perks:", data.perks.length, "items");
             setPerks(data.perks);
           }
+        } else {
+          console.error("[Home] ❌ Failed to fetch perks, status:", response.status);
         }
       } catch (error) {
-        console.error("[Home] Error fetching perks:", error);
+        console.error("[Home] ❌ Error fetching perks:", error);
       }
     };
     fetchPerks();
@@ -268,9 +274,16 @@ function Home() {
 
     // Listen for perks updates from Admin
     socketInstance.on("perksUpdated", (data) => {
-      console.log("[User] Perks updated:", data.perks);
-      if (data.perks && Array.isArray(data.perks)) {
+      console.log("[User] 🔥 Perks updated via Socket.IO:", data.perks);
+      if (data && data.perks && Array.isArray(data.perks)) {
+        console.log("[User] ✅ Setting new perks:", data.perks.length, "items");
         setPerks(data.perks);
+        // Force update if modal is open
+        if (showPerkModal) {
+          console.log("[User] 🔄 Perk modal is open, will re-render with new perks");
+        }
+      } else {
+        console.warn("[User] ⚠️ Invalid perks data received:", data);
       }
     });
 
