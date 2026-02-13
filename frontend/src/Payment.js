@@ -41,7 +41,7 @@ function Payment() {
     const fetchOrder = async () => {
       setIsLoadingOrder(true);
       try {
-        const response = await fetch(`/api/gifts/order/${orderId}`);
+        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}`);
         const data = await response.json();
         if (!response.ok || !data.success) {
           throw new Error(data.message || "โหลดรายละเอียดคำสั่งซื้อไม่สำเร็จ");
@@ -90,7 +90,7 @@ function Payment() {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
         }
-        const response = await fetch(`/api/gifts/order/${orderId}/confirm`, {
+        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, email, avatar })
