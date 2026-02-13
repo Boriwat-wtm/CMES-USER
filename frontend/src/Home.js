@@ -266,6 +266,14 @@ function Home() {
       setRankingType(data.type);
     });
 
+    // Listen for perks updates from Admin
+    socketInstance.on("perksUpdated", (data) => {
+      console.log("[User] Perks updated:", data.perks);
+      if (data.perks && Array.isArray(data.perks)) {
+        setPerks(data.perks);
+      }
+    });
+
     socketInstance.emit("getConfig");
     return () => socketInstance.disconnect();
   }, []);
