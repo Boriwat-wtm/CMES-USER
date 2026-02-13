@@ -4,10 +4,14 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import User from "../models/User.js";
+import fetch from "node-fetch";
 
 dotenv.config();
 
 const router = express.Router();
+
+// Admin API Base URL
+const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "https://cmes-admin-server.onrender.com").replace(/\/$/, "");
 
 // OTP Storage (In-memory)
 // Format: email -> { otp: "123456", expires: Date }
@@ -499,6 +503,34 @@ router.put("/profile", async (req, res) => {
     }
 
     await user.save();
+
+    // Sync profile (username & avatar) to Admin Backend (for ranking display)
+    // ทำทุกครั้งที่บันทึกโปรไฟล์ เพื่อให้ชื่อและรูปอัปเดตทันทีใน Ranking
+    try {
+      console.log(`[Auth] Syncing profile to Admin Backend for user: ${user.email}`);
+      const syncResponse = await fetch(`${ADMIN_API_BASE}/api/rankings/update-avatar`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user._id.toString(),
+          email: user.email,
+          username: user.username,
+          avatar: user.avatar,
+        }),
+      });
+
+      if (syncResponse.ok) {
+        const syncData = await syncResponse.json();
+        console.log(`[Auth] ✓ Profile synced to Admin Backend:`, syncData.message);
+      } else {
+        console.warn(`[Auth] ⚠ Failed to sync profile to Admin Backend: ${syncResponse.status}`);
+      }
+    } catch (syncError) {
+      console.error(`[Auth] ⚠ Error syncing profile to Admin Backend:`, syncError.message);
+      // ไม่ throw error เพราะไม่อยากให้การอัปเดตโปรไฟล์ล้มเหลวเพียงเพราะ sync ไม่ได้
+    }
 
     const userResponse = {
       id: user._id.toString(),

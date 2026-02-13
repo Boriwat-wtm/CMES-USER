@@ -128,6 +128,22 @@ function Home() {
     }
   }, [fetchAllOrderStatuses]);
 
+  const loadRankings = useCallback(() => {
+    setRankLoading(true);
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/rankings/top?type=${rankingType}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          throw new Error("FAILED");
+        }
+        setLeaderboard(data.ranks || []);
+      })
+      .catch((err) => {
+        console.error("[Home] Failed to fetch rankings:", err);
+      })
+      .finally(() => setRankLoading(false));
+  }, [rankingType]);
+
   useEffect(() => {
     const getValidAvatar = () => {
       const val = localStorage.getItem("avatar");
@@ -172,6 +188,7 @@ function Home() {
     const handleStorageChange = () => {
       setProfileImage(getValidAvatar());
       loadOrders();
+      loadRankings(); // Reload rankings to get updated avatars
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -180,6 +197,7 @@ function Home() {
     const handleFocus = () => {
       setProfileImage(getValidAvatar());
       loadOrders();
+      loadRankings(); // Reload rankings to get updated avatars
     };
 
     window.addEventListener("focus", handleFocus);
@@ -188,7 +206,7 @@ function Home() {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [loadOrders]);
+  }, [loadOrders, loadRankings]);
 
 
 
@@ -248,20 +266,8 @@ function Home() {
 
   useEffect(() => {
     // เรียก API จาก CMES-ADMIN โดยตรง with ranking type parameter
-    setRankLoading(true);
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/rankings/top?type=${rankingType}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.success) {
-          throw new Error("FAILED");
-        }
-        setLeaderboard(data.ranks || []);
-      })
-      .catch((err) => {
-        console.error("[Home] Failed to fetch rankings:", err);
-      })
-      .finally(() => setRankLoading(false));
-  }, [rankingType]); // Reload when rankingType changes
+    loadRankings();
+  }, [rankingType, loadRankings]); // Reload when rankingType changes
 
   // หาอันดับของ user จาก leaderboard
   useEffect(() => {
@@ -495,7 +501,7 @@ function Home() {
               </svg>
             </div>
             <div className="brand-text">
-              <h1>Digital Signage CMS</h1>
+              <h1>Digital Signage CMES</h1>
               <p>University of Phayao, Thailand</p>
             </div>
           </div>
