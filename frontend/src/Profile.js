@@ -4,6 +4,40 @@ import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import API_BASE_URL from "./config/apiConfig";
 
+// Custom Modal Component
+const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm, showCancel = false, confirmText = "ตรวจสอบ", cancelText = "ยกเลิก" }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className={`modal-header ${type}`}>
+          <h3>{title}</h3>
+        </div>
+        <div className="modal-body">
+          <p style={{ whiteSpace: 'pre-line' }}>{message}</p>
+        </div>
+        <div className="modal-footer">
+          {showCancel && (
+            <button className="modal-btn cancel-btn" onClick={onClose}>
+              {cancelText}
+            </button>
+          )}
+          <button 
+            className="modal-btn confirm-btn" 
+            onClick={() => {
+              if (onConfirm) onConfirm();
+              else onClose();
+            }}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function Profile() {
   const navigate = useNavigate();
   const [user, setUser] = useState({
@@ -25,6 +59,35 @@ function Profile() {
   const [canEditBirthday, setCanEditBirthday] = useState(true);
 
   const [selectedFile, setSelectedFile] = useState(null); // Store raw file for upload
+  
+  // Modal states
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+    onConfirm: null,
+    showCancel: false,
+    confirmText: "ตกลง",
+    cancelText: "ยกเลิก"
+  });
+
+  const showModal = (config) => {
+    setModalConfig({
+      isOpen: true,
+      title: config.title || "แจ้งเตือน",
+      message: config.message || "",
+      type: config.type || "info",
+      onConfirm: config.onConfirm || null,
+      showCancel: config.showCancel || false,
+      confirmText: config.confirmText || "ตกลง",
+      cancelText: config.cancelText || "ยกเลิก"
+    });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   // robust parser: try ISO/native, then dd/mm/yyyy
   const parsePossibleDate = (s) => {
@@ -232,19 +295,31 @@ function Profile() {
     if (!hasChanges) return;
     if (birthdayError) return;
 
-    // Confirmation popup
-    const confirmSave = window.confirm(
-      "คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?\n\n" +
-      "ข้อมูลที่จะอัปเดต:\n" +
-      (user.username !== tempUser.username ? `• ชื่อผู้ใช้: ${tempUser.username}\n` : "") +
-      (user.email !== tempUser.email ? `• อีเมล: ${tempUser.email}\n` : "") +
-      (user.birthday !== tempUser.birthday ? `• วันเกิด: ${tempUser.birthday}\n` : "") +
-      (selectedFile || (user.avatar !== tempUser.avatar) ? `• รูปโปรไฟล์: อัปเดตแล้ว\n` : "")
-    );
+    // สร้างข้อความแสดงการเปลี่ยนแปลง
+    const changes = [];
+    if (user.username !== tempUser.username) changes.push(`• ชื่อผู้ใช้: ${tempUser.username}`);
+    if (user.email !== tempUser.email) changes.push(`• อีเมล: ${tempUser.email}`);
+    if (user.birthday !== tempUser.birthday) changes.push(`• วันเกิด: ${tempUser.birthday}`);
+    if (selectedFile || (user.avatar !== tempUser.avatar)) changes.push(`• รูปโปรไฟล์: อัปเดตแล้ว`);
 
-    if (!confirmSave) {
-      return;
-    }
+    const changeMessage = "ข้อมูลที่จะอัปเดต:\n" + changes.join("\n");
+
+    // แสดง confirmation modal
+    showModal({
+      title: "ยืนยันการบันทึก",
+      message: `คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?\n\n${changeMessage}`,
+      type: "confirm",
+      showCancel: true,
+      confirmText: "บันทึก",
+      cancelText: "ยกเลิก",
+      onConfirm: () => {
+        closeModal();
+        performSave();
+      }
+    });
+  };
+
+  const performSave = async () => {
 
     // if trying to change birthday but not allowed
     const isBirthdayChanged = user.birthday !== tempUser.birthday;
@@ -252,9 +327,19 @@ function Profile() {
       // show the date from last edit if available, otherwise fallback to if-changed-now
       const showDate = nextEditFromLast || nextEditIfChangedNow;
       if (showDate) {
-        alert(`สามารถแก้ไขวันเกิดได้ทุก 90 วัน\nแก้ไขได้อีกครั้งในวันที่ ${showDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`);
+        showModal({
+          title: "ไม่สามารถแก้ไขได้",
+          message: `สามารถแก้ไขวันเกิดได้ทุก 90 วัน\nแก้ไขได้อีกครั้งในวันที่ ${showDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}`,
+          type: "warning",
+          confirmText: "รับทราบ"
+        });
       } else {
-        alert("ไม่สามารถแก้ไขวันเกิดได้ในขณะนี้");
+        showModal({
+          title: "ไม่สามารถแก้ไขได้",
+          message: "ไม่สามารถแก้ไขวันเกิดได้ในขณะนี้",
+          type: "warning",
+          confirmText: "รับทราบ"
+        });
       }
       return;
     }
@@ -320,11 +405,12 @@ function Profile() {
         
         if (!response.ok) {
           // จัดการกรณีที่ backend ตอบกลับด้วย error
-          if (data.message) {
-            alert(data.message);
-          } else {
-            alert("บันทึกข้อมูลไม่สำเร็จ");
-          }
+          showModal({
+            title: "เกิดข้อผิดพลาด",
+            message: data.message || "บันทึกข้อมูลไม่สำเร็จ",
+            type: "error",
+            confirmText: "รับทราบ"
+          });
           
           // ย้อนค่ากลับเป็นค่าเดิม
           setTempUser({ ...user });
@@ -370,13 +456,23 @@ function Profile() {
           navigate("/home");
         } else {
           console.error("[Profile] Failed to update profile on backend:", data.message);
-          alert("บันทึกข้อมูลไม่สำเร็จ: " + (data.message || "เกิดข้อผิดพลาด"));
+          showModal({
+            title: "เกิดข้อผิดพลาด",
+            message: "บันทึกข้อมูลไม่สำเร็จ: " + (data.message || "เกิดข้อผิดพลาด"),
+            type: "error",
+            confirmText: "รับทราบ"
+          });
         }
       }
 
     } catch (error) {
       console.error("Profile save error:", error);
-      alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      showModal({
+        title: "เกิดข้อผิดพลาด",
+        message: "เกิดข้อผิดพลาดในการบันทึกข้อมูล",
+        type: "error",
+        confirmText: "รับทราบ"
+      });
       return;
     }
   };
@@ -385,6 +481,17 @@ function Profile() {
 
   return (
     <div className="profile-container">
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onConfirm={modalConfig.onConfirm}
+        showCancel={modalConfig.showCancel}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+      />
       <div className="profile-wrapper">
         <header className="profile-header">
           <button className="back-btn" onClick={handleGoBack}>กลับ</button>
@@ -437,7 +544,15 @@ function Profile() {
 
               <div className="info-group">
                 <label>อีเมล</label>
-                <input name="email" value={tempUser.email} onChange={handleInputChange} className="profile-input" placeholder="กรุณาใส่อีเมล" />
+                <input 
+                  name="email" 
+                  value={tempUser.email} 
+                  onChange={handleInputChange} 
+                  className="profile-input disabled" 
+                  placeholder="กรุณาใส่อีเมล" 
+                  disabled 
+                  readOnly
+                />
               </div>
 
               <div className="info-group">
