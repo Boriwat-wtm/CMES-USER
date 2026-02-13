@@ -314,7 +314,7 @@ function Report() {
                   <p>ถ้าต้องการความช่วยเหลือทันที สามารถติดต่อทีมงานได้ที่</p>
                   <ul>
                     <li><span>Line:</span> @digitalsignage</li>
-                    <li><span>Email:</span> support@cms.example</li>
+                    <li><span>Email:</span> support@cms.com</li>
                     <li><span>โทร:</span> 091-234-5678</li>
                   </ul>
                   <small>ทีมงานตอบกลับทุกวัน 09:00-22:00 น.</small>
