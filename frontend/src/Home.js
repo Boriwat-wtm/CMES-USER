@@ -884,7 +884,7 @@ function Home() {
                           <div className="order-details" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                             <div style={{ fontSize: '14px', fontWeight: '600', color: '#334155' }}>{getOrderTypeLabel(ord.type)}</div>
                             <div style={{ fontSize: '12px', color: '#64748b' }}>
-                              {ord.type === "gift" ? `โต๊ะ #${ord.tableNumber}` : `฿${ord.price}`}
+                              {ord.type === "gift" ? `โต๊ะ #${ord.tableNumber}` : (ord.price === 0 ? 'ฟรี' : `฿${ord.price}`)}
                             </div>
                           </div>
                           <div className="queue-number">
@@ -1073,7 +1073,7 @@ function Home() {
                           ) : null}
                           <div className="summary-item">
                             <span className="item-label">ราคา:</span>
-                            <span className="item-value price-highlight">฿{ord.price}</span>
+                            <span className="item-value price-highlight">{ord.price === 0 ? 'ฟรี' : `฿${ord.price}`}</span>
                           </div>
                         </div>
                       );

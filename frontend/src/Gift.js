@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Gift.css";
+import { incrementQueueNumber } from "./utils";
 
 import API_BASE_URL, { REALTIME_URL } from './config/apiConfig';
 
@@ -116,7 +117,10 @@ function Gift() {
 		});
 	};
 
-	const formatCurrency = (amount) => `฿${Number(amount || 0).toLocaleString("th-TH")}`;
+	const formatCurrency = (amount) => {
+		const num = Number(amount || 0);
+		return num === 0 ? 'ฟรี' : `฿${num.toLocaleString("th-TH")}`;
+	};
 
 	const handleResetSelection = () => {
 		setQuantities({});
@@ -166,6 +170,62 @@ function Gift() {
 				throw new Error(data.message || "ไม่สามารถสร้างคำสั่งซื้อได้");
 			}
 
+			// ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
+			if (data.order.totalPrice === 0) {
+				try {
+					// ดึงข้อมูล user
+					let userId = null, email = null, avatar = null;
+					try {
+						const storedUser = localStorage.getItem("user");
+						if (storedUser) {
+							const userObj = JSON.parse(storedUser);
+							userId = userObj.id || null;
+							email = userObj.email || null;
+							avatar = userObj.avatar || null;
+						}
+					} catch (err) {
+						console.warn("[Gift] Cannot parse user data:", err);
+					}
+
+					// Confirm order
+					const confirmResponse = await fetch(`/api/gifts/order/${data.order.id}/confirm`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ userId, email, avatar })
+					});
+					const confirmData = await confirmResponse.json();
+					if (!confirmResponse.ok || !confirmData.success) {
+						throw new Error(confirmData.message || "ยืนยันคำสั่งซื้อไม่สำเร็จ");
+					}
+
+					// บันทึกลง localStorage
+					const currentQueueNumber = incrementQueueNumber();
+					const newOrder = {
+						type: "gift",
+						price: confirmData.order.totalPrice,
+						queueNumber: currentQueueNumber,
+						tableNumber: confirmData.order.tableNumber,
+						giftItems: confirmData.order.items,
+						orderId: data.order.id
+					};
+
+					const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+					existingOrders.push(newOrder);
+					localStorage.setItem("orders", JSON.stringify(existingOrders));
+					localStorage.setItem("order", JSON.stringify(newOrder));
+
+					// ไปหน้า home
+					navigate("/home");
+					return;
+				} catch (confirmError) {
+					console.error("[Gift] Free order confirmation error:", confirmError);
+					setErrorMessage(confirmError.message || "เกิดข้อผิดพลาดในการยืนยันคำสั่งซื้อ");
+					setSubmitting(false);
+					return;
+				}
+			}
+
+			// มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
 			navigate(`/payment?type=gift&price=${data.order.totalPrice}&orderId=${data.order.id}`);
 		} catch (error) {
 			console.error("Create gift order error", error);

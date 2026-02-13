@@ -262,7 +262,7 @@ function Payment() {
                     </div>
                     <div className="summary-item total-item">
                       <span className="item-label">ยอดรวม:</span>
-                      <span className="item-value total-price">฿{giftOrder?.totalPrice || price}</span>
+                      <span className="item-value total-price">{(giftOrder?.totalPrice || price) === 0 ? 'ฟรี' : `฿${giftOrder?.totalPrice || price}`}</span>
                     </div>
                   </>
                 ) : (
@@ -279,7 +279,7 @@ function Payment() {
                     </div>
                     <div className="summary-item total-item">
                       <span className="item-label">ยอดรวม:</span>
-                      <span className="item-value total-price">฿{price}</span>
+                      <span className="item-value total-price">{price === 0 ? 'ฟรี' : `฿${price}`}</span>
                     </div>
                   </>
                 )}
@@ -380,7 +380,7 @@ function Payment() {
                   <img src={paymentLogo} alt="QR Code" className="qr-code" />
                   <div className="amount-display">
                     <span className="amount-label">ยอดชำระ</span>
-                    <span className="amount-value">฿{amountToPay}</span>
+                    <span className="amount-value">{amountToPay === 0 ? 'ฟรี' : `฿${amountToPay}`}</span>
                   </div>
                 </div>
                 <div className="payment-steps">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
+import { incrementQueueNumber } from "./utils";
 import "./Upload.css";
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";
@@ -330,6 +331,57 @@ function Upload() {
           console.log("[Upload] Saved uploadId to localStorage");
 
           setShowPreviewModal(false);
+
+          // ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
+          if (Number(price) === 0) {
+            try {
+              const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  uploadId: data.uploadId,
+                  userId,
+                  email,
+                  avatar
+                })
+              });
+
+              if (!confirmResponse.ok) {
+                const errText = await confirmResponse.text();
+                throw new Error(`Payment confirmation failed: ${confirmResponse.status} ${errText}`);
+              }
+
+              const result = await confirmResponse.json();
+              console.log("[Upload] Free payment confirmed:", result);
+
+              const currentQueueNumber = incrementQueueNumber();
+              const newOrder = {
+                type: uploadData.type,
+                time: uploadData.time,
+                price: uploadData.price,
+                queueNumber: currentQueueNumber,
+                orderId: result.uploadId || data.uploadId
+              };
+
+              const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+              existingOrders.push(newOrder);
+              localStorage.setItem("orders", JSON.stringify(existingOrders));
+              localStorage.setItem("order", JSON.stringify(newOrder));
+
+              localStorage.removeItem("pendingUploadData");
+              localStorage.removeItem("uploadFormDraft");
+              localStorage.removeItem("uploadFormImage");
+
+              navigate("/home");
+              return;
+            } catch (confirmError) {
+              console.error('[Upload] Free order confirmation error:', confirmError);
+              setAlertMessage("เกิดข้อผิดพลาดในการยืนยันคำสั่ง กรุณาลองใหม่");
+              return;
+            }
+          }
+
+          // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
           navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}&uploadId=${data.uploadId}`);
         } catch (error) {
           console.error('[Upload] Error uploading file:', error);
@@ -450,6 +502,69 @@ function Upload() {
         }
 
         setShowPreviewModal(false);
+
+        // ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
+        if (Number(price) === 0) {
+          try {
+            const savedData = localStorage.getItem("pendingUploadData");
+            if (!savedData) {
+              throw new Error("ไม่พบข้อมูลการอัปโหลด");
+            }
+
+            const uploadData = JSON.parse(savedData);
+            const uploadId = uploadData.uploadId;
+
+            if (!uploadId) {
+              throw new Error("ไม่พบ uploadId กรุณาอัพโหลดใหม่");
+            }
+
+            const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                uploadId,
+                userId: uploadData.userId,
+                email: uploadData.email,
+                avatar: uploadData.avatar
+              })
+            });
+
+            if (!confirmResponse.ok) {
+              const errText = await confirmResponse.text();
+              throw new Error(`Payment confirmation failed: ${confirmResponse.status} ${errText}`);
+            }
+
+            const result = await confirmResponse.json();
+            console.log("[Upload] Free text payment confirmed:", result);
+
+            const currentQueueNumber = incrementQueueNumber();
+            const newOrder = {
+              type: uploadData.type,
+              time: uploadData.time,
+              price: uploadData.price,
+              queueNumber: currentQueueNumber,
+              orderId: result.uploadId || uploadId
+            };
+
+            const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
+            existingOrders.push(newOrder);
+            localStorage.setItem("orders", JSON.stringify(existingOrders));
+            localStorage.setItem("order", JSON.stringify(newOrder));
+
+            localStorage.removeItem("pendingUploadData");
+            localStorage.removeItem("uploadFormDraft");
+            localStorage.removeItem("uploadFormImage");
+
+            navigate("/home");
+            return;
+          } catch (confirmError) {
+            console.error('[Upload] Free text order confirmation error:', confirmError);
+            setAlertMessage("เกิดข้อผิดพลาดในการยืนยันคำสั่ง กรุณาลองใหม่");
+            return;
+          }
+        }
+
+        // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
         navigate(`/payment?price=${price}&type=${type}&time=${time}`);
       }
     }
@@ -495,7 +610,7 @@ function Upload() {
               </div>
               <div className="package-detail">
                 <span className="label">ราคา:</span>
-                <span className="value price">฿{price}</span>
+                <span className="value price">{price === 0 ? 'ฟรี' : `฿${price}`}</span>
               </div>
             </div>
 
@@ -930,7 +1045,7 @@ function Upload() {
                   )}
                   <div className="preview-info">
                     <p><strong>แสดงเป็นเวลา:</strong> {time} วินาที</p>
-                    <p><strong>ราคา:</strong> ฿{price}</p>
+                    <p><strong>ราคา:</strong> {price === 0 ? 'ฟรี' : `฿${price}`}</p>
                   </div>
                 </div>
               </div>

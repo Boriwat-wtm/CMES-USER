@@ -169,7 +169,7 @@ function Select() {
                     </div>
                     <div className="package-content">
                       <div className="price-display">
-                        <span className="price-amount">{type === "birthday" ? "ฟรี!" : `฿${pkg.price}`}</span>
+                        <span className="price-amount">{pkg.price === 0 ? "ฟรี!" : `฿${pkg.price}`}</span>
                       </div>
                       <div className="package-features">
                         <div className="feature-item">
