@@ -602,11 +602,18 @@ app.post("/api/confirm-payment", async (req, res) => {
     });
 
     if (response.ok) {
+      const adminResult = await response.json();
+      const adminUploadId = adminResult.uploadId; // รับ uploadId จาก Admin
+      
       // ลบข้อมูลออกจากรายการรอชำระเงิน
       pendingUploads.delete(uploadId);
 
-      console.log('Successfully sent to admin backend');
-      res.json({ success: true, message: 'Payment confirmed and data sent to admin' });
+      console.log('Successfully sent to admin backend, admin uploadId:', adminUploadId);
+      res.json({ 
+        success: true, 
+        message: 'Payment confirmed and data sent to admin',
+        uploadId: adminUploadId // ส่ง uploadId จาก Admin กลับไปให้ Frontend
+      });
     } else {
       throw new Error('Failed to send to admin backend');
     }
