@@ -848,7 +848,7 @@ app.post("/api/gifts/order", async (req, res) => {
     }
 
     const totalPrice = validItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    if (totalPrice <= 0) {
+    if (totalPrice < 0) {
       return res.status(400).json({ success: false, message: "ยอดรวมไม่ถูกต้อง" });
     }
 
