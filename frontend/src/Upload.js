@@ -1,52 +1,72 @@
+// ==================== IMPORTS ====================
+// นำเข้า React hooks สำหรับจัดการ state และ side effects
 import React, { useState, useEffect } from "react";
+// นำเข้า hooks สำหรับการนำทาง (routing)
 import { useLocation, useNavigate } from "react-router-dom";
+// นำเข้า URL ของ Backend API (User และ Admin)
 import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
+// นำเข้าฟังก์ชันสำหรับเพิ่มหมายเลขคิว (Queue Number)
 import { incrementQueueNumber } from "./utils";
+// นำเข้า CSS สำหรับ styling
 import "./Upload.css";
+// นำเข้า logo ของ social media ต่างๆ
 import igLogo from "./data-icon/ig-logo.png";
 import fbLogo from "./data-icon/facebook-logo.png";
 import lineLogo from "./data-icon/line-logo.png";
 import tiktokLogo from "./data-icon/tiktok-logo.png";
 
+// ==================== COMPONENT MAIN ====================
 function Upload() {
+  // ==================== ROUTING & URL PARAMETERS ====================
+  // ดึงข้อมูลจาก URL (location) และฟังก์ชันสำหรับเปลี่ยนหน้า (navigate)
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // แปลง query parameters จาก URL (เช่น ?type=image&time=60&price=100)
   const queryParams = new URLSearchParams(location.search);
-  const type = queryParams.get("type");
-  const time = parseInt(queryParams.get("time"));
-  const price = queryParams.get("price");
-  const isFree = queryParams.get("free") === "true";
+  const type = queryParams.get("type");           // ประเภท: "image", "text", หรือ "birthday"
+  const time = parseInt(queryParams.get("time")); // เวลาแสดง (วินาที)
+  const price = parseInt(queryParams.get("price")); // ราคา (บาท)
+  const isFree = queryParams.get("free") === "true"; // เช็คว่าฟรีหรือไม่
 
-  const [text, setText] = useState("");
-  const [image, setImage] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [textColor, setTextColor] = useState("white");
-  const [selectedSocial, setSelectedSocial] = useState(""); // social ที่เลือก
-  const [socialName, setSocialName] = useState(""); // ชื่อ social
-  const [actualType, setActualType] = useState(type); // เพื่อเก็บ type จริง (birthday หรือ image/text)
-  const [qrCodeFile, setQrCodeFile] = useState(null); // QR Code file
+  // ==================== STATE DECLARATIONS ====================
+  const [text, setText] = useState("");  // เก็บข้อความที่ผู้ใช้พิมพ์
+  const [image, setImage] = useState(null);// เก็บไฟล์รูปภาพที่ผู้ใช้อัปโหลด
+  const [showModal, setShowModal] = useState(false);  // เปิด/ปิด modal ข้อกำหนดการใช้งาน
+  const [showPreviewModal, setShowPreviewModal] = useState(false); // เปิด/ปิด modal แสดงตัวอย่างก่อนยืนยัน
+  const [alertMessage, setAlertMessage] = useState(""); // ข้อความแจ้งเตือน (error หรือ warning)
+  const [textColor, setTextColor] = useState("white"); // สีของข้อความ (white หรือ black)
+  const [selectedSocial, setSelectedSocial] = useState(""); // โซเชียลมีเดียที่เลือก (ig, fb, line, tiktok)
+  const [socialName, setSocialName] = useState(""); // ชื่อ username หรือ ID ของโซเชียลมีเดีย
+  const [actualType, setActualType] = useState(type); // type จริงๆ ของคำสั่งซื้อ (อาจแตกต่างจาก URL ถ้ามีการเปลี่ยนแปลง)
+  const [qrCodeFile, setQrCodeFile] = useState(null); // ไฟล์ QR Code สำหรับ Instagram (ถ้ามี)
 
-  const MAX_TEXT_LENGTH = 36;
+  // ==================== CONSTANTS ====================
+  const MAX_TEXT_LENGTH = 36; // จำนวนตัวอักษรสูงสุดที่อนุญาตให้พิมพ์
 
-  // โหลดข้อมูลจาก localStorage ตอน mount
+  // ==================== useEffect: โหลดข้อมูลจาก localStorage ====================
+  // รันครั้งเดียวตอน component mount และเมื่อ type เปลี่ยน
   useEffect(() => {
+    // โหลด draft ที่ผู้ใช้พิมพ์ค้างไว้ (กรณีกลับมาแก้ไข)
     const saved = localStorage.getItem("uploadFormDraft");
     if (saved) {
       try {
         const data = JSON.parse(saved);
         if (data) {
+          // กู้คืนข้อมูลที่พิมพ์ไว้
           setText(data.text || "");
           setTextColor(data.textColor || "white");
           setSelectedSocial(data.selectedSocial || "");
           setSocialName(data.socialName || "");
-          // *** ไม่ต้อง setImage(data.image) ***
+          // หมายเหตุ: ไม่เก็บรูปภาพใน localStorage เพราะขนาดใหญ่เกินไป
         }
-      } catch { }
+      } catch { 
+        // ถ้า parse ไม่ได้ ให้ข้ามไป
+      }
     }
 
-    // ดึง actual type จาก order (set โดย Select.js)
+    // ดึง actual type จาก order ที่ Select.js บันทึกไว้
+    // (สำคัญสำหรับ birthday type ที่อาจถูกเปลี่ยนจาก image)
     const order = localStorage.getItem("order");
     if (order) {
       try {
@@ -54,15 +74,18 @@ function Upload() {
         console.log("[Upload] Order from localStorage:", orderData);
         setActualType(orderData.type || type);
       } catch {
+        // ถ้า parse ไม่ได้ ใช้ type จาก URL
         setActualType(type);
       }
     }
   }, [type]);
 
-  // Save ข้อมูลทุกครั้งที่ state เปลี่ยน
+  // ==================== useEffect: Auto-save ข้อมูล ====================
+  // บันทึกข้อมูลลง localStorage ทุกครั้งที่ state เหล่านี้เปลี่ยนแปลง
+  // เพื่อไม่ให้ข้อมูลหายถ้าผู้ใช้ปิดหน้าหรือย้อนกลับ
   useEffect(() => {
-    // image ไม่สามารถเก็บไฟล์ใน localStorage ได้โดยตรง
-    // ให้เก็บแค่ชื่อไฟล์ หรือ base64 (ถ้าต้องการ)
+    // หมายเหตุ: ไม่เก็บรูปภาพที่นี่เพราะ File object ไม่สามารถ stringify ได้
+    // รูปภาพจะถูกเก็บเป็น base64 แยกต่างหากใน handleImageChange
     localStorage.setItem(
       "uploadFormDraft",
       JSON.stringify({
@@ -70,43 +93,55 @@ function Upload() {
         textColor,
         selectedSocial,
         socialName,
-        // image: image ? image.name : null // หรือไม่ต้องเก็บ image
       })
     );
   }, [text, textColor, selectedSocial, socialName]);
 
+  // ==================== HANDLER: การเปลี่ยนแปลงข้อความ ====================
+  // จัดการตอนผู้ใช้พิมพ์ข้อความ พร้อมตรวจสอบความยาว
   const handleTextChange = (e) => {
     const inputText = e.target.value;
+    
+    // ตรวจสอบว่าไม่เกินจำนวนตัวอักษรสูงสุด
     if (inputText.length <= MAX_TEXT_LENGTH) {
       setText(inputText);
-      setAlertMessage("");
+      setAlertMessage(""); // ลบข้อความ error ถ้ามี
     } else {
+      // แจ้งเตือนถ้าพิมพ์เกินขีดจำกัด
       setAlertMessage(`ข้อความต้องไม่เกิน ${MAX_TEXT_LENGTH} ตัวอักษร`);
     }
   };
 
-  // ถ้าอยากเก็บรูปด้วย ต้องแปลงเป็น base64
+  // ==================== HANDLER: การอัปโหลดรูปภาพ ====================
+  // จัดการตอนผู้ใช้เลือกไฟล์รูปภาพ พร้อมตรวจสอบขนาด
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // ตรวจสอบขนาดไฟล์ไม่เกิน 5MB
       if (file.size > 5 * 1024 * 1024) {
         setAlertMessage("ขนาดไฟล์ต้องไม่เกิน 5MB");
         return;
       }
+      
+      // เก็บไฟล์ใน state
       setImage(file);
       setAlertMessage("");
-      // เก็บ base64 ลง localStorage
+      
+      // แปลงรูปเป็น base64 และเก็บลง localStorage เพื่อกู้คืนได้หลัง refresh
       const reader = new FileReader();
       reader.onload = function (ev) {
         localStorage.setItem("uploadFormImage", ev.target.result);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(file); // อ่านไฟล์และแปลงเป็น base64
     }
   };
 
+  // ==================== HANDLER: การอัปโหลด QR Code ====================
+  // จัดการตอนผู้ใช้เลือกไฟล์ QR Code สำหรับ Instagram (ไม่บังคับ)
   const handleQRCodeChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // ตรวจสอบขนาดไม่เกิน 2MB
       if (file.size > 2 * 1024 * 1024) {
         setAlertMessage("QR Code ต้องไม่เกิน 2MB");
         return;
@@ -116,43 +151,54 @@ function Upload() {
     }
   };
 
-  // โหลดรูปจาก localStorage (base64) ตอน mount
+  // ==================== useEffect: โหลดรูปภาพจาก localStorage ====================
+  // รันครั้งเดียวตอน mount เพื่อกู้คืนรูปที่ผู้ใช้อัปโหลดไว้ก่อนหน้า
   useEffect(() => {
     const saved = localStorage.getItem("uploadFormImage");
     if (saved) {
-      // สร้างไฟล์จำลองจาก base64
+      // แปลง base64 กลับมาเป็น File object
       const arr = saved.split(",");
       if (arr.length > 1) {
+        // ดึง MIME type จาก base64 string
         const mime = arr[0].match(/:(.*?);/)[1];
+        // Decode base64 เป็น binary string
         const bstr = atob(arr[1]);
         let n = bstr.length;
+        // สร้าง Uint8Array จาก binary string
         const u8arr = new Uint8Array(n);
         while (n--) {
           u8arr[n] = bstr.charCodeAt(n);
         }
+        // สร้าง File object จาก Uint8Array
         const file = new File([u8arr], "image.png", { type: mime });
-        setImage(file); // ลบ fileInput ที่ไม่ได้ใช้
+        setImage(file);
       }
     }
   }, []);
 
+  // ==================== HANDLER: การกดปุ่มอัปโหลด ====================
+  // ตรวจสอบความถูกต้องก่อนอนุญาตให้อัปโหลด
   const handleUpload = () => {
+    // ตรวจสอบว่ามีรูปภาพสำหรับ type ที่ต้องการรูป
     if ((type === "image" || type === "birthday") && !image) {
       setAlertMessage("โปรดเลือกไฟล์รูปภาพ");
       return;
     }
 
+    // ตรวจสอบว่ามีข้อความ
     if (!text.trim()) {
       setAlertMessage("โปรดใส่ข้อความ");
       return;
     }
 
+    // ถ้าผ่านการตรวจสอบแล้ว แสดง modal ยืนยัน
     setShowPreviewModal(true);
   };
 
 
 
-  // สร้างข้อความ socialText และ socialOnImage ใหม่
+  // ==================== สร้างข้อความแสดง Social Media ====================
+  // สร้างข้อความแบบ text ธรรมดา (เช่น "IG: username123")
   const socialText = selectedSocial && socialName
     ? (() => {
       switch (selectedSocial) {
@@ -165,8 +211,10 @@ function Upload() {
     })()
     : "";
 
+  // สร้าง JSX element สำหรับแสดง social บนรูปภาพ (มี logo + ชื่อ)
   const socialOnImage = selectedSocial && socialName
     ? (() => {
+      // Map social type ไปหา logo ที่ตรงกัน
       const logoMap = {
         ig: igLogo,
         fb: fbLogo,
@@ -177,6 +225,7 @@ function Upload() {
       const logoSrc = logoMap[selectedSocial];
       if (!logoSrc) return null;
 
+      // Return JSX element ที่มี logo และ username
       return (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
           <img
@@ -194,15 +243,20 @@ function Upload() {
     })()
     : null;
 
+  // ==================== HANDLER: ยืนยันและอัปโหลดเนื้อหา ====================
+  // ฟังก์ชันหลักสำหรับยืนยันและส่งข้อมูลไปยัง Backend
+  // จัดการทั้งกรณีฟรีและมีค่าใช้จ่าย, ทั้งรูปภาพและข้อความ
   const handleAccept = async () => {
     console.log("[Upload] handleAccept called, type:", type, "actualType:", actualType, "isFree:", isFree);
 
+    // ==================== กรณี: อัปโหลดรูปภาพ (image หรือ birthday) ====================
     if ((type === "image" || type === "birthday") && image) {
-      // ดึงข้อมูล user
-      let sender = "Unknown";
-      let userId = null;
-      let email = null;
-      let avatar = null;
+      // ดึงข้อมูลผู้ใช้จาก localStorage เพื่อส่งไปกับการอัปโหลด
+      // ดึงข้อมูลผู้ใช้จาก localStorage เพื่อส่งไปกับการอัปโหลด
+      let sender = "Unknown";   // ชื่อผู้ส่ง
+      let userId = null;        // ID ของผู้ใช้
+      let email = null;         // อีเมล
+      let avatar = null;        // URL รูปโปรไฟล์
 
       const user = localStorage.getItem("user");
       if (user) {
@@ -219,27 +273,30 @@ function Upload() {
         }
       }
 
+      // ==================== กรณี: สินค้าฟรี ====================
+      // ==================== กรณี: สินค้าฟรี ====================
       if (isFree) {
-        // ถ้าฟรี ส่งรูปไปเลย
+        // สำหรับสินค้าฟรี ส่งรูปไป Admin Backend ทันทีและอนุมัติเลย
         const formData = new FormData();
-        formData.append("file", image);
-        if (qrCodeFile) formData.append("qrCode", qrCodeFile);
-        formData.append("type", actualType || "image");
-        formData.append("time", time || "60");
-        formData.append("price", "0");
-        formData.append("textColor", textColor);
-        formData.append("text", text);
-        formData.append("socialType", selectedSocial);
-        formData.append("socialName", socialName);
-        formData.append("composed", "0");
-        formData.append("status", "pending");
-        formData.append("sender", sender);
-        if (userId) formData.append("userId", userId);
-        if (email) formData.append("email", email);
-        if (avatar) formData.append("avatar", avatar);
+        formData.append("file", image);                          // ไฟล์รูปภาพ
+        if (qrCodeFile) formData.append("qrCode", qrCodeFile);  // QR Code (ถ้ามี)
+        formData.append("type", actualType || "image");        // ประเภทเนื้อหา
+        formData.append("time", time || "60");                 // เวลาแสดง (วินาที)
+        formData.append("price", "0");                          // ฟรี = 0 บาท
+        formData.append("textColor", textColor);                // สีข้อความ
+        formData.append("text", text);                          // ข้อความ
+        formData.append("socialType", selectedSocial);          // ประเภท social media
+        formData.append("socialName", socialName);              // ญื่อ social
+        formData.append("composed", "0");                       // ยังไม่ได้ compose
+        formData.append("status", "pending");                   // สถานะ: รออนุมัติ
+        formData.append("sender", sender);                      // ชื่อผู้ส่ง
+        if (userId) formData.append("userId", userId);         // User ID
+        if (email) formData.append("email", email);            // Email
+        if (avatar) formData.append("avatar", avatar);         // Avatar URL
 
         try {
           console.log("[Upload] Uploading FREE item with type:", actualType, "to Admin backend");
+          // ส่งไปยัง Admin Backend
           const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
             body: formData,
@@ -249,9 +306,11 @@ function Upload() {
             const result = await response.json();
             console.log("[Upload] Upload success:", result);
 
+            // สร้างหมายเลขคิวใหม่
             const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
             localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
 
+            // สร้างข้อมูลคำสั่งซื้อ
             const newOrder = {
               type: actualType || type,
               time: time,
@@ -260,16 +319,18 @@ function Upload() {
               orderId: result.uploadId
             };
 
+            // บันทึกคำสั่งซื้อลง localStorage
             const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
             existingOrders.push(newOrder);
             localStorage.setItem("orders", JSON.stringify(existingOrders));
             localStorage.setItem("order", JSON.stringify(newOrder));
 
+            // ลบข้อมูลชั่วคราว
             localStorage.removeItem("uploadFormDraft");
             localStorage.removeItem("uploadFormImage");
 
             setShowPreviewModal(false);
-            navigate("/home");
+            navigate("/home");  // กลับไปหน้าหลัก
           } else {
             const errText = await response.text();
             console.error("[Upload] Upload failed:", response.status, errText);
@@ -280,7 +341,8 @@ function Upload() {
           setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
       } else {
-        // ถ้าไม่ฟรี ส่งไฟล์ไปที่ backend ทันที แล้วเก็บแค่ uploadId
+        // ==================== กรณี: สินค้ามีค่าใช้จ่าย ====================
+        // ส่งไฟล์ไปยัง User Backend ก่อน แล้วค่อยไปหน้าชำระเงิน
         try {
           const formData = new FormData();
           formData.append("file", image);
@@ -300,6 +362,7 @@ function Upload() {
           formData.append("socialName", socialName || "");
 
           console.log("[Upload] Sending file to backend...");
+          // ส่งไฟล์ไปยัง User Backend เพื่อเก็บชั่วคราว
           const response = await fetch(`${API_BASE_URL}/api/upload`, {
             method: "POST",
             body: formData
@@ -389,7 +452,8 @@ function Upload() {
         }
       }
     } else if (type === "text") {
-      // เตรียมข้อมูลสำหรับส่งข้อความ
+      // ==================== กรณี: อัปโหลดข้อความเท่านั้น (text) ====================
+      // ดึงข้อมูลผู้ใช้จาก localStorage
       let sender = "Unknown";
       let userId = null;
       let email = null;
@@ -410,13 +474,15 @@ function Upload() {
         }
       }
 
+      // ==================== กรณี: ข้อความฟรี ====================
+      // ==================== กรณี: ข้อความฟรี ====================
       if (isFree) {
-        // ถ้าฟรี ส่งข้อความไปเลย
+        // สำหรับข้อความฟรี ส่งไป Admin Backend ทันทีและอนุมัติเลย
         const payload = {
           type,
           text,
           time,
-          price: 0,
+          price: 0,  // ฟรี
           sender,
           userId,
           email,
@@ -424,7 +490,7 @@ function Upload() {
           textColor,
           socialType: selectedSocial,
           socialName: socialName,
-          status: "approved"
+          status: "approved"  // อนุมัติอัตโนมัติสำหรับข้อความฟรี
         };
 
         try {
@@ -436,9 +502,11 @@ function Upload() {
 
           if (response.ok) {
             const result = await response.json();
+            // สร้างหมายเลขคิว
             const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
             localStorage.setItem("currentQueueNumber", currentQueueNumber.toString());
 
+            // สร้างข้อมูลคำสั่งซื้อ
             const newOrder = {
               type,
               time,
@@ -447,11 +515,13 @@ function Upload() {
               orderId: result.uploadId
             };
 
+            // บันทึกลง localStorage
             const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
             existingOrders.push(newOrder);
             localStorage.setItem("orders", JSON.stringify(existingOrders));
             localStorage.setItem("order", JSON.stringify(newOrder));
 
+            // ลบข้อมูลชั่วคราว
             localStorage.removeItem("uploadFormDraft");
 
             setShowPreviewModal(false);
@@ -464,7 +534,8 @@ function Upload() {
           setAlertMessage("เกิดข้อผิดพลาดในการอัปโหลด กรุณาลองใหม่");
         }
       } else {
-        // ถ้าไม่ฟรี เก็บข้อมูลลง localStorage
+        // ==================== กรณี: ข้อความมีค่าใช้จ่าย ====================
+        // เก็บข้อมูลลง localStorage แล้วไปหน้าชำระเงิน
         const uploadData = {
           type,
           text,
@@ -480,11 +551,14 @@ function Upload() {
         };
 
         try {
+          // บันทึกข้อมูลลง localStorage
           localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
           console.log("[Upload] Saved text upload data to localStorage, navigating to Payment");
         } catch (e) {
+          // จัดการกรณี localStorage เต็ม
           if (e.name === 'QuotaExceededError') {
             console.warn('[Upload] localStorage full for text, clearing...');
+            // ลบข้อมูลเก่าเพื่อเพิ่มพื้นที่
             localStorage.removeItem("uploadFormImage");
             localStorage.removeItem("uploadFormDraft");
             try {
@@ -570,20 +644,26 @@ function Upload() {
     }
   };
 
+  // ==================== HANDLER: แก้ไขเนื้อหา ====================
+  // ปิด preview modal และกลับไปแก้ไขข้อมูล
   const handleEdit = () => {
     setShowPreviewModal(false);
   };
 
-  const handleShowModal = () => setShowModal(true);
-  const handleCloseModal = () => setShowModal(false);
+  // ==================== HANDLER: Modal ข้อกำหนด ====================
+  const handleShowModal = () => setShowModal(true); // เปิด modal แสดงข้อกำหนดการใช้งาน
+  const handleCloseModal = () => setShowModal(false); // ปิด modal ข้อกำหนด
 
+  // ==================== HANDLER: ย้อนกลับหน้าก่อนหน้า ====================
   const handleGoBack = () => {
-    navigate(-1);
+    navigate(-1);  // ย้อนกลับไป 1 หน้า
   };
 
+  // ==================== RENDER ====================
   return (
     <div className="upload-container">
       <div className="upload-wrapper">
+        {/* ==================== HEADER: แถบหัวเรื่อง ==================== */}
         <header className="upload-header">
           <button className="back-btn" onClick={handleGoBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -596,6 +676,7 @@ function Upload() {
 
         <main className="upload-main">
           <div className="content-card">
+            {/* ==================== แสดงข้อมูลแพ็กเกจที่เลือก ==================== */}
             <div className="package-info">
               <div className="package-detail">
                 <span className="label">ประเภท:</span>
@@ -614,6 +695,7 @@ function Upload() {
               </div>
             </div>
 
+            {/* ==================== SECTION: อัปโหลดรูปภาพ (สำหรับ type: image/birthday) ==================== */}
             {(type === "image" || type === "birthday") && (
               <div className="upload-section">
                 <h3>อัปโหลดรูปภาพ</h3>
