@@ -1,3 +1,7 @@
+/* ========================
+   พื้นหลังและโครงสร้าง
+   ======================== */
+/* Profile page เดิม (ไม่ได้ใช้แล้ว) */
 s/* พื้นหลังและโครงสร้าง */
 .profile-page {
   min-height: 100vh;
@@ -7,6 +11,7 @@ s/* พื้นหลังและโครงสร้าง */
   margin: 0;
 }
 
+/* Container หลักของหน้า Profile ด้วย gradient background */
 .profile-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -14,11 +19,13 @@ s/* พื้นหลังและโครงสร้าง */
   padding: 1rem;
 }
 
+/* Wrapper จำกัดความกว้าง */
 .profile-wrapper {
   max-width: 600px;
   margin: 0 auto;
 }
 
+/* ส่วนหัวมีปุ่ม Back และหัวข้อ */
 .profile-header {
   display: flex;
   align-items: center;
@@ -27,6 +34,7 @@ s/* พื้นหลังและโครงสร้าง */
   color: white;
 }
 
+/* แถบบน (ไม่ได้ใช้แล้ว) */
 .top-bar {
   display: flex;
   align-items: center;
@@ -36,6 +44,7 @@ s/* พื้นหลังและโครงสร้าง */
   min-height: 56px;
 }
 
+/* ตำแหน่งปุ่ม Back (ไม่ได้ใช้แล้ว) */
 .back-button {
   position: absolute;
   left: 24px;
@@ -43,6 +52,7 @@ s/* พื้นหลังและโครงสร้าง */
   transform: translateY(-50%);
 }
 
+/* ปุ่มกลับไปหน้าก่อนหน้า */
 .back-btn {
   display: flex;
   align-items: center;
@@ -57,6 +67,7 @@ s/* พื้นหลังและโครงสร้าง */
   backdrop-filter: blur(10px);
 }
 
+/* Hover effect - แสดงพื้นหลังเข้มขึ้นและเลื่อนไปซ้าย */
 .back-btn:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateX(-5px);
@@ -77,12 +88,16 @@ s/* พื้นหลังและโครงสร้าง */
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
 }
 
+/* Card หลักของโปรไฟล์ */
 .profile-card {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
+/* ========================
+   ส่วนรูปโปรไฟล์
+   ======================== */
 .avatar-section {
   display: flex;
   flex-direction: column;
@@ -90,6 +105,7 @@ s/* พื้นหลังและโครงสร้าง */
   gap: 1.5rem;
 }
 
+/* กรอบรูปโปรไฟล์วงกลม */
 .avatar-container {
   position: relative;
   width: 140px;
@@ -100,6 +116,7 @@ s/* พื้นหลังและโครงสร้าง */
   box-shadow: 0 4px 12px rgba(66, 153, 225, 0.2);
 }
 
+/* รูปภาพและ placeholder */
 .avatar-image,
 .avatar-placeholder {
   width: 100%;
@@ -110,21 +127,25 @@ s/* พื้นหลังและโครงสร้าง */
   justify-content: center;
 }
 
+/* รูปภาพจริง */
 .avatar-image {
   object-fit: cover;
 }
 
+/* Placeholder เมื่อไม่มีรูปภาพ */
 .avatar-placeholder {
   background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   color: #64748b;
 }
 
+/* ปุ่มจัดการรูปภาพ (อัพโหลด/ลบ) */
 .avatar-actions {
   display: flex;
   gap: 1rem;
   justify-content: center;
 }
 
+/* สไตล์พื้นฐานสำหรับปุ่มอัพโหลดและปุ่มลบ */
 .upload-btn,
 .remove-btn {
   display: flex;
@@ -139,46 +160,56 @@ s/* พื้นหลังและโครงสร้าง */
   font-weight: 500;
 }
 
+/* ปุ่มอัพโหลดรูปภาพ */
 .upload-btn {
   background: #3b82f6;
   color: white;
 }
 
+/* Hover effect - ยกขึ้นและเพิ่ม shadow */
 .upload-btn:hover {
   background: #2563eb;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
+/* ปุ่มลบรูปภาพ */
 .remove-btn {
   background: #ef4444;
   color: white;
 }
 
+/* Hover effect สำหรับปุ่มลบ */
 .remove-btn:hover {
   background: #dc2626;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* ========================
+   ข้อมูลโปรไฟล์
+   ======================== */
 .profile-info {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
+/* กลุ่มข้อมูลแต่ละฟิลด์ */
 .info-group {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+/* Label ของแต่ละฟิลด์ */
 .info-group label {
   font-weight: 600;
   color: #374151;
   font-size: 0.875rem;
 }
 
+/* แสดงค่าข้อมูล (ไม่ได้ใช้แล้ว) */
 .info-value {
   padding: 0.75rem;
   background: #f9fafb;
@@ -186,6 +217,7 @@ s/* พื้นหลังและโครงสร้าง */
   color: #111827;
 }
 
+/* Input field สำหรับกรอกข้อมูล */
 .profile-input {
   padding: 0.75rem;
   border: 2px solid #e5e7eb;
@@ -194,12 +226,14 @@ s/* พื้นหลังและโครงสร้าง */
   transition: border-color 0.3s ease;
 }
 
+/* Focus state - เปลี่ยนสี border เมื่อ focus */
 .profile-input:focus {
   outline: none;
   border-color: #3b82f6;
 }
 
 /* Social Media Section */
+/* ส่วน Social Media (ไม่ได้ใช้แล้ว) */
 .profile-section {
   flex: 1 1 400px;     /* ขยายความกว้าง */
   min-width: 320px;    /* เดิม 220px */
@@ -272,17 +306,22 @@ s/* พื้นหลังและโครงสร้าง */
   box-shadow: 0 4px 16px rgba(66, 153, 225, 0.18);
 }
 
+/* ========================
+   ปุ่มต่างๆ
+   ======================== */
 .profile-actions {
   display: flex;
   justify-content: center;
 }
 
+/* กลุ่มปุ่มต่างๆ */
 .edit-actions,
 .view-actions {
   display: flex;
   gap: 1rem;
 }
 
+/* สไตล์พื้นฐานสำหรับปุ่มทุกปุ่ม */
 .save-btn,
 .cancel-btn,
 .edit-btn,
@@ -298,6 +337,7 @@ s/* พื้นหลังและโครงสร้าง */
   transition: all 0.3s ease;
 }
 
+/* ปุ่มบันทึก (สีเขียว) */
 .save-btn {
   background: #10b981;
   color: white;
@@ -357,7 +397,10 @@ s/* พื้นหลังและโครงสร้าง */
   }
 }
 
-/* Custom Modal Styles */
+/* ========================
+   Custom Modal Styles
+   ======================== */
+/* Overlay ที่ครอบหน้าจอ */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -373,6 +416,7 @@ s/* พื้นหลังและโครงสร้าง */
   padding: 1rem;
 }
 
+/* Animation fade in */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -382,6 +426,7 @@ s/* พื้นหลังและโครงสร้าง */
   }
 }
 
+/* Animation slide up */
 @keyframes slideUp {
   from {
     transform: translateY(50px);
@@ -393,6 +438,7 @@ s/* พื้นหลังและโครงสร้าง */
   }
 }
 
+/* เนื้อหา Modal */
 .modal-content {
   background: white;
   border-radius: 16px;
@@ -403,26 +449,31 @@ s/* พื้นหลังและโครงสร้าง */
   animation: slideUp 0.3s ease-out;
 }
 
+/* หัวข้อ Modal */
 .modal-header {
   padding: 1.5rem 1.5rem 1rem 1.5rem;
   border-bottom: 2px solid #f0f0f0;
 }
 
+/* สีหัวข้อแบบ info (gradient ม่วง-ชมพู) */
 .modal-header.info {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
+/* สีหัวข้อแบบ confirm (gradient ฟ้า) */
 .modal-header.confirm {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
 }
 
+/* สีหัวข้อแบบ warning (gradient ชมพู-แดง) */
 .modal-header.warning {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
 }
 
+/* สีหัวข้อแบบ error (gradient ชมพู-เหลือง) */
 .modal-header.error {
   background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
   color: white;
@@ -434,6 +485,7 @@ s/* พื้นหลังและโครงสร้าง */
   font-weight: 600;
 }
 
+/* เนื้อหา Modal */
 .modal-body {
   padding: 1.5rem;
   color: #333;
@@ -446,6 +498,7 @@ s/* พื้นหลังและโครงสร้าง */
   white-space: pre-line;
 }
 
+/* ส่วนท้าย Modal (ปุ่มต่างๆ) */
 .modal-footer {
   padding: 1rem 1.5rem 1.5rem 1.5rem;
   display: flex;
@@ -454,6 +507,7 @@ s/* พื้นหลังและโครงสร้าง */
   background: #f8f9fa;
 }
 
+/* ปุ่มใน Modal */
 .modal-btn {
   padding: 0.75rem 1.5rem;
   border: none;
@@ -465,34 +519,43 @@ s/* พื้นหลังและโครงสร้าง */
   min-width: 100px;
 }
 
+/* Hover effect ยกขึ้นเล็กน้อย */
 .modal-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Active state */
 .modal-btn:active {
   transform: translateY(0);
 }
 
+/* ปุ่มยกเลิก (สีเทา) */
 .cancel-btn {
   background: #e0e0e0;
   color: #666;
 }
 
+/* Hover effect สำหรับปุ่มยกเลิก */
 .cancel-btn:hover {
   background: #d0d0d0;
 }
 
+/* ปุ่มยืนยัน (gradient ม่วง-ชมพู) */
 .confirm-btn {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
+/* Hover effect สำหรับปุ่มยืนยัน */
 .confirm-btn:hover {
   background: linear-gradient(135deg, #5568d3 0%, #63408b 100%);
 }
 
-/* Disabled input style */
+/* ========================
+   Input Disabled State
+   ======================== */
+/* สไตล์ input ที่ถูก disable (เช่น email) */
 .profile-input.disabled {
   background-color: #f5f5f5;
   color: #999;
@@ -504,7 +567,10 @@ s/* พื้นหลังและโครงสร้าง */
   border-color: #ddd;
 }
 
-/* Responsive modal */
+/* ========================
+   Responsive Design
+   ======================== */
+/* สำหรับหน้าจอขนาดเล็กกว่า 768px (Tablet) */
 @media (max-width: 768px) {
   .modal-content {
     margin: 1rem;

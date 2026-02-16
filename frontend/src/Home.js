@@ -1,11 +1,18 @@
+// นำเข้า React และ hooks ต่างๆ สำหรับจัดการ state และ lifecycle
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+// นำเข้า routing tools สำหรับการนำทางและลิงก์
 import { useNavigate, Link } from "react-router-dom";
+// นำเข้า API base URL สำหรับเชื่อมต่อกับ backend
 import API_BASE_URL from "./config/apiConfig";
+// นำเข้า socket.io สำหรับการสื่อสาร realtime
 import { io } from "socket.io-client";
+// นำเข้า CSS styles
 import "./Home.css";
 import "./Report.css";
+// นำเข้าไอคอนสำหรับผู้ใช้ที่ไม่มีรูปโปรไฟล์
 import unknownPersonIcon from "./data-icon/unknown-person-icon.png";
 
+// สไตล์สำหรับแสดงข้อความประกาศพิเศษ (เช่น ระบบปิดบริการชั่วคราว)
 const NOTICE_STYLE = {
   width: "100%",
   height: "180px",
@@ -19,8 +26,10 @@ const NOTICE_STYLE = {
   borderRadius: "18px",
 };
 
+// ฟังก์ชันแปลงตัวเลขเป็นรูปแบบเงินสกุลไทย (เช่น 1000 -> 1,000)
 const formatCurrency = (value) => Number(value || 0).toLocaleString("th-TH");
 
+// ข้อมูลประเภทคำสั่งซื้อทั้งหมด พร้อม emoji และป้ายกำกับ
 const ORDER_TYPE_META = {
   image: { emoji: "🖼️", label: "รูปภาพ + ข้อความ" },
   text: { emoji: "💬", label: "ข้อความ" },
@@ -28,6 +37,7 @@ const ORDER_TYPE_META = {
   birthday: { emoji: "🎂", label: "อวยพรวันเกิด" },
 };
 
+// ฟังก์ชันดึงป้ายกำกับของประเภทคำสั่งซื้อ (มี option เลือกแสดง emoji หรือไม่)
 const getOrderTypeLabel = (type, options = { includeEmoji: true }) => {
   const meta = ORDER_TYPE_META[type];
   if (!meta) return "";
@@ -35,56 +45,73 @@ const getOrderTypeLabel = (type, options = { includeEmoji: true }) => {
 };
 
 function Home() {
-  const navigate = useNavigate();
-  const profileMenuRef = useRef(null);
-  const [showModal, setShowModal] = useState(false);
-  const [showPerkModal, setShowPerkModal] = useState(false);
-  const [showProfileMenu, setShowProfileMenu] = useState(false);
-  // State for multiple orders
-  const [orders, setOrders] = useState([]);
-  const [ordersStatus, setOrdersStatus] = useState({}); // Map { orderId: statusObj }
+  // ===== Navigation & Refs =====
+  const navigate = useNavigate(); // สำหรับนำทางไปหน้าอื่น
+  const profileMenuRef = useRef(null); // ref สำหรับเมนูโปรไฟล์ (ใช้ detect click outside)
+  
+  // ===== Modal States =====
+  const [showModal, setShowModal] = useState(false); // แสดง/ซ่อน modal สถานะคำสั่งซื้อ
+  const [showPerkModal, setShowPerkModal] = useState(false); // แสดง/ซ่อน modal สิทธิพิเศษ
+  const [showProfileMenu, setShowProfileMenu] = useState(false); // แสดง/ซ่อน เมนูโปรไฟล์
+  
+  // ===== Order States =====
+  const [orders, setOrders] = useState([]); // เก็บรายการคำสั่งซื้อทั้งหมด
+  const [ordersStatus, setOrdersStatus] = useState({}); // เก็บสถานะของแต่ละคำสั่งซื้อ (Map: orderId -> statusObj)
 
-  // Restore missing state
-  const [statusLoading, setStatusLoading] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [profileImage, setProfileImage] = useState(null);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [isBirthday, setIsBirthday] = useState(null);
+  // ===== User & UI States =====
+  const [statusLoading, setStatusLoading] = useState(false); // สถานะการโหลดข้อมูลคำสั่งซื้อ
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // เช็คว่าผู้ใช้ล็อกอินหรือไม่
+  const [profileImage, setProfileImage] = useState(null); // รูปโปรไฟล์ของผู้ใช้
+  const [alertMessage, setAlertMessage] = useState(""); // ข้อความแจ้งเตือนชั่วคราว
+  const [isBirthday, setIsBirthday] = useState(null); // เช็คว่าวันนี้เป็นวันเกิดของผู้ใช้หรือไม่
+  
+  // ===== System Status States =====
+  // สถานะการเปิด/ปิด ฟีเจอร์ต่างๆ ของระบบ
   const [status, setStatus] = useState({
-    systemOn: true,
-    imageOn: true,
-    textOn: true,
-    giftOn: true,
-    birthdayOn: true,
+    systemOn: true, // ระบบทั้งหมด
+    imageOn: true, // ฟีเจอร์ส่งรูปภาพ
+    textOn: true, // ฟีเจอร์ส่งข้อความ
+    giftOn: true, // ฟีเจอร์ส่งของขวัญ
+    birthdayOn: true, // ฟีเจอร์วันเกิด
   });
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [rankLoading, setRankLoading] = useState(true);
-  const [rankingType, setRankingType] = useState("alltime"); // PUBLIC BROADCAST STATE
-  const [userRank, setUserRank] = useState(999); // อันดับของ user (default 999 ถ้าไม่มีในระบบ)
+  // ===== Ranking States =====
+  const [leaderboard, setLeaderboard] = useState([]); // ข้อมูล leaderboard ผู้สนับสนุนอันดับต้นๆ
+  const [rankLoading, setRankLoading] = useState(true); // สถานะการโหลด leaderboard
+  const [rankingType, setRankingType] = useState("alltime"); // ประเภทอันดับ: daily, monthly, alltime (รับจาก Admin)
+  const [userRank, setUserRank] = useState(999); // อันดับของผู้ใช้ปัจจุบัน (default 999 ถ้าไม่มีในระบบ)
+  // ===== Birthday Feature States =====
+  // เก็บสถานะการมีสิทธิ์ใช้ฟีเจอร์วันเกิดฟรี (ต้องใช้จ่ายครบตามที่กำหนด)
   const [birthdayEligibility, setBirthdayEligibility] = useState({
-    eligible: false,
-    totalSpent: 0,
-    required: 100,
-    reason: "not_checked"
+    eligible: false, // มีสิทธิ์หรือไม่
+    totalSpent: 0, // จำนวนเงินที่ใช้จ่ายไปแล้ว
+    required: 100, // จำนวนเงินที่ต้องใช้เพื่อปลดล็อก
+    reason: "not_checked" // เหตุผล
   });
+  
+  // ===== Premium Perks States =====
   const [perks, setPerks] = useState([
     "🎁 แสดงชื่อและโปรไฟล์บนหน้าจออันดับผู้สนับสนุน",
     "🌟 ป้าย Diamond/Gold/Silver ที่ช่วยแยกความโดดเด่น",
     "🚀 สิทธิ์เข้าถึงโปรโมชั่นหรือกิจกรรมก่อนใคร",
     "💬 ช่องทางติดต่อพิเศษสำหรับเคสเร่งด่วน"
-  ]); // default perks
-  const socketRef = useRef(null);
+  ]); // สิทธิพิเศษสำหรับสมาชิกพรีเมี่ยม (ดึงจาก Admin)
+  
+  // ===== Socket.IO Ref =====
+  const socketRef = useRef(null); // ref สำหรับ socket connection
 
+  // ===== ฟังก์ชันดึงสถานะของคำสั่งซื้อทั้งหมด =====
+  // ใช้ useCallback เพื่อป้องกันการสร้างฟังก์ชันใหม่ทุกครั้งที่ render
   const fetchAllOrderStatuses = useCallback(async (currentOrders) => {
     if (!currentOrders || currentOrders.length === 0) return;
     setStatusLoading(true);
 
     const newStatuses = {};
 
-    // Fetch parallel
+    // ดึงสถานะแบบ parallel เพื่อความเร็ว
     await Promise.all(currentOrders.map(async (ord) => {
       if (!ord.orderId) return;
       try {
+        // เรียก API จาก Admin Backend เพื่อดึงสถานะล่าสุด
         const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}`);
         const data = await response.json();
         if (data.success) {
@@ -98,19 +125,20 @@ function Home() {
       }
     }));
 
+    // อัปเดตสถานะทั้งหมดพร้อมกัน
     setOrdersStatus(prev => ({ ...prev, ...newStatuses }));
     setStatusLoading(false);
   }, []);
 
+  // ===== ฟังก์ชันโหลดคำสั่งซื้อจาก localStorage =====
   const loadOrders = useCallback(() => {
     try {
-      // Priority 1: 'orders' array
+      // ลำดับความสำคัญ 1: ดึงจาก 'orders' array (รองรับหลายรายการ)
       const storedOrders = localStorage.getItem("orders");
       if (storedOrders) {
         let parsed = JSON.parse(storedOrders);
         if (Array.isArray(parsed)) {
-          // Sort newest first if they have timestamp? Or just assume push order (oldest first).
-          // Let's reverse to show newest first
+          // กลับลำดับเพื่อแสดงรายการใหม่ที่สุดก่อน
           parsed.reverse();
           setOrders(parsed);
           fetchAllOrderStatuses(parsed);
@@ -118,7 +146,7 @@ function Home() {
         }
       }
 
-      // Priority 2: Fallback to single 'order'
+      // ลำดับความสำคัญ 2: fallback ไปที่ 'order' เดี่ยว (รองรับระบบเก่า)
       const storedOrder = localStorage.getItem("order");
       if (storedOrder) {
         const parsed = JSON.parse(storedOrder);
@@ -134,8 +162,10 @@ function Home() {
     }
   }, [fetchAllOrderStatuses]);
 
+  // ===== ฟังก์ชันโหลด Leaderboard จาก Admin Backend =====
   const loadRankings = useCallback(() => {
     setRankLoading(true);
+    // ดึงข้อมูลอันดับตามประเภทที่เลือก (daily/monthly/alltime)
     fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/rankings/top?type=${rankingType}`)
       .then((res) => res.json())
       .then((data) => {
@@ -150,19 +180,24 @@ function Home() {
       .finally(() => setRankLoading(false));
   }, [rankingType]);
 
+  // ===== useEffect: โหลดข้อมูลผู้ใช้และคำสั่งซื้อเมื่อเปิดหน้า Home =====
   useEffect(() => {
+    // ฟังก์ชันตรวจสอบและดึง avatar ที่ถูกต้อง
     const getValidAvatar = () => {
       const val = localStorage.getItem("avatar");
       if (val && val !== "null" && val !== "undefined") return val;
       return null;
     };
+    
+    // เช็คสถานะการล็อกอิน
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
     setProfileImage(getValidAvatar());
 
-    // Load orders
+    // โหลดคำสั่งซื้อทั้งหมด
     loadOrders();
 
+    // ฟังก์ชันดึงข้อมูลโปรไฟล์ผู้ใช้จาก backend
     const fetchUserProfile = async () => {
       if (!token) return;
       try {
@@ -172,6 +207,7 @@ function Home() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.user) {
+            // เก็บข้อมูลผู้ใช้ลง localStorage
             localStorage.setItem("username", data.user.username || "");
             localStorage.setItem("email", data.user.email || "");
             localStorage.setItem("birthday", data.user.birthday || "");
@@ -183,7 +219,7 @@ function Home() {
               setProfileImage(null);
             }
             
-            // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
+            // เก็บ user object ทั้งหมดสำหรับใช้ในหน้าอื่น เช่น Payment.js และ Gift.js
             localStorage.setItem("user", JSON.stringify({
               id: data.user._id || data.user.id,
               username: data.user.username || "",
@@ -199,7 +235,7 @@ function Home() {
     };
     fetchUserProfile();
 
-    // Load perks from Admin config
+    // ฟังก์ชันดึงรายการสิทธิพิเศษ (perks) จาก Admin Backend
     const fetchPerks = async () => {
       try {
         const API_URL = process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com';
@@ -221,24 +257,25 @@ function Home() {
     };
     fetchPerks();
 
-    // Listen for storage changes
+    // รับฟังการเปลี่ยนแปลงใน localStorage (เมื่อมีการอัปเดตจากแท็บอื่น)
     const handleStorageChange = () => {
       setProfileImage(getValidAvatar());
       loadOrders();
-      loadRankings(); // Reload rankings to get updated avatars
+      loadRankings(); // โหลด rankings ใหม่เพื่อดึง avatar ที่อัปเดต
     };
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Also listen for focus event
+    // รับฟัง focus event (เมื่อผู้ใช้กลับมาที่หน้านี้)
     const handleFocus = () => {
       setProfileImage(getValidAvatar());
       loadOrders();
-      loadRankings(); // Reload rankings to get updated avatars
+      loadRankings(); // โหลด rankings ใหม่เพื่อดึง avatar ที่อัปเดต
     };
 
     window.addEventListener("focus", handleFocus);
 
+    // Cleanup: ลบ event listeners เมื่อ component unmount
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
@@ -247,12 +284,14 @@ function Home() {
 
 
 
+  // ===== useEffect: เชื่อมต่อ Socket.IO สำหรับรับข้อมูล realtime =====
   useEffect(() => {
-    // Use Realtime Server URL from Admin Backend
+    // เชื่อมต่อกับ Realtime Server จาก Admin Backend
     const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "https://cmes-admin-realtime.onrender.com";
     const socketInstance = io(REALTIME_URL);
     socketRef.current = socketInstance;
 
+    // รับฟังการอัปเดตการตั้งค่าระบบจาก Admin
     socketInstance.on("configUpdate", (newConfig) => {
       setStatus((prev) => ({
         ...prev,
@@ -263,6 +302,7 @@ function Home() {
         birthdayOn: newConfig.enableBirthday ?? prev.birthdayOn,
       }));
     });
+    // รับฟังสถานะระบบจาก Admin
     socketInstance.on("status", (socketStatus) => {
       if (!socketStatus) return;
       setStatus((prev) => ({
@@ -275,19 +315,19 @@ function Home() {
       }));
     });
 
-    // Listen for public ranking type broadcasts from Admin
+    // รับฟังการเปลี่ยนประเภทอันดับที่ Admin กำหนด (daily/monthly/alltime)
     socketInstance.on("publicRankingTypeUpdated", (data) => {
       console.log("[User] Public ranking type updated:", data.type);
       setRankingType(data.type);
     });
 
-    // Listen for perks updates from Admin
+    // รับฟังการอัปเดตรายการสิทธิพิเศษ (perks) จาก Admin
     socketInstance.on("perksUpdated", (data) => {
       console.log("[User] 🔥 Perks updated via Socket.IO:", data.perks);
       if (data && data.perks && Array.isArray(data.perks)) {
         console.log("[User] ✅ Setting new perks:", data.perks.length, "items");
         setPerks(data.perks);
-        // Force update if modal is open
+        // Force update ถ้า modal เปิดอยู่
         if (showPerkModal) {
           console.log("[User] 🔄 Perk modal is open, will re-render with new perks");
         }
@@ -296,15 +336,19 @@ function Home() {
       }
     });
 
+    // ขอข้อมูลการตั้งค่าเริ่มต้นจาก server
     socketInstance.emit("getConfig");
+    
+    // Cleanup: ตัดการเชื่อมต่อเมื่อ component unmount
     return () => socketInstance.disconnect();
   }, []);
 
-  // ดึงสถานะล่าสุดจาก backend เมื่อเข้า Home
+  // ===== useEffect: ดึงสถานะระบบล่าสุดจาก backend เมื่อเข้าหน้า Home =====
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/status`)
       .then((res) => res.json())
       .then((data) => {
+        // อัปเดตสถานะการเปิด/ปิด ฟีเจอร์ทั้งหมด
         setStatus({
           systemOn: data.systemOn ?? true,
           imageOn: (data.enableImage ?? data.imageOn) ?? true,
@@ -316,12 +360,13 @@ function Home() {
       .catch(() => { });
   }, []);
 
+  // ===== useEffect: โหลด Leaderboard เมื่อ rankingType เปลี่ยน =====
   useEffect(() => {
-    // เรียก API จาก CMES-ADMIN โดยตรง with ranking type parameter
+    // เรียก API ดึง leaderboard จาก Admin Backend
     loadRankings();
-  }, [rankingType, loadRankings]); // Reload when rankingType changes
+  }, [rankingType, loadRankings]); // Reload เมื่อ rankingType เปลี่ยน (daily/monthly/alltime)
 
-  // หาอันดับของ user จาก leaderboard
+  // ===== useEffect: คำนวณอันดับของผู้ใช้ปัจจุบันจาก leaderboard =====
   useEffect(() => {
     if (!isLoggedIn || leaderboard.length === 0) {
       setUserRank(999);
@@ -334,6 +379,7 @@ function Home() {
       return;
     }
 
+    // หาตำแหน่งของผู้ใช้ใน leaderboard
     const userIndex = leaderboard.findIndex(entry => entry.email === userEmail);
     if (userIndex === -1) {
       setUserRank(999); // ไม่พบ user ในระบบ
@@ -342,6 +388,7 @@ function Home() {
     }
   }, [leaderboard, isLoggedIn]);
 
+  // ===== useEffect: ตรวจสอบว่าวันนี้เป็นวันเกิดของผู้ใช้หรือไม่ =====
   useEffect(() => {
     if (!isLoggedIn) {
       setIsBirthday(null);
@@ -352,16 +399,18 @@ function Home() {
       setIsBirthday(false);
       return;
     }
+    // แยกวันและเดือนจากรูปแบบ "DD/MM/YYYY" หรือ "DD/MM"
     const [day, month] = birthday.split("/").map((part) => parseInt(part, 10));
     if (!day || !month) {
       setIsBirthday(false);
       return;
     }
+    // เปรียบเทียบกับวันที่ปัจจุบัน
     const today = new Date();
     setIsBirthday(day === today.getDate() && month === today.getMonth() + 1);
   }, [isLoggedIn]);
 
-  // Check birthday eligibility (spending requirement)
+  // ===== useEffect: ตรวจสอบสิทธิ์ใช้ฟีเจอร์วันเกิด (ต้องใช้จ่ายครบตามที่กำหนด) =====
   useEffect(() => {
     if (!isLoggedIn) {
       setBirthdayEligibility({
@@ -384,17 +433,17 @@ function Home() {
       return;
     }
 
-    // Fetch eligibility from admin backend using email
+    // ดึงข้อมูลสิทธิ์จาก Admin Backend โดยใช้ email
     const encodedEmail = encodeURIComponent(email);
     fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
           setBirthdayEligibility({
-            eligible: data.eligible,
-            totalSpent: data.totalSpent || 0,
-            required: data.required || 100,
-            reason: data.reason || "unknown"
+            eligible: data.eligible, // มีสิทธิ์หรือไม่
+            totalSpent: data.totalSpent || 0, // ยอดใช้จ่ายสะสม
+            required: data.required || 100, // ยอดที่ต้องใช้จ่าย
+            reason: data.reason || "unknown" // เหตุผล
           });
         }
       })
@@ -403,9 +452,11 @@ function Home() {
       });
   }, [isLoggedIn]);
 
+  // ===== useEffect: ปิดเมนูโปรไฟล์เมื่อคลิกนอกเมนู =====
   useEffect(() => {
     if (!showProfileMenu) return;
     const handleClickOutside = (event) => {
+      // ถ้าคลิกนอก profileMenu ให้ปิดเมนู
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setShowProfileMenu(false);
       }
@@ -414,15 +465,20 @@ function Home() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showProfileMenu]);
 
+  // ===== useEffect: ซ่อนข้อความแจ้งเตือนอัตโนมัติหลัง 3 วินาที =====
   useEffect(() => {
     if (!alertMessage) return;
     const timeout = setTimeout(() => setAlertMessage(""), 3000);
     return () => clearTimeout(timeout);
   }, [alertMessage]);
 
+  // ===== Handler Functions =====
+  // นำทางไปหน้าเลือกบริการ (image, text, birthday)
   const handleSelect = (type) => navigate(`/select?type=${type}`);
+  // นำทางไปหน้าส่งของขวัญ
   const handleGift = () => navigate("/gift");
 
+  // เปิด modal ตรวจสอบสถานะคำสั่งซื้อ
   const handleCheckStatus = () => {
     setShowModal(true);
     if (orders.length > 0) {
@@ -430,49 +486,58 @@ function Home() {
     }
   };
 
+  // ปิด modal สถานะคำสั่งซื้อ
   const handleCloseModal = () => {
     setShowModal(false);
   };
+  
+  // ออกจากระบบ (ล้าง localStorage และ reload หน้า)
   const handleLogout = () => {
     localStorage.clear();
     setShowProfileMenu(false);
     navigate("/");
     window.location.reload();
   };
+  // จัดการคลิกการ์ดวันเกิด (ตรวจสอบเงื่อนไขต่างๆ ก่อนอนุญาต)
   const handleBirthdayCardClick = () => {
+    // เงื่อนไขที่ 1: ต้องล็อกอินก่อน
     if (!isLoggedIn) {
       setAlertMessage("เข้าสู่ระบบเพื่อรับสิทธิ์วันเกิดฟรี");
       return;
     }
 
-    // Check spending requirement first
+    // เงื่อนไขที่ 2: ต้องใช้จ่ายครบตามที่กำหนด
     if (!birthdayEligibility.eligible) {
       const remaining = birthdayEligibility.required - birthdayEligibility.totalSpent;
       setAlertMessage(`ต้องใช้จ่ายอีก ${remaining.toLocaleString()} บาท เพื่อปลดล็อกฟีเจอร์วันเกิด`);
       return;
     }
 
-    // Then check if it's birthday
+    // เงื่อนไขที่ 3: ต้องเป็นวันเกิดจริงๆ
     if (isBirthday === false) {
       setAlertMessage(`คุณใช้จ่ายครบแล้ว! รอถึงวันเกิดของคุณเพื่อใช้งานฟรี 🎂`);
       return;
     }
 
-    // If both conditions met, proceed
+    // ผ่านทุกเงื่อนไข ให้ไปหน้าเลือกบริการวันเกิด
     if (isBirthday) navigate("/select?type=birthday");
   };
 
+  // คำนวณยอดรวมของ leaderboard (ใช้ useMemo เพื่อป้องกันการคำนวณซ้ำ)
   const weeklyTotal = useMemo(
     () => leaderboard.reduce((sum, entry) => sum + Number(entry.points || 0), 0),
     [leaderboard]
   );
 
+  // ฟังก์ชันสร้าง element ข้อความประกาศ
   const renderNotice = (message) => <div style={NOTICE_STYLE}>{message}</div>;
 
-  const inactiveImageAndText = !status.imageOn && !status.textOn;
-  const showGiftOnlyNotice = inactiveImageAndText && status.giftOn;
-  const showAllDisabledNotice = inactiveImageAndText && !status.giftOn;
+  // ตรวจสอบสถานะเพื่อแสดงข้อความประกาศที่เหมาะสม
+  const inactiveImageAndText = !status.imageOn && !status.textOn; // ฟีเจอร์รูป+ข้อความปิดทั้งคู่
+  const showGiftOnlyNotice = inactiveImageAndText && status.giftOn; // เหลือแค่ของขวัญ
+  const showAllDisabledNotice = inactiveImageAndText && !status.giftOn; // ปิดทุกอย่าง
 
+  // ===== ข้อมูลการ์ดบริการทั้งหมด =====
   const serviceCards = [
     {
       key: "image",
@@ -533,9 +598,10 @@ function Home() {
     },
   ];
 
+  // ===== JSX Return: แสดงหน้า UI =====
   return (
     <div className="home-container">
-      {/* Floating Background Elements */}
+      {/* องค์ประกอบพื้นหลังลอยตัว */}
       <div className="floating-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
@@ -543,7 +609,9 @@ function Home() {
       </div>
 
       <div className="home-wrapper">
+        {/* ===== Header: ส่วนหัวของเว็บ ===== */}
         <header className="home-header">
+          {/* Logo และชื่อเว็บไซต์ */}
           <div className="header-brand">
             <div className="brand-icon">
               <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -558,14 +626,17 @@ function Home() {
             </div>
           </div>
 
+          {/* เมนูนำทาง: ล็อกอิน/ลงทะเบียน หรือโปรไฟล์ */}
           <nav className="header-nav">
             {isLoggedIn ? (
+              /* แสดงเมนูโปรไฟล์เมื่อล็อกอินแล้ว */
               <div className="profile-menu-wrapper">
+                {/* ปุ่มโปรไฟล์ (แสดงรูปหรือไอคอน default) */}
                 <button
                   className={`profile-avatar-btn ${profileImage ? "has-image" : ""}`}
                   type="button"
                   onClick={() => setShowProfileMenu((prev) => !prev)}
-                  title="เมนูโปรไฟล์"
+                  title="เลือกเมนูโปรไฟล์"
                 >
                   <span className="profile-avatar-ring">
                     {profileImage ? (
@@ -594,6 +665,7 @@ function Home() {
                     )}
                   </span>
                 </button>
+                {/* Dropdown menu โปรไฟล์ */}
                 {showProfileMenu && (
                   <div
                     ref={profileMenuRef}
@@ -609,6 +681,7 @@ function Home() {
                       zIndex: 20,
                     }}
                   >
+                    {/* ส่วนหัว dropdown: แสดงชื่อและ email */}
                     <div
                       style={{
                         padding: "16px",
@@ -623,6 +696,7 @@ function Home() {
                         {localStorage.getItem("email") || "user@example.com"}
                       </div>
                     </div>
+                    {/* รายการเมนู: แก้ไข, รายงาน, ออกจากระบบ */}
                     {[
                       {
                         label: "แก้ไขโปรไฟล์",
@@ -688,6 +762,7 @@ function Home() {
                 )}
               </div>
             ) : (
+              /* ปุ่ม Sign In / Sign Up เมื่อยังไม่ได้ล็อกอิน */
               <div className="auth-buttons">
                 <Link to="/signin" className="nav-btn signin-btn">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -711,8 +786,11 @@ function Home() {
           </nav>
         </header>
 
+        {/* ===== Main Content: ส่วนเนื้อหาหลัก ===== */}
         <main className="home-main">
+          {/* ส่วน Hero: หัวเรื่องและ VIP Panel */}
           <div className="hero-section">
+            {/* ข้อความต้อนรับ */}
             <div className="hero-content">
               <div className="hero-badge">
                 <span className="badge-dot"></span>
@@ -721,6 +799,7 @@ function Home() {
               <h2>แชร์เนื้อหาของคุณสู่หน้าจอ</h2>
               <p>เลือกส่งรูปภาพหรือข้อความไปแสดงบนหน้าจอดิจิทัลได้ง่ายๆ</p>
             </div>
+            {/* แผง VIP Supporters: แสดง leaderboard และอันดับของผู้ใช้ */}
             <div className="rank-panel premium">
               <div className="rank-panel-header">
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
@@ -737,14 +816,16 @@ function Home() {
                   <strong style={{ fontSize: '28px', fontWeight: '800' }}>#{userRank.toString().padStart(2, '0')}</strong>
                 </div>
               </div>
+              {/* เนื้อหาแผง: แสดง Top 3 Supporters */}
               <div className="rank-panel-body">
                 {rankLoading ? (
                   <span className="rank-empty">กำลังโหลด...</span>
                 ) : (
+                  /* สร้างการ์ดสำหรับ Top 3 */
                   Array.from({ length: 3 }).map((_, index) => {
                     const entry = leaderboard[index];
 
-                    // Get points based on entry existence and ranking type
+                    // ดึงคะแนนตามประเภทอันดับ (daily/monthly/alltime)
                     let points = 0;
                     if (entry) {
                       if (rankingType === "daily") points = entry.dailyPoints || 0;
@@ -753,6 +834,7 @@ function Home() {
                     }
 
                     return (
+                      /* การ์ดแสดงอันดับ (Diamond/Gold/Silver) */
                       <div
                         key={entry ? (entry.name || index) : `unknown-${index}`}
                         className={`rank-card tier-${index + 1} position-${index + 1}`}
@@ -778,13 +860,16 @@ function Home() {
                   })
                 )}
               </div>
+              {/* ปุ่มดูสิทธิพิเศษ */}
               <button className="rank-cta" onClick={() => setShowPerkModal(true)}>ดูสิทธิพิเศษสำหรับพรีเมี่ยม</button>
             </div>
           </div>
 
+          {/* ===== ส่วนการ์ดบริการ (Service Cards) ===== */}
           <div className="service-cards">
             {status.systemOn ? (
               <>
+                {/* การ์ดบริการ Image, Text, Gift (กรองตามสถานะ) */}
                 {serviceCards
                   .filter((card) => card.enabled)
                   .map((card) => (
@@ -813,6 +898,7 @@ function Home() {
                     </div>
                   ))}
 
+                {/* การ์ดพิเศษวันเกิด (แสดงต่างหากเปิดใช้งาน) */}
                 {status.birthdayOn && (
                   <div
                     className="service-card birthday-service"
@@ -883,14 +969,17 @@ function Home() {
                   </div>
                 )}
 
+                {/* ข้อความแจ้งเตือนเมื่อฟีเจอร์บางอย่างปิด */}
                 {showGiftOnlyNotice && renderNotice("ฟังก์ชันส่งรูป/ข้อความปิดชั่วคราว • ยังสามารถส่งของขวัญได้")}
                 {showAllDisabledNotice && renderNotice("ขณะนี้ฟังก์ชันการส่งทั้งหมดปิดใช้งานชั่วคราว")}
               </>
             ) : (
+              /* ข้อความแจ้งเตือนเมื่อระบบปิดทั้งหมด */
               renderNotice("ขณะนี้ระบบปิดให้บริการชั่วคราว")
             )}
           </div>
 
+          {/* ===== ข้อความแจ้งเตือนชั่วคราว (Toast Notification) ===== */}
           {alertMessage && (
             <div
               style={{
@@ -910,6 +999,7 @@ function Home() {
             </div>
           )}
 
+          {/* ===== ส่วนแสดงสถานะคำสั่งซื้อ ===== */}
           <div className="status-section">
             <div className="status-card">
               <div className="status-header">
@@ -926,9 +1016,10 @@ function Home() {
 
               <div className="status-content">
                 {orders.length > 0 ? (
+                  /* แสดงรายการคำสั่งซื้อล่าสุด (สูงสุด 3 รายการ) */
                   <div className="orders-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {orders.slice(0, 3).map((ord) => {
-                      const stat = ordersStatus[ord.orderId];
+                      const stat = ordersStatus[ord.orderId]; // สถานะของคำสั่งซื้อแต่ละรายการ
                       return (
                         <div key={ord.orderId || Math.random()} className="order-item-compact" style={{
                           display: 'flex',
@@ -969,6 +1060,7 @@ function Home() {
                         </div>
                       );
                     })}
+                    {/* แสดงจำนวนคำสั่งซื้อที่เหลือ (ถ้ามีมากกว่า 3) */}
                     {orders.length > 3 && (
                       <div style={{ textAlign: 'center', fontSize: '12px', color: '#94a3b8', marginTop: '6px' }}>
                         +{orders.length - 3} รายการอื่นๆ
@@ -976,6 +1068,7 @@ function Home() {
                     )}
                   </div>
                 ) : (
+                  /* แสดงเมื่อยังไม่มีคำสั่งซื้อ */
                   <div className="no-order">
                     <span className="no-order-icon">📋</span>
                     <span>ยังไม่มีการสั่งซื้อ</span>
@@ -983,6 +1076,7 @@ function Home() {
                 )}
               </div>
 
+              {/* ปุ่มตรวจสอบสถานะ (เปิด modal) */}
               <button className="status-btn" onClick={handleCheckStatus}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -994,6 +1088,7 @@ function Home() {
           </div>
         </main>
 
+        {/* ===== Footer ===== */}
         <footer className="home-footer">
           <div className="footer-content">
             <p>&copy; 2025 Digital Signage Content Management System</p>
@@ -1004,12 +1099,13 @@ function Home() {
           </div>
         </footer>
 
-        {/* Status Modal */}
+        {/* ===== Modal: รายละเอียดสถานะคำสั่งซื้อทั้งหมด ===== */}
         {showModal && (
           <div className="modal-overlay" onClick={handleCloseModal}>
             <div className="modal-content status-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>รายละเอียดคำสั่งซื้อ</h3>
+                {/* ปุ่มปิด modal */}
                 <button className="close-button" onClick={handleCloseModal}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -1019,11 +1115,13 @@ function Home() {
               </div>
               <div className="modal-body">
                 {statusLoading ? (
+                  /* สถานะกำลังโหลด */
                   <div style={{ textAlign: 'center', padding: '40px' }}>
                     <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
                     <p>กำลังตรวจสอบสถานะ...</p>
                   </div>
                 ) : orders.length > 0 ? (
+                  /* รายการคำสั่งซื้อทั้งหมด */
                   <div className="order-summary-list" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                     {orders.map((ord, index) => {
                       const stat = ordersStatus[ord.orderId];
@@ -1031,7 +1129,7 @@ function Home() {
                         <div key={ord.orderId || index} className="order-summary-card" style={{ borderBottom: index < orders.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: index < orders.length - 1 ? '24px' : '0' }}>
                           <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#64748b' }}>รายการที่ {orders.length - index}</h4>
 
-                          {/* สถานะออเดอร์ */}
+                          {/* แสดงสถานะด้วยสีและไอคอนตามสถานะ (pending/approved/playing/completed/rejected) */}
                           {stat && (
                             <div className="summary-item" style={{
                               background: stat.status === 'rejected' ? '#fee2e2' :
@@ -1064,7 +1162,7 @@ function Home() {
                             </div>
                           )}
 
-                          {/* ตำแหน่งคิว */}
+                          {/* แสดงตำแหน่งคิว (ถ้ามี) */}
                           {stat?.order?.queuePosition && (
                             <div className="summary-item">
                               <span className="item-label">ตำแหน่งคิว:</span>
@@ -1072,7 +1170,7 @@ function Home() {
                             </div>
                           )}
 
-                          {/* เวลาประมาณการ */}
+                          {/* เวลาแสดงโดยประมาณ (ถ้ามี) */}
                           {stat?.order?.waitingForApproval ? (
                             <div className="summary-item">
                               <span className="item-label">เวลาแสดงโดยประมาณ:</span>
@@ -1109,6 +1207,7 @@ function Home() {
                             </>
                           )}
 
+                          {/* ข้อมูลพื้นฐาน: ประเภท, ราคา, เลขโต๊ะ (สำหรับ Gift) */}
                           <div className="summary-item">
                             <span className="item-label">ประเภท:</span>
                             <span className="item-value">{getOrderTypeLabel(ord.type, { includeEmoji: false })}</span>
@@ -1138,6 +1237,7 @@ function Home() {
                     })}
                   </div>
                 ) : (
+                  /* แสดงเมื่อไม่มีคำสั่งซื้อ */
                   <div className="no-order-modal">
                     <div className="empty-state">
                       <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -1154,11 +1254,13 @@ function Home() {
           </div>
         )}
 
+        {/* ===== Modal: แสดงรายการสิทธิพิเศษสำหรับสมาชิกพรีเมี่ยม ===== */}
         {showPerkModal && (
           <div className="modal-overlay" onClick={() => setShowPerkModal(false)}>
             <div className="modal-content perk-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>สิทธิพิเศษสำหรับสมาชิกพรีเมี่ยม</h3>
+                {/* ปุ่มปิด modal */}
                 <button className="close-button" onClick={() => setShowPerkModal(false)}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
@@ -1167,11 +1269,13 @@ function Home() {
                 </button>
               </div>
               <div className="modal-body">
+                {/* รายการสิทธิพิเศษ (ดึงจาก Admin) */}
                 <ul className="perk-list">
                   {perks.map((perk, index) => (
                     <li key={index}>{perk}</li>
                   ))}
                 </ul>
+                {/* ปุ่ม CTA เริ่มต้นสนับสนุน */}
                 <button className="primary-btn perk-action" onClick={() => navigate("/select?type=image")}>เริ่มต้นสนับสนุน</button>
               </div>
             </div>

@@ -40,27 +40,34 @@ const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm
 
 function Profile() {
   const navigate = useNavigate();
+  
+  // ========================
+  // State Management
+  // ========================
+  // ข้อมูลผู้ใช้ปัจจุบัน (จาก backend หรือ localStorage)
   const [user, setUser] = useState({
     username: "",
     email: "",
     avatar: null,
-    birthday: "", // "DD/MM/YYYY"
-    lastBirthdayEdit: "" // stored may be ISO or other or empty
+    birthday: "", // รูปแบบ: "DD/MM/YYYY"
+    lastBirthdayEdit: "" // เก็บเป็น ISO หรือรูปแบบอื่น หรือเปล่า
   });
 
+  // ข้อมูลชั่วคราว (สำหรับแก้ไขก่อนบันทึก)
   const [tempUser, setTempUser] = useState({ ...user });
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [birthdayError, setBirthdayError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState(null); // URL แสดงตัวอย่างรูปโปรไฟล์
+  const [birthdayError, setBirthdayError] = useState(""); // ข้อความ error สำหรับวันเกิด
 
-  // nextEditFromLast: if lastBirthdayEdit exists => last + 3 months (may be invalid -> null)
-  // nextEditIfChangedNow: always now + 3 months (useful to show "ถ้าเปลี่ยนตอนนี้ จะเปลี่ยนอีกครั้งวันที่...")
+  // วันที่สามารถแก้ไขได้อีกครั้ง (คำนวณจาก lastBirthdayEdit + 90 วัน)
+  // nextEditFromLast: ถ้ามี lastBirthdayEdit => วันสุดท้าย + 3 เดือน (อาจเป็น null ถ้า parse ไม่ได้)
+  // nextEditIfChangedNow: เสมอจะเป็นวันนี้ + 90 วัน (ใช้แสดงว่า "ถ้าเปลี่ยนตอนนี้ จะเปลี่ยนอีกครั้งวันที่...")
   const [nextEditFromLast, setNextEditFromLast] = useState(null);
   const [nextEditIfChangedNow, setNextEditIfChangedNow] = useState(null);
-  const [canEditBirthday, setCanEditBirthday] = useState(true);
+  const [canEditBirthday, setCanEditBirthday] = useState(true); // สามารถแก้ไขวันเกิดได้หรือไม่
 
-  const [selectedFile, setSelectedFile] = useState(null); // Store raw file for upload
+  const [selectedFile, setSelectedFile] = useState(null); // เก็บ raw file สำหรับอัพโหลด
   
-  // Modal states
+  // Modal states - สถานะสำหรับควบคุม modal
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: "",
@@ -72,6 +79,9 @@ function Profile() {
     cancelText: "ยกเลิก"
   });
 
+  /**
+   * แสดง modal ด้วย config ที่กำหนด
+   */
   const showModal = (config) => {
     setModalConfig({
       isOpen: true,
@@ -85,11 +95,20 @@ function Profile() {
     });
   };
 
+  /**
+   * ปิด modal
+   */
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
-  // robust parser: try ISO/native, then dd/mm/yyyy
+  // ========================
+  // Utility Functions
+  // ========================
+  /**
+   * Parse วันที่จากหลายรูปแบบ (ISO, dd/mm/yyyy, dd-mm-yyyy)
+   * เพื่อรองรับข้อมูลเก่าที่อาจเก็บไว้ในหลายรูปแบบ
+   */
   const parsePossibleDate = (s) => {
     if (!s) return null;
     // try native
@@ -107,14 +126,19 @@ function Profile() {
     return null;
   };
 
-  // load user data once
+  // ========================
+  // useEffect Hooks
+  // ========================
+  /**
+   * โหลดข้อมูลผู้ใช้จาก backend หรือ localStorage
+   */
   useEffect(() => {
     const loadUserData = async () => {
       const token = localStorage.getItem("token");
       
       if (token) {
         try {
-          // ดึงข้อมูลจาก backend
+          // ดึงข้อมูลจาก backend API
           const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
             method: "GET",
             headers: {
@@ -160,7 +184,7 @@ function Profile() {
         }
       }
       
-      // ถ้าไม่มี token หรือโหลดจาก backend ไม่ได้ ใช้ localStorage
+      // ถ้าไม่มี token หรือโหลดจาก backend ไม่สำเร็จ => ใช้ข้อมูลจาก localStorage
       const userData = {
         username: localStorage.getItem("username") || "User",
         email: localStorage.getItem("email") || "user@example.com",
@@ -175,7 +199,10 @@ function Profile() {
     loadUserData();
   }, []);
 
-  // compute nextEditIfChangedNow (always now + 90 days)
+  /**
+   * คำนวณวันที่สามารถแก้ไขได้อีกครั้ง (ถ้าเปลี่ยนตอนนี้)
+   * เสมอ = วันนี้ + 90 วัน
+   */
   useEffect(() => {
     const now = new Date();
     const nxt = new Date(now);
@@ -183,7 +210,10 @@ function Profile() {
     setNextEditIfChangedNow(nxt);
   }, []);
 
-  // compute nextEditFromLast and canEditBirthday whenever user.lastBirthdayEdit changes
+  /**
+   * คำนวณวันที่สามารถแก้ไขได้อีกครั้ง (จากการแก้ไขครั้งล่าสุด)
+   * ตรวจสอบว่าผ่าน 90 วันแล้วหรือยัง
+   */
   useEffect(() => {
     const lastEdit = user.lastBirthdayEdit;
     if (!lastEdit) {
@@ -211,7 +241,10 @@ function Profile() {
     setCanEditBirthday(now >= nextAllowed);
   }, [user.lastBirthdayEdit, user.birthday]);
 
-  // hasChanges
+  /**
+   * ตรวจสอบว่ามีการเปลี่ยนแปลงข้อมูลหรือไม่
+   * เปรียบเทียบ user vs tempUser และ previewUrl/selectedFile
+   */
   const hasChanges = useMemo(() => {
     const usernameChanged = (user.username || "") !== (tempUser.username || "");
     const emailChanged = (user.email || "") !== (tempUser.email || "");
@@ -223,7 +256,10 @@ function Profile() {
     return usernameChanged || emailChanged || birthdayChanged || avatarChanged;
   }, [user, tempUser, previewUrl, selectedFile]);
 
-  // birthday validation
+  /**
+   * ตรวจสอบความถูกต้องของวันเกิด (DD/MM/YYYY)
+   * ตรวจสอบรูปแบบ, ปี, เดือน, วัน
+   */
   useEffect(() => {
     const b = tempUser.birthday || "";
     if (!b) {
@@ -255,15 +291,26 @@ function Profile() {
     setBirthdayError("");
   }, [tempUser.birthday]);
 
+  // ========================
+  // Form Handlers
+  // ========================
+  /**
+   * จัดการการเปลี่ยนแปลงค่าใน input fields
+   * ป้องกันการแก้ไขวันเกิดถ้ายังไม่สามารถแก้ไขได้
+   */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    // block editing only when explicitly disallowed (canEditBirthday === false)
+    // ป้องกันการแก้ไขวันเกิดถ้ายังไม่สามารถแก้ไขได้ (canEditBirthday === false)
     if (name === "birthday" && canEditBirthday === false) {
       return;
     }
     setTempUser(prev => ({ ...prev, [name]: value }));
   };
 
+  /**
+   * จัดการการเลือกไฟล์รูปภาพ
+   * ตรวจสอบชนิดและขนาดไฟล์, แปลงเป็น Base64 สำหรับ preview
+   */
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -274,32 +321,39 @@ function Profile() {
       return;
     }
 
-    // Validate file size (max 5MB)
+    // ตรวจสอบขนาดไฟล์ (ไม่เกิน 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert("ขนาดไฟล์ต้องไม่เกิน 5 MB");
       return;
     }
 
-    // Store raw file
+    // เก็บ raw file สำหรับอัพโหลดไป backend
     setSelectedFile(file);
 
-    // Convert file to Base64 to show preview immediately
+    // แปลงไฟล์เป็น Base64 เพื่อแสดง preview ทันที
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64String = event.target.result;
       setPreviewUrl(base64String);
-      // We don't set tempUser.avatar here to avoid saving base64 to DB
+      // ไม่ต้องเก็บ base64 ลง tempUser.avatar เพื่อหลีกเลี่ยงการบันทึกลง DB
       // setTempUser(prev => ({ ...prev, avatar: base64String })); 
     };
     reader.readAsDataURL(file);
   };
 
+  /**
+   * ลบรูปโปรไฟล์
+   */
   const handleRemoveAvatar = () => {
     setTempUser(prev => ({ ...prev, avatar: null }));
     setPreviewUrl(null);
     setSelectedFile(null);
   };
 
+  /**
+   * จัดการการกดปุ่มบันทึก
+   * ตรวจสอบความถูกต้องและแสดง confirmation modal
+   */
   const handleSave = async () => {
     if (!hasChanges) return;
     if (birthdayError) return;
@@ -313,7 +367,7 @@ function Profile() {
 
     const changeMessage = "ข้อมูลที่จะอัปเดต:\n" + changes.join("\n");
 
-    // แสดง confirmation modal
+    // แสดง confirmation modal เพื่อยืนยันการบันทึก
     showModal({
       title: "ยืนยันการบันทึก",
       message: `คุณต้องการบันทึกการเปลี่ยนแปลงหรือไม่?\n\n${changeMessage}`,
@@ -328,12 +382,17 @@ function Profile() {
     });
   };
 
+  /**
+   * ฟังก์ชันหลักสำหรับบันทึกข้อมูลไป backend
+   * จัดการอัพโหลดรูปภาพ (ถ้ามี), ตรวจสอบการแก้ไขวันเกิด
+   * และอัพเดท localStorage + navigate ไปหน้าหลัก
+   */
   const performSave = async () => {
 
-    // if trying to change birthday but not allowed
+    // ตรวจสอบว่าพยายามแก้ไขวันเกิดแต่ยังไม่สามารถแก้ไขได้
     const isBirthdayChanged = user.birthday !== tempUser.birthday;
     if (isBirthdayChanged && canEditBirthday === false) {
-      // show the date from last edit if available, otherwise fallback to if-changed-now
+      // แสดงวันที่สามารถแก้ไขได้อีกครั้ง
       const showDate = nextEditFromLast || nextEditIfChangedNow;
       if (showDate) {
         showModal({
@@ -356,12 +415,12 @@ function Profile() {
     try {
       let finalAvatarUrl = tempUser.avatar;
 
-      // Unset previewUrl logic if image removed
+      // ถ้าลบรูปภาพ (previewUrl และ tempUser.avatar เป็น null)
       if (!previewUrl && !tempUser.avatar) {
         finalAvatarUrl = null;
       }
 
-      // If there is a new file selected, upload it first
+      // ถ้ามีไฟล์ใหม่ => อัพโหลดไป backend ก่อน
       if (selectedFile) {
         const formData = new FormData();
         formData.append("avatar", selectedFile);
@@ -377,13 +436,11 @@ function Profile() {
 
         const uploadData = await uploadRes.json();
         if (uploadData.success && uploadData.imageUrl) {
-          finalAvatarUrl = uploadData.imageUrl; // Use the returned URL
-          // If URL is relative, prepend base if needed, currently usually served relatively or absolutely by backend
-          // The backend returns relative e.g. /uploads/avatars/...
+          finalAvatarUrl = uploadData.imageUrl; // ใช้ URL ที่ backend คืนมา (relative path เช่น /uploads/avatars/...)
         }
       }
 
-      // prepare new user object and lastBirthdayEdit update
+      // เตรียม object ข้อมูลผู้ใช้ใหมม่ และอัพเดท lastBirthdayEdit (ถ้ามีการแก้ไขวันเกิด)
       const newUser = {
         username: tempUser.username || "",
         email: tempUser.email || "",
@@ -392,7 +449,7 @@ function Profile() {
         lastBirthdayEdit: isBirthdayChanged ? new Date().toISOString() : user.lastBirthdayEdit
       };
 
-      // ส่งข้อมูลไปยัง backend เพื่อบันทึก
+      // ส่งข้อมูลไปยัง backend API เพื่อบันทึก
       const token = localStorage.getItem("token");
       if (token) {
         const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
@@ -444,7 +501,7 @@ function Profile() {
           setUser(updatedUserData);
           setTempUser(updatedUserData);
           
-          // อัปเดต localStorage เพื่อเก็บข้อมูล
+          // อัพเดท localStorage เพื่อเก็บข้อมูลลงถาวร
           localStorage.setItem("username", updatedUserData.username);
           localStorage.setItem("email", updatedUserData.email);
           localStorage.setItem("birthday", updatedUserData.birthday || "");
@@ -466,11 +523,11 @@ function Profile() {
             birthday: updatedUserData.birthday || ""
           }));
 
-          // Clean up state
+          // ล้างข้อมูลชั่วคราว
           setSelectedFile(null);
           setPreviewUrl(null); // Clear preview since we saved
           
-          // navigate to home (ไม่แจ้งเตือน popup เพราะจะรบกวนผู้ใช้)
+          // ไปหน้าหลัก (ไม่แจ้งเตือน popup เพราะจะรบกวนผู้ใช้)
           navigate("/home");
         } else {
           console.error("[Profile] Failed to update profile on backend:", data.message);
@@ -495,8 +552,14 @@ function Profile() {
     }
   };
 
+  /**
+   * กลับไปหน้าหลัก (Home)
+   */
   const handleGoBack = () => navigate("/home");
 
+  // ========================
+  // Render Component
+  // ========================
   return (
     <div className="profile-container">
       <CustomModal

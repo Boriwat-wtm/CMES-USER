@@ -1,3 +1,6 @@
+// ========================
+// Import Libraries
+// ========================
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
@@ -5,7 +8,16 @@ import API_BASE_URL from "./config/apiConfig";
 import "./Register.css";
 import { getGoogleClientId, isGoogleConfigured } from "./config/googleConfig";
 
+/**
+ * Register Component - หน้าลงทะเบียนและเข้าสู่ระบบ
+ * รองรับการลงทะเบียนด้วย Email/Password และ Google OAuth
+ * มีระบบ OTP verification ผ่านอีเมล
+ */
 function Register() {
+  // ========================
+  // State Management
+  // ========================
+  // ข้อมูลฟอร์ม
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -13,18 +25,30 @@ function Register() {
     username: "",
     otp: "",
   });
+  
+  // สถานะการแสดงผลและข้อความ
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState(0);
-  const [activeTab, setActiveTab] = useState("register"); // register or login
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [otpCooldown, setOtpCooldown] = useState(0);
+  
+  // UI State
+  const [showPassword, setShowPassword] = useState(false); // แสดง/ซ่อนรหัสผ่าน
+  const [passwordStrength, setPasswordStrength] = useState(0); // ความแข็งแรงของรหัสผ่าน (0-5)
+  const [activeTab, setActiveTab] = useState("register"); // แท็บที่เลือก: register หรือ login
+  
+  // OTP State
+  const [showOtpInput, setShowOtpInput] = useState(false); // แสดงช่องกรอก OTP
+  const [otpCooldown, setOtpCooldown] = useState(0); // เวลานับถอยหลังก่อนส่ง OTP ใหม่
 
   const navigate = useNavigate();
 
-  // Load Google Sign-In script
+  // ========================
+  // useEffect Hooks
+  // ========================
+  /**
+   * โหลด Google Sign-In script เมื่อ component mount
+   * เพื่อเตรียมพร้อมสำหรับการเข้าสู่ระบบด้วย Google
+   */
   useEffect(() => {
     const clientId = getGoogleClientId();
 
@@ -48,7 +72,10 @@ function Register() {
     document.body.appendChild(script);
   }, []);
 
-  // Countdown timer for OTP
+  /**
+   * นับเวลาถอยหลังสำหรับการส่ง OTP ใหม่
+   * ป้องกันการส่ง OTP บ่อยเกินไป
+   */
   useEffect(() => {
     let interval;
     if (otpCooldown > 0) {
@@ -59,7 +86,14 @@ function Register() {
     return () => clearInterval(interval);
   }, [otpCooldown]);
 
-  // ตรวจสอบความแรงของ password
+  // ========================
+  // Utility Functions
+  // ========================
+  /**
+   * ตรวจสอบความแข็งแรงของรหัสผ่าน
+   * @param {string} password - รหัสผ่านที่ต้องการตรวจสอบ
+   * @returns {number} คะแนนความแข็งแรง 0-5
+   */
   const checkPasswordStrength = (password) => {
     let strength = 0;
     if (password.length >= 8) strength++;
@@ -70,6 +104,10 @@ function Register() {
     return Math.min(strength, 5);
   };
 
+  /**
+   * จัดการการเปลี่ยนแปลงค่าใน input fields
+   * อัพเดท formData และตรวจสอบความแข็งแรงของรหัสผ่าน
+   */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -86,17 +124,35 @@ function Register() {
     setSuccessMessage("");
   };
 
-  // Validation
+  // ========================
+  // Validation Functions
+  // ========================
+  /**
+   * ตรวจสอบรูปแบบอีเมล
+   * @param {string} email - อีเมลที่ต้องการตรวจสอบ
+   * @returns {boolean} true ถ้าอีเมลถูกต้อง
+   */
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
 
+  /**
+   * ตรวจสอบความยาวของรหัสผ่าน
+   * @param {string} password - รหัสผ่านที่ต้องการตรวจสอบ
+   * @returns {boolean} true ถ้ารหัสผ่านมีอย่างน้อย 8 ตัวอักษร
+   */
   const validatePassword = (password) => {
     return password.length >= 8;
   };
 
-  // Handle Send OTP
+  // ========================
+  // Form Handlers
+  // ========================
+  /**
+   * ส่งรหัส OTP ไปยังอีเมลผู้ใช้
+   * ใช้สำหรับยืนยันอีเมลก่อนลงทะเบียน
+   */
   const handleSendOtp = async () => {
     if (!validateEmail(formData.email)) {
       setErrorMessage("กรุณากรอกอีเมลให้ถูกต้อง");
@@ -127,7 +183,11 @@ function Register() {
     }
   };
 
-  // Handle Register
+  /**
+   * จัดการการลงทะเบียนผู้ใช้ใหม่
+   * ตรวจสอบข้อมูลและส่งไปยัง API
+   * เก็บ token และข้อมูลผู้ใช้ใน localStorage หลังลงทะเบียนสำเร็จ
+   */
   const handleRegister = async (e) => {
     e.preventDefault();
 
@@ -195,7 +255,11 @@ function Register() {
     }
   };
 
-  // Handle Login
+  /**
+   * จัดการการเข้าสู่ระบบ
+   * ตรวจสอบอีเมลและรหัสผ่าน
+   * เก็บ token และข้อมูลผู้ใช้ใน localStorage หลังเข้าสู่ระบบสำเร็จ
+   */
   const handleLogin = async (e) => {
     e.preventDefault();
 
@@ -245,7 +309,11 @@ function Register() {
     }
   };
 
-  // Handle Google Login
+  /**
+   * จัดการ response จาก Google OAuth
+   * Decode JWT token จาก Google และส่งข้อมูลไปยัง backend
+   * @param {object} response - response object จาก Google
+   */
   const handleGoogleResponse = async (response) => {
     try {
       setIsLoading(true);
@@ -299,6 +367,10 @@ function Register() {
     }
   };
 
+  /**
+   * เตรียม Google Sign-In button
+   * ตรวจสอบว่า Google OAuth ถูก configure หรือยัง
+   */
   const handleGoogleLogin = async () => {
     if (!isGoogleConfigured()) {
       setErrorMessage(
@@ -321,7 +393,10 @@ function Register() {
     }
   };
 
-  // Render Google button when component mounts or tab changes
+  /**
+   * Render Google Sign-In button เมื่อ component mount หรือเปลี่ยน tab
+   * รอให้ Google script โหลดเสร็จก่อนแสดงปุ่ม
+   */
   useEffect(() => {
     if (!isGoogleConfigured()) return;
 
@@ -353,6 +428,9 @@ function Register() {
     return () => clearInterval(waitForGoogle);
   }, [activeTab]);
 
+  // ========================
+  // Render Component
+  // ========================
   return (
     <div className="register-container">
       <div className="auth-wrapper">

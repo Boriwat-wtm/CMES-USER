@@ -1,176 +1,227 @@
-/* Reset */
+/* ========================================
+   RESET & BASE STYLES
+   รีเซ็ตและตั้งค่าพื้นฐาน
+   ======================================== */
+
+/* Reset - รีเซ็ต padding, margin และ box model ทั้งหมด */
 * {
-  box-sizing: border-box;
+  box-sizing: border-box;  /* คำนวณขนาดรวม padding และ border */
   margin: 0;
   padding: 0;
 }
 
+/* ========================================
+   MAIN CONTAINER
+   คอนเทนเนอร์หลักของหน้า Select
+   ======================================== */
+
 .select-container {
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  position: relative;
-  overflow-x: hidden;
+  min-height: 100vh;  /* สูงเต็มหน้าจออย่างน้อย */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);  /* พื้นหลังไล่สีม่วงสวยงาม */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;  /* ฟอนต์หลัก */
+  position: relative;  /* สำหรับวาง floating shapes */
+  overflow-x: hidden;  /* ซ่อนส่วนที่ล้นในแนวนอน */
 }
 
-/* Floating Background Shapes */
+/* ========================================
+   FLOATING BACKGROUND SHAPES
+   รูปทรงกลมลอยเคลื่อนไหวในพื้นหลัง
+   เพิ่มความสวยงามและมีชีวิตชีวา
+   ======================================== */
+
 .floating-shapes {
-  position: absolute;
+  position: absolute;  /* วางทับพื้นหลัง */
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  z-index: 0;
+  overflow: hidden;  /* ซ่อนส่วนที่ล้น */
+  z-index: 0;  /* อยู่ด้านหลังสุด */
 }
 
+/* รูปทรงกลมโปร่งแสง */
 .shape {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
-  animation: float 20s infinite linear;
+  background: rgba(255, 255, 255, 0.1);  /* สีขาวโปร่งแสง 10% */
+  border-radius: 50%;  /* ทำให้เป็นวงกลม */
+  animation: float 20s infinite linear;  /* ลอยขึ้นลงวนซ้ำ */
 }
 
+/* วงกลมที่ 1 - ขนาดกลาง บนซ้าย */
 .shape-1 {
   width: 100px;
   height: 100px;
   top: 20%;
   left: 10%;
-  animation-delay: 0s;
+  animation-delay: 0s;  /* เริ่มทันที */
 }
 
+/* วงกลมที่ 2 - ขนาดใหญ่ กลางขวา */
 .shape-2 {
   width: 150px;
   height: 150px;
   top: 60%;
   right: 10%;
-  animation-delay: -10s;
+  animation-delay: -10s;  /* เริ่มจากครึ่งทาง */
 }
 
+/* วงกลมที่ 3 - ขนาดเล็ก ล่างขวา */
 .shape-3 {
   width: 80px;
   height: 80px;
   top: 80%;
   left: 70%;
-  animation-delay: -5s;
+  animation-delay: -5s;  /* เริ่มจากหนึ่งในสี่ */
 }
 
+/* Animation - ลอยขึ้นลงพร้อมหมุน */
 @keyframes float {
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(180deg); }
-  100% { transform: translateY(0px) rotate(360deg); }
+  0% { transform: translateY(0px) rotate(0deg); }        /* เริ่มต้น */
+  50% { transform: translateY(-20px) rotate(180deg); }  /* ลอยขึ้น 20px + หมุน 180° */
+  100% { transform: translateY(0px) rotate(360deg); }    /* กลับลงมา + หมุนครบรอบ */
 }
 
-/* Wrapper */
+/* ========================================
+   WRAPPER CONTAINER
+   คอนเทนเนอร์หลักที่ห่อหุ้มเนื้อหา
+   ======================================== */
+
 .select-wrapper {
   position: relative;
-  z-index: 1;
-  max-width: 1000px;
-  margin: 0 auto;
+  z-index: 1;  /* อยู่เหนือ floating shapes */
+  max-width: 1000px;  /* จำกัดความกว้างสูงสุด */
+  margin: 0 auto;  /* จัดกึ่งกลางหน้าจอ */
   padding: 1rem;
   width: 100%;
 }
 
-/* Header */
+/* ========================================
+   HEADER SECTION
+   ส่วนหัวของหน้า (ปุ่มย้อนกลับ + ชื่อหน้า)
+   ======================================== */
+
 .select-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between;  /* ปุ่มซ้าย ชื่อกลาง */
   margin-bottom: 2rem;
   color: white;
-  flex-wrap: wrap;
+  flex-wrap: wrap;  /* ปรับตัวในมือถือ */
 }
 
+/* ปุ่มย้อนกลับ */
 .back-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);  /* พื้นขาวโปร่งแสง */
   color: white;
   border: none;
   border-radius: 0.625rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;  /* เคลื่อนไหวนุ่มนวล */
+  backdrop-filter: blur(10px);  /* เบลอพื้นหลัง (glass effect) */
   font-size: 0.875rem;
-  min-width: 44px;
+  min-width: 44px;   /* ขนาดขั้นต่ำสำหรับ touch */
   min-height: 44px;
 }
 
+/* ปุ่มย้อนกลับ - เมื่อ hover */
 .back-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateX(-5px);
+  background: rgba(255, 255, 255, 0.3);  /* สว่างขึ้น */
+  transform: translateX(-5px);  /* เลื่อนไปซ้าย 5px */
 }
 
+/* เนื้อหาส่วนหัว */
 .header-content {
   text-align: center;
-  flex: 1;
+  flex: 1;  /* ขยายเต็มพื้นที่ */
 }
 
+/* ชื่อหัวข้อหลัก */
 .header-content h1 {
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.5rem, 4vw, 2rem);  /* ขนาดปรับตามหน้าจอ */
   font-weight: 600;
   margin: 0 0 0.5rem 0;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);  /* เงาข้อความ */
 }
 
+/* คำอธิบายใต้หัวข้อ */
 .header-content p {
   font-size: 1rem;
-  opacity: 0.9;
+  opacity: 0.9;  /* โปร่งแสงเล็กน้อย */
   margin: 0;
 }
 
-/* Main Content */
+/* ========================================
+   MAIN CONTENT CARD
+   การ์ดสีขาวที่บรรจุเนื้อหาหลัก
+   ======================================== */
+
 .select-main {
-  background: white;
-  border-radius: 1.25rem;
-  padding: clamp(1.5rem, 5vw, 2.5rem);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(20px);
+  background: white;  /* พื้นขาวสะอาด */
+  border-radius: 1.25rem;  /* มุมโค้งมน */
+  padding: clamp(1.5rem, 5vw, 2.5rem);  /* padding ปรับตามหน้าจอ */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);  /* เงานุ่มนวล */
+  backdrop-filter: blur(20px);  /* เบลอพื้นหลัง */
 }
 
-/* Service Info */
+/* ========================================
+   SERVICE INFO SECTION
+   แสดงข้อมูลประเภทบริการที่เลือก
+   (รูปภาพ, ข้อความ, ของขวัญ, วันเกิด)
+   ======================================== */
+
 .service-info {
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);  /* พื้นเทาอ่อนไล่สี */
   border-radius: 0.75rem;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e2e8f0;  /* กรอบเทาอ่อน */
 }
 
+/* แสดงไอคอนและรายละเอียดบริการ */
 .service-type {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1rem;  /* ระยะห่างระหว่างไอคอนกับข้อความ */
 }
 
+/* ไอคอนประเภทบริการ */
 .type-icon {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);  /* พื้นน้ำเงินไล่สี */
   color: white;
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 12px;  /* มุมโค้งมน */
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: center;  /* จัดไอคอนกลาง */
+  flex-shrink: 0;  /* ไม่ย่อลงเมื่อพื้นที่น้อย */
 }
 
+/* ชื่อประเภทบริการ */
 .type-details h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #1e293b;  /* สีดำเข้ม */
 }
 
+/* คำอธิบายประเภทบริการ */
 .type-details p {
   margin: 0;
-  color: #64748b;
+  color: #64748b;  /* สีเทา */
   font-size: 0.95rem;
 }
 
-/* Packages Section */
+/* ========================================
+   PACKAGES SECTION
+   ส่วนแสดงแพ็กเกจราคา (ฟรี, พื้นฐาน, พรีเมียม)
+   ======================================== */
+
+/* หัวข้อส่วน "เลือกแพ็กเกจ" */
 .packages-section h3 {
   margin: 0 0 1.5rem 0;
   font-size: 1.125rem;
@@ -178,359 +229,445 @@
   color: #1e293b;
 }
 
+/* Grid layout สำหรับแสดงการ์ดแพ็กเกจ */
 .packages-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));  /* ปรับจำนวนคอลัมน์อัตโนมัติ */
+  gap: 1.25rem;  /* ระยะห่างระหว่างการ์ด */
   margin-bottom: 2rem;
 }
 
-/* Package Card */
+/* ========================================
+   PACKAGE CARD
+   การ์ดแสดงแต่ละแพ็กเกจ (ฟรี/พื้นฐาน/พรีเมียม)
+   ======================================== */
+
 .package-card {
   background: white;
-  border: 2px solid #e2e8f0;
-  border-radius: 1rem;
+  border: 2px solid #e2e8f0;  /* กรอบเทาอ่อน */
+  border-radius: 1rem;  /* มุมโค้งมน */
   padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
+  cursor: pointer;  /* แสดงว่าคลิกได้ */
+  transition: all 0.3s ease;  /* เคลื่อนไหวนุ่มนวล */
+  position: relative;  /* สำหรับวาง badge */
+  overflow: hidden;  /* ซ่อนส่วนที่ล้น */
 }
 
+/* การ์ดแพ็กเกจ - เมื่อ hover */
 .package-card:hover {
-  border-color: #3b82f6;
-  transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;  /* เปลี่ยนเป็นกรอบน้ำเงิน */
+  transform: translateY(-4px);  /* ยกขึ้น 4px */
+  box-shadow: 0 12px 35px rgba(59, 130, 246, 0.15);  /* เพิ่มเงา */
 }
 
+/* การ์ดแพ็กเกจ - เมื่อถูกเลือก */
 .package-card.selected {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff, #dbeafe);
-  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;  /* กรอบน้ำเงิน */
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);  /* พื้นน้ำเงินอ่อนไล่สี */
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);  /* เงาน้ำเงิน */
 }
 
+/* การ์ดแพ็กเกจ - ยอดนิยม (Popular) */
 .package-card.popular {
-  border-color: #f59e0b;
+  border-color: #f59e0b;  /* กรอบสีส้ม (แพ็กเกจแนะนำ) */
 }
 
+/* การ์ดแพ็กเกจ - ยอดนิยมและถูกเลือก */
 .package-card.popular.selected {
-  border-color: #3b82f6;
+  border-color: #3b82f6;  /* เปลี่ยนเป็นน้ำเงินเมื่อเลือก */
 }
 
-/* Popular Badge */
+/* ========================================
+   POPULAR BADGE
+   ป้าย "แนะนำ" มุมขวาบนของแพ็กเกจยอดนิยม
+   ======================================== */
+
 .popular-badge {
-  position: absolute;
+  position: absolute;  /* วางทับการ์ด */
   top: -1px;
   right: -1px;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: linear-gradient(135deg, #f59e0b, #d97706);  /* พื้นส้มไล่สี */
   color: white;
   padding: 0.375rem 0.75rem;
-  border-radius: 0 1rem 0 1rem;
+  border-radius: 0 1rem 0 1rem;  /* โค้งมุมบนขวาและล่างซ้าย */
   font-size: 0.75rem;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.25rem;  /* ระยะห่างระหว่างไอคอนดาวกับข้อความ */
 }
 
-/* Package Header */
+/* ========================================
+   PACKAGE CARD - HEADER
+   ส่วนหัวของการ์ด (ไอคอน + ชื่อแพ็กเกจ)
+   ======================================== */
+
 .package-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.75rem;  /* ระยะห่างระหว่างไอคอนกับชื่อ */
   margin-bottom: 1rem;
 }
 
+/* ไอคอนแพ็กเกจ - สถานะปกติ */
 .package-icon {
-  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
-  color: #64748b;
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);  /* พื้นเทาไล่สี */
+  color: #64748b;  /* ไอคอนสีเทา */
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: 8px;  /* มุมโค้ง */
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: center;  /* จัดไอคอนกึ่งกลาง */
+  flex-shrink: 0;  /* ไม่ย่อขนาด */
 }
 
+/* ไอคอนแพ็กเกจ - เมื่อถูกเลือก */
 .package-card.selected .package-icon {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: white;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);  /* พื้นน้ำเงินไล่สี */
+  color: white;  /* ไอคอนสีขาว */
 }
 
+/* ชื่อแพ็กเกจ (เช่น "แพ็กเกจฟรี", "แพ็กเกจพรีเมี่ยม") */
 .package-header h4 {
   margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #1e293b;  /* สีดำเข้ม */
 }
 
-/* Package Content */
+/* ========================================
+   PACKAGE CARD - CONTENT
+   เนื้อหาหลักของการ์ด (ราคา + ฟีเจอร์)
+   ======================================== */
+
 .package-content {
   margin-bottom: 1rem;
 }
 
+/* แสดงราคา */
 .price-display {
   display: flex;
-  align-items: baseline;
+  align-items: baseline;  /* จัดตัวเลขและหน่วยให้เท่ากัน */
   gap: 0.25rem;
   margin-bottom: 1rem;
 }
 
+/* ตัวเลขราคา */
 .price-amount {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #059669;
+  font-size: 2rem;  /* ขนาดใหญ่โดดเด่น */
+  font-weight: 700;  /* ตัวหนา */
+  color: #059669;  /* สีเขียว */
 }
 
+/* หน่วย (บาท) */
 .price-unit {
-  font-size: 0.875rem;
-  color: #64748b;
+  font-size: 0.875rem;  /* ขนาดเล็กกว่า */
+  color: #64748b;  /* สีเทา */
   font-weight: 500;
 }
 
-/* Package Features */
+/* ========================================
+   PACKAGE FEATURES LIST
+   รายการฟีเจอร์ของแพ็กเกจ (มาพร้อม checkmark)
+   ======================================== */
+
 .package-features {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  flex-direction: column;  /* เรียงแนวตั้ง */
+  gap: 0.5rem;  /* ระยะห่างระหว่างแต่ละฟีเจอร์ */
 }
 
+/* แต่ละรายการฟีเจอร์ */
 .feature-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem;  /* ระยะห่างระหว่าง checkmark กับข้อความ */
   font-size: 0.875rem;
-  color: #64748b;
+  color: #64748b;  /* สีเทา */
 }
 
+/* Checkmark icon สีเขียว */
 .feature-item svg {
-  color: #10b981;
-  flex-shrink: 0;
+  color: #10b981;  /* สีเขียวสด */
+  flex-shrink: 0;  /* ไม่ย่อขนาด */
 }
 
-/* Package Footer */
+/* ========================================
+   PACKAGE CARD - FOOTER
+   ส่วนล่างของการ์ด (แสดง "เลือกแล้ว" เมื่อถูกเลือก)
+   ======================================== */
+
 .package-footer {
-  min-height: 32px;
+  min-height: 32px;  /* สูงขั้นต่ำเพื่อไม่ให้การ์ดกระตุก */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center;  /* จัดกึ่งกลาง */
 }
 
+/* ข้อความ "เลือกแล้ว" (แสดงเมื่อแพ็กเกจถูกเลือก) */
 .selected-indicator {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  color: #059669;
-  font-weight: 600;
+  gap: 0.5rem;  /* ระยะห่างระหว่างไอคอนกับข้อความ */
+  color: #059669;  /* สีเขียวเข้ม */
+  font-weight: 600;  /* ตัวหนา */
   font-size: 0.875rem;
 }
 
+/* วงกลมเขียวพร้อม checkmark */
 .selected-indicator svg {
-  background: #10b981;
-  color: white;
-  border-radius: 50%;
+  background: #10b981;  /* พื้นสีเขียว */
+  color: white;  /* checkmark สีขาว */
+  border-radius: 50%;  /* ทำให้เป็นวงกลม */
   padding: 2px;
 }
 
-/* Alert Message */
+/* ========================================
+   ALERT MESSAGE
+   ข้อความแจ้งเตือน/ข้อผิดพลาด
+   ======================================== */
+
 .alert-message {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem;  /* ระยะห่างระหว่างไอคอนกับข้อความ */
   padding: 1rem;
-  border-radius: 0.75rem;
+  border-radius: 0.75rem;  /* มุมโค้งมน */
   font-size: 0.875rem;
   font-weight: 500;
   margin-bottom: 1.5rem;
 }
 
+/* Alert แบบ Error (สีแดง) */
 .alert-message.error {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: #fef2f2;  /* พื้นแดงอ่อน */
+  color: #dc2626;  /* ข้อความสีแดง */
+  border: 1px solid #fecaca;  /* กรอบแดงอ่อน */
 }
 
-/* Action Buttons */
+/* ========================================
+   ACTION BUTTONS
+   ปุ่มด้านล่าง (ถัดไป, ดูข้อจำกัด)
+   ======================================== */
+
 .action-buttons {
   display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
+  gap: 1rem;  /* ระยะห่างระหว่างปุ่ม */
+  justify-content: flex-end;  /* จัดชิดขวา */
   margin-top: 1.5rem;
-  flex-wrap: wrap;
+  flex-wrap: wrap;  /* ขึ้นบรรทัดใหม่ในมือถือ */
 }
 
+/* สไตล์ปุ่มทั่วไป (Primary และ Secondary) */
 .primary-btn,
 .secondary-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.5rem;  /* ระยะห่างระหว่างไอคอนกับข้อความ */
   padding: 0.75rem 1.5rem;
-  border-radius: 0.625rem;
+  border-radius: 0.625rem;  /* มุมโค้งมน */
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s ease;  /* เคลื่อนไหวนุ่มนวล */
   border: none;
-  font-size: clamp(0.875rem, 2.5vw, 1rem);
-  min-height: 44px;
-  white-space: nowrap;
+  font-size: clamp(0.875rem, 2.5vw, 1rem);  /* ขนาดตัวอักษรปรับตามหน้าจอ */
+  min-height: 44px;  /* ขนาดขั้นต่ำสำหรับ touch */
+  white-space: nowrap;  /* ไม่ให้ข้อความขึ้นบรรทัดใหม่ */
 }
 
+/* ปุ่มหลัก (Primary) - สีน้ำเงิน */
 .primary-btn {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  color: rgb(255, 255, 255);
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);  /* พื้นน้ำเงินไล่สี */
+  color: rgb(255, 255, 255);  /* ข้อความสีขาว */
 }
 
+/* ปุ่มหลัก - เมื่อ hover (ไม่ disabled) */
 .primary-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);  /* ยกขึ้น 2px */
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);  /* เพิ่มเงาน้ำเงิน */
 }
 
+/* ปุ่มหลัก - เมื่อ disabled */
 .primary-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+  opacity: 0.6;  /* โปร่งแสง 60% */
+  cursor: not-allowed;  /* แสดงว่าคลิกไม่ได้ */
+  transform: none;  /* ไม่มีการเคลื่อนไหว */
 }
 
+/* ปุ่มรอง (Secondary) - สีแดง */
 .secondary-btn {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  border: 1px solid #dc2626;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);
+  background: linear-gradient(135deg, #ef4444, #dc2626);  /* พื้นแดงไล่สี */
+  color: white;  /* ข้อความสีขาว */
+  border: 1px solid #dc2626;  /* กรอบแดงเข้ม */
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.2);  /* เงาแดงอ่อน */
 }
 
+/* ปุ่มรอง - เมื่อ hover */
 .secondary-btn:hover {
-  background: linear-gradient(135deg, #dc2626, #b91c1c);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);  /* เข้มขึ้น */
+  transform: translateY(-2px);  /* ยกขึ้น 2px */
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.3);  /* เพิ่มเงา */
 }
 
-/* Loading Spinner */
+/* ========================================
+   LOADING SPINNER
+   วงกลมหมุนแสดงสถานะกำลังโหลด
+   ======================================== */
+
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid transparent;
-  border-top: 2px solid currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  border: 2px solid transparent;  /* กรอบโปร่งใส */
+  border-top: 2px solid currentColor;  /* เฉพาะด้านบนมีสี */
+  border-radius: 50%;  /* ทำให้เป็นวงกลม */
+  animation: spin 1s linear infinite;  /* หมุนวนซ้ำ */
 }
 
+/* Animation หมุน 360 องศา */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% { transform: rotate(0deg); }    /* เริ่มต้น */
+  100% { transform: rotate(360deg); }  /* หมุนครบรอบ */
 }
 
-/* Modal Styles */
+/* ========================================
+   MODAL (POPUP)
+   หน้าต่าง popup แสดงข้อจำกัดเนื้อหา
+   ======================================== */
+
+/* พื้นหลังมืดทึบ */
 .modal-overlay {
-  position: fixed;
+  position: fixed;  /* ติดหน้าจอ */
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.6);  /* สีดำโปร่งแสง 60% */
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(5px);
+  justify-content: center;  /* จัด modal กึ่งกลาง */
+  z-index: 1000;  /* อยู่บนสุด */
+  backdrop-filter: blur(5px);  /* เบลอพื้นหลัง */
 }
 
+/* กล่อง Modal (เนื้อหา) */
 .modal-content {
-  background: white;
-  border-radius: 1rem;
-  max-width: 500px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+  background: white;  /* พื้นขาวสะอาด */
+  border-radius: 1rem;  /* มุมโค้งมน */
+  max-width: 500px;  /* ความกว้างสูงสุด */
+  width: 90%;  /* กว้าง 90% ในมือถือ */
+  max-height: 90vh;  /* สูงสุด 90% ของหน้าจอ */
+  overflow-y: auto;  /* scroll ได้ถ้าเนื้อหายาว */
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);  /* เงาเข้ม */
 }
 
+/* ส่วนหัว Modal */
 .modal-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between;  /* ชื่อซ้าย ปุ่มปิดขวา */
   align-items: center;
   padding: 1.5rem 1.5rem 0 1.5rem;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f1f5f9;  /* เส้นแบ่งใต้หัวข้อ */
   margin-bottom: 1.25rem;
 }
 
+/* ชื่อหัวข้อ Modal */
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1e293b;
+  color: #1e293b;  /* สีดำเข้ม */
 }
 
+/* ปุ่มปิด Modal (X) */
 .close-button {
-  background: none;
+  background: none;  /* ไม่มีพื้น */
   border: none;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 0.375rem;
-  color: #64748b;
+  color: #64748b;  /* สีเทา */
   transition: all 0.2s ease;
 }
 
+/* ปุ่มปิด - เมื่อ hover */
 .close-button:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: #f1f5f9;  /* พื้นเทาอ่อน */
+  color: #1e293b;  /* ข้อความเข้มขึ้น */
 }
 
+/* เนื้อหาภายใน Modal */
 .modal-body {
   padding: 0 1.5rem 1.5rem;
 }
 
-/* Restrictions Content */
+/* ========================================
+   RESTRICTIONS MODAL CONTENT
+   เนื้อหาข้อจำกัดที่ห้ามโพสต์
+   ======================================== */
+
+/* หัวข้อ "ข้อจำกัดเนื้อหา" */
 .restrictions-content h4 {
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #dc2626;
+  color: #dc2626;  /* สีแดง (คำเตือน) */
 }
 
+/* รายการข้อจำกัด */
 .restrictions-list {
-  list-style: none;
+  list-style: none;  /* ไม่ใช้ bullet point ธรรมดา */
   padding: 0;
   margin: 0 0 1.5rem 0;
 }
 
+/* แต่ละรายการข้อจำกัด */
 .restrictions-list li {
   padding: 0.5rem 0;
-  color: #374151;
+  color: #374151;  /* สีเทาเข้ม */
   position: relative;
-  padding-left: 1.5rem;
-  line-height: 1.5;
+  padding-left: 1.5rem;  /* เว้นที่สำหรับจุด */
+  line-height: 1.5;  /* ระยะห่างบรรทัด */
 }
 
+/* จุดหัวข้อย่อยสีแดง */
 .restrictions-list li:before {
-  content: "•";
-  color: #dc2626;
+  content: "•";  /* สัญลักษณ์จุด */
+  color: #dc2626;  /* สีแดง */
   font-weight: bold;
   position: absolute;
   left: 0;
 }
 
+/* กล่องข้อความคำเตือนสีเหลือง */
 .warning-note {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  align-items: flex-start;  /* จัดบนสุด */
+  gap: 0.75rem;  /* ระยะห่างระหว่างไอคอนกับข้อความ */
   padding: 1rem;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  background: linear-gradient(135deg, #fef3c7, #fde68a);  /* พื้นเหลืองไล่สี */
   border-radius: 0.5rem;
-  border: 1px solid #f59e0b;
+  border: 1px solid #f59e0b;  /* กรอบส้ม */
 }
 
+/* ไอคอนคำเตือน (⚠️) */
 .warning-icon {
-  color: #d97706;
-  flex-shrink: 0;
-  margin-top: 2px;
+  color: #d97706;  /* สีส้มเข้ม */
+  flex-shrink: 0;  /* ไม่ย่อขนาด */
+  margin-top: 2px;  /* ปรับตำแหน่งให้สวย */
 }
 
+/* ข้อความหนาในกล่องคำเตือน */
 .warning-note strong {
-  color: #92400e;
+  color: #92400e;  /* สีน้ำตาลเข้ม */
 }
 
-/* Responsive */
+/* ========================================
+   RESPONSIVE DESIGN
+   ปรับแต่งสำหรับอุปกรณ์ต่างๆ
+   ======================================== */
+
+/* Tablet และ Mobile (หน้าจอเล็กกว่า 768px) */
 @media (max-width: 768px) {
   .select-wrapper {
     padding: 0.75rem;
@@ -564,6 +701,7 @@
   }
 }
 
+/* Mobile เล็ก (หน้าจอเล็กกว่า 480px) */
 @media (max-width: 480px) {
   .select-header {
     margin-bottom: 1rem;
@@ -595,12 +733,17 @@
   }
 }
 
-/* Touch Device Optimizations */
+/* ========================================
+   TOUCH DEVICE OPTIMIZATIONS
+   ปรับแต่งสำหรับอุปกรณ์สัมผัส (มือถือ/แท็บเล็ต)
+   เพิ่มขนาดปุ่มให้ใหญ่ขึ้นสำหรับกดง่าย
+   ======================================== */
+
 @media (hover: none) and (pointer: coarse) {
   .back-btn,
   .primary-btn,
   .secondary-btn,
   .package-card {
-    min-height: 48px;
+    min-height: 48px;  /* ขนาดขั้นต่ำ 48px ตามมาตรฐาน accessibility */
   }
 }

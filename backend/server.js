@@ -1,6 +1,8 @@
+// นำเข้าและกำหนดค่า environment variables จากไฟล์ .env
 import dotenv from "dotenv";
 dotenv.config();
 
+// นำเข้า Express framework สำหรับสร้าง web server
 import express from "express";
 import cors from "cors";
 import multer from "multer";
@@ -21,12 +23,15 @@ import { optionalAuth } from "./middleware/authMiddleware.js";
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
+// กำหนด __filename และ __dirname สำหรับ ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// สร้าง Express application
 const app = express();
 
-// CORS Configuration - รองรับ Development และ Production
+// ===== การตั้งค่า CORS (Cross-Origin Resource Sharing) =====
+// รองรับทั้งสภาพแวดล้อม Development และ Production
 const allowedOrigins = [
   'http://localhost:3000',                    // User Frontend (Dev)
   'http://localhost:3001',                    // Admin Frontend (Dev)
@@ -36,9 +41,10 @@ const allowedOrigins = [
   process.env.ADMIN_FRONTEND_URL,             // Admin Frontend (Custom)
 ].filter(Boolean); // กรอง undefined ออก
 
+// ใช้ CORS middleware พร้อมกำหนดค่าการอนุญาต origin
 app.use(cors({
   origin: function (origin, callback) {
-    // อนุญาต requests ที่ไม่มี origin (เช่น mobile apps, Postman)
+    // อนุญาต requests ที่ไม่มี origin (เช่น mobile apps, Postman, curl)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -54,18 +60,26 @@ app.use(cors({
 }));
 
 
+// กำหนดพอร์ตของเซิร์ฟเวอร์ (ค่าเริ่มต้น 4000)
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
+// URL ของ Admin API สำหรับเชื่อมต่อกับฝั่งแอดมิน
 const ADMIN_API_BASE = (process.env.ADMIN_API_BASE || "https://cmes-admin-server.onrender.com").replace(/\/$/, "");
 
+// จำนวนเงินที่คาดหวังสำหรับการชำระเงิน
 const expectedAmount = parseInt(process.env.EXPECTED_AMOUNT, 10);
 
+// ใช้ Body Parser middleware สำหรับแปลง JSON request body
 app.use(bodyParser.json());
+// เปิดให้เข้าถึงไฟล์ static ในโฟลเดอร์ uploads
 app.use(express.static("uploads"));
+// ใช้ Express JSON middleware
 app.use(express.json());
 
-// ===== MONGODB CONNECTION =====
+// ===== การเชื่อมต่อ MONGODB DATABASE =====
+// URI สำหรับเชื่อมต่อ MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
 
+// เชื่อมต่อกับ MongoDB database
 mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
   .then(() => {
     console.log("✓ Connected to MongoDB");
@@ -75,14 +89,15 @@ mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
     process.exit(1);
   });
 
-// ===== AUTH ROUTES =====
+// ===== เส้นทาง (Routes) สำหรับการ Authentication =====
 app.use("/api/auth", authRoutes);
 
-// ===== CLOUDINARY CONFIGURATION =====
+// ===== การตั้งค่า CLOUDINARY สำหรับจัดเก็บไฟล์บนคลาวด์ =====
+// ตั้งค่า Cloudinary API credentials
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt', 
   api_key: process.env.CLOUDINARY_API_KEY || '396185692714272', 
-  api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file
+  api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file เพื่อความปลอดภัย
 });
 
 console.log("✓ Cloudinary configured:", {
@@ -90,12 +105,16 @@ console.log("✓ Cloudinary configured:", {
   api_key: cloudinary.config().api_key ? '***' + cloudinary.config().api_key.slice(-4) : 'NOT SET'
 });
 
+// ตรวจสอบและสร้างโฟลเดอร์ uploads ถ้ายังไม่มี
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads");
 }
 
-// ----- User Management -----
+// ===== ระบบจัดการข้อมูลผู้ใช้ (User Management) =====
+// ไฟล์ JSON สำหรับเก็บข้อมูลผู้ใช้
 const usersFile = path.join(__dirname, "users-data.json");
+
+// ฟังก์ชันโหลดข้อมูลผู้ใช้จากไฟล์ JSON
 function loadUsers() {
   try {
     if (fs.existsSync(usersFile)) {
@@ -108,10 +127,12 @@ function loadUsers() {
   return {};
 }
 
+// ฟังก์ชันบันทึกข้อมูลผู้ใช้ลงไฟล์ JSON
 function saveUsers(users) {
   fs.writeFileSync(usersFile, JSON.stringify(users, null, 2));
 }
 
+// API ตรวจสอบหมายเลขโทรศัพท์ว่ามีในระบบหรือไม่
 app.get("/api/check-phone", (req, res) => {
   try {
     const phone = req.query.phone;
@@ -131,8 +152,10 @@ app.get("/api/check-phone", (req, res) => {
   }
 });
 
+// API ดึงข้อมูลโปรไฟล์ผู้ใช้
 app.get("/api/user-profile", (req, res) => {
   try {
+    // ดึง token จาก Authorization header
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ success: false, message: "No token" });
@@ -150,8 +173,10 @@ app.get("/api/user-profile", (req, res) => {
   }
 });
 
+// API อัปเดตข้อมูลโปรไฟล์ผู้ใช้
 app.post("/api/update-profile", (req, res) => {
   try {
+    // ดึง token เพื่อระบุตัวตนผู้ใช้
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ success: false, message: "No token" });
@@ -178,6 +203,7 @@ app.post("/api/update-profile", (req, res) => {
   }
 });
 
+// API ตรวจสอบว่าวันนี้เป็นวันเกิดของผู้ใช้หรือไม่
 app.get("/api/check-birthday", async (req, res) => {
   try {
     const birthdayStr = req.query.birthday;
@@ -209,23 +235,25 @@ app.get("/api/check-birthday", async (req, res) => {
   }
 });
 
+// กำหนด path สำหรับโฟลเดอร์เก็บไฟล์แต่ละประเภท
 const avatarDir = path.join(__dirname, "uploads/avatars");
 const slipDir = path.join(__dirname, "uploads/slips");
 const genericDir = path.join(__dirname, "uploads/others");
 
+// สร้างโฟลเดอร์ทั้งหมดถ้ายังไม่มี
 if (!fs.existsSync("uploads")) fs.mkdirSync("uploads");
 if (!fs.existsSync(avatarDir)) fs.mkdirSync(avatarDir, { recursive: true });
 if (!fs.existsSync(slipDir)) fs.mkdirSync(slipDir, { recursive: true });
 if (!fs.existsSync(genericDir)) fs.mkdirSync(genericDir, { recursive: true });
 
-// Serve static files specific folders
+// เปิดให้เข้าถึงไฟล์ static ในแต่ละโฟลเดอร์
 app.use("/uploads/avatars", express.static(avatarDir));
 app.use("/uploads/slips", express.static(slipDir));
-app.use("/uploads", express.static(genericDir)); // fallback or others
+app.use("/uploads", express.static(genericDir)); // สำหรับไฟล์ทั่วไป
 
-// ----- Cloudinary Storage Configs -----
+// ===== การตั้งค่า Cloudinary Storage สำหรับแต่ละประเภทไฟล์ =====
 
-// 1. Avatar Storage (Cloudinary)
+// 1. กำหนดที่เก็บไฟล์รูปโปรไฟล์ (Avatar) บน Cloudinary
 const avatarStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -236,7 +264,7 @@ const avatarStorage = new CloudinaryStorage({
   }
 });
 
-// 2. Slip Storage (Cloudinary)
+// 2. กำหนดที่เก็บไฟล์สลิปการชำระเงิน (Slip) บน Cloudinary
 const slipStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -246,7 +274,7 @@ const slipStorage = new CloudinaryStorage({
   }
 });
 
-// 3. Generic Storage (Cloudinary)
+// 3. กำหนดที่เก็บไฟล์ทั่วไป (Generic) บน Cloudinary
 const genericStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
@@ -256,22 +284,26 @@ const genericStorage = new CloudinaryStorage({
   }
 });
 
+// Multer middleware สำหรับอัปโหลดรูปโปรไฟล์ (ขนาดไฟล์สูงสุด 20MB)
 const uploadAvatar = multer({ 
   storage: avatarStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
 
+// Multer middleware สำหรับอัปโหลดสลิปการชำระเงิน (ขนาดไฟล์สูงสุด 20MB)
 const uploadSlip = multer({ 
   storage: slipStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
 
+// Multer middleware สำหรับอัปโหลดไฟล์ทั่วไป (ขนาดไฟล์สูงสุด 20MB)
 const uploadGeneric = multer({ 
   storage: genericStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
 
-// ----- Gift Orders Storage -----
+// ===== ระบบจัดเก็บข้อมูลคำสั่งซื้อของขวัญ (Gift Orders) =====
+// ไฟล์ JSON สำหรับเก็บข้อมูลคำสั่งซื้อของขวัญ
 const giftOrdersPath = path.join(__dirname, "gift-orders.json");
 let giftOrders = [];
 
@@ -286,10 +318,12 @@ if (fs.existsSync(giftOrdersPath)) {
   fs.writeFileSync(giftOrdersPath, JSON.stringify([], null, 2));
 }
 
+// ฟังก์ชันบันทึกข้อมูลคำสั่งซื้อของขวัญลงไฟล์
 function saveGiftOrders() {
   fs.writeFileSync(giftOrdersPath, JSON.stringify(giftOrders, null, 2));
 }
 
+// ฟังก์ชันดึงข้อมูลการตั้งค่าของขวัญจากฝั่ง Admin
 async function fetchGiftSettingsFromAdmin() {
   const response = await fetch(`${ADMIN_API_BASE}/api/gifts/settings`);
   if (!response.ok) {
@@ -298,6 +332,7 @@ async function fetchGiftSettingsFromAdmin() {
   return response.json();
 }
 
+// API สำหรับส่งรายงานปัญหาหรือข้อเสนอแนะ (รองรับทั้งผู้ใช้ที่ล็อกอินและไม่ล็อกอิน)
 app.post("/api/report", optionalAuth, async (req, res) => {
   const { category, detail } = req.body;
   if (!category || !detail) {
@@ -349,7 +384,7 @@ app.post("/api/report", optionalAuth, async (req, res) => {
   }
 });
 
-// เพิ่ม API OCR (ใช้ Generic ไปก่อน หรือจะเปลี่ยนเป็น Slip ก็ได้ถ้าเป็นสลิป)
+// ===== API สำหรับแปลงรูปภาพเป็นข้อความด้วย OCR (Optical Character Recognition) =====
 app.post("/api/ocr", uploadGeneric.single("image"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "No file uploaded" });
@@ -365,7 +400,7 @@ app.post("/api/ocr", uploadGeneric.single("image"), async (req, res) => {
   }
 });
 
-// API Verify Slip (ใช้ uploadSlip)
+// ===== API สำหรับตรวจสอบความถูกต้องของสลิปการชำระเงินด้วย OCR =====
 app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   console.log("===> เข้ามา /verify-slip แล้ว");
   let status = "failed";
@@ -410,7 +445,7 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
 
     console.log("match1:", match1, "match2:", match2, "match3:", match3, "match4:", match4);
 
-    // ลบสลิปออกจาก Cloudinary หลัง OCR เสร็จ (ไม่ว่าจะผ่านหรือไม่ผ่าน)
+    // ฟังก์ชันลบสลิปออกจาก Cloudinary หลัง OCR เสร็จ (เพื่อประหยัดพื้นที่และปกป้องข้อมูล)
     const deleteSlip = async () => {
       if (req.file && req.file.filename) {
         try {
@@ -475,23 +510,26 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   }
 });
 
+// ฟังก์ชันแปลงตัวเลขไทย (๐-๙) เป็นตัวเลขอารบิก (0-9)
 function thaiToArabic(str) {
   return str.replace(/[๐-๙]/g, d => "0123456789"["๐๑๒๓๔๕๖๗๘๙".indexOf(d)]);
 }
 
-// เก็บข้อมูลรอชำระเงิน
+// เก็บข้อมูลการอัปโหลดที่รอการชำระเงิน (ใช้ Map เพื่อความเร็วในการค้นหา)
 let pendingUploads = new Map();
 
-// API สำหรับบันทึกข้อมูลรอชำระเงิน (ใช้ generic หรือแยกก็ได้ แต่เดิมใช้ upload.single("file"))
-// User ส่ง file ขึ้นหน้าจอ (ไม่ใช่สลิป ไม่ใช่อวตาร) -> ใช้ Generic หรือ User Uploads
-// Upload endpoint รองรับ file + qrCode
+// ===== API สำหรับบันทึกข้อมูลรอชำระเงิน =====
+// รับไฟล์จากผู้ใช้ (รูปภาพ, QR Code) และเก็บไว้รอการยืนยันการชำระเงิน
+// รองรับทั้งไฟล์ปกติและ QR Code
 const uploadFields = uploadGeneric.fields([
   { name: 'file', maxCount: 1 },
   { name: 'qrCode', maxCount: 1 }
 ]);
 
+// API อัปโหลดไฟล์และข้อมูลเพื่อรอการชำระเงิน
 app.post("/api/upload", uploadFields, (req, res) => {
   try {
+    // ดึงข้อมูลจาก request body
     const { text, type, time, price, sender, userId, email, avatar, textColor, socialType, socialName } = req.body;
     const uploadId = Date.now().toString();
 
@@ -528,7 +566,7 @@ app.post("/api/upload", uploadFields, (req, res) => {
     pendingUploads.set(uploadId, uploadData);
     console.log(`[/api/upload] ✓ Upload ${uploadId} saved, expires in 10 mins`);
 
-    // ตั้งเวลายกเลิก 10 นาที
+    // ตั้งเวลายกเลิกคำขออัปโหลดอัตโนมัติหลังจาก 10 นาที (ป้องกันข้อมูลค้างในระบบ)
     setTimeout(() => {
       if (pendingUploads.has(uploadId)) {
         console.log(`[/api/upload] Upload ${uploadId} expired after 10 minutes`);
@@ -551,7 +589,7 @@ app.post("/api/upload", uploadFields, (req, res) => {
   }
 });
 
-// API สำหรับยืนยันการชำระเงิน
+// ===== API สำหรับยืนยันการชำระเงินและส่งข้อมูลไปยัง Admin =====
 app.post("/api/confirm-payment", async (req, res) => {
   try {
     const { uploadId, userId, email, avatar } = req.body;
@@ -624,7 +662,7 @@ app.post("/api/confirm-payment", async (req, res) => {
   }
 });
 
-// API สำหรับตรวจสอบสถานะ upload
+// API ตรวจสอบสถานะของการอัปโหลดด้วย uploadId
 app.get("/api/upload-status/:uploadId", (req, res) => {
   const { uploadId } = req.params;
 
@@ -636,7 +674,7 @@ app.get("/api/upload-status/:uploadId", (req, res) => {
   }
 });
 
-// API สำหรับอัปโหลดรูปภาพและข้อความ (Generic)
+// API อัปโหลดเนื้อหา (ข้อความ + รูปภาพ)
 app.post("/upload-content", uploadGeneric.single("image"), (req, res) => {
   const { message } = req.body;
   const baseUrl = process.env.BASE_URL || `https://cmes-user.onrender.com`;
@@ -648,7 +686,7 @@ app.post("/upload-content", uploadGeneric.single("image"), (req, res) => {
   res.json({ success: true, message, imageUrl });
 });
 
-// API สำหรับอัปโหลด Avatar เฉพาะ
+// ===== API อัปโหลดรูปโปรไฟล์ (Avatar) เฉพาะ =====
 app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
   try {
     if (!req.file) {
@@ -664,7 +702,7 @@ app.post("/api/upload-avatar", uploadAvatar.single("avatar"), (req, res) => {
   }
 });
 
-// API เดิมสำหรับอัปโหลดรูปภาพ (Generic)
+// API อัปโหลดรูปภาพทั่วไป (Generic)
 app.post("/upload", uploadGeneric.single("image"), (req, res) => {
   // Cloudinary returns URL in req.file.path
   const imageUrl = req.file.path;
@@ -672,7 +710,7 @@ app.post("/upload", uploadGeneric.single("image"), (req, res) => {
   res.json({ imageUrl });
 });
 
-// Endpoint สำหรับส่ง OTP
+// ===== API ส่งรหัส OTP ไปยังหมายเลขโทรศัพท์ผ่าน SMS =====
 app.post("/send-otp", async (req, res) => {
   const { phone } = req.body;
 
@@ -720,7 +758,7 @@ app.post("/send-otp", async (req, res) => {
   }
 });
 
-// ตรวจสอบ OTP
+// ===== API ตรวจสอบความถูกต้องของรหัส OTP =====
 app.post("/verify-otp", async (req, res) => {
   const { otp, token } = req.body;
 
@@ -760,7 +798,7 @@ app.post("/verify-otp", async (req, res) => {
   }
 });
 
-// ตรวจสอบการชำระเงิน
+// API ตรวจสอบการชำระเงิน (ตรวจสอบจำนวนเงินและวิธีการชำระ)
 app.post("/verify-payment", (req, res) => {
   const { amount, method } = req.body;
 
@@ -775,42 +813,49 @@ app.post("/verify-payment", (req, res) => {
   }
 });
 
-// Error handler
+// ===== Error Handler - จัดการข้อผิดพลาดทั้งหมดของแอปพลิเคชัน =====
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send("Something went wrong!");
 });
 
-// Socket.IO setup
+// ===== ตั้งค่า Socket.IO สำหรับการสื่อสาร Real-time =====
 const server = http.createServer(app);
 const io = new SocketIoServer(server, { cors: { origin: "*" } });
 
+// การตั้งค่าเริ่มต้นของระบบ
 let config = {
-  enableImage: true,
-  enableText: true,
-  price: 100,
-  time: 10
+  enableImage: true,   // เปิดใช้งานการอัปโหลดรูปภาพ
+  enableText: true,    // เปิดใช้งานการส่งข้อความ
+  price: 100,          // ราคาเริ่มต้น (บาท)
+  time: 10             // เวลาเริ่มต้น (วินาที)
 };
 
+// API ดึงข้อมูลการตั้งค่าปัจจุบันของระบบ
 app.get("/api/status", (req, res) => {
   res.json(config);
 });
 
+// จัดการการเชื่อมต่อ Socket.IO
 io.on("connection", (socket) => {
+  // ส่งการตั้งค่าปัจจุบันไปยังผู้ใช้ที่เชื่อมต่อใหม่
   socket.emit("configUpdate", config);
 
+  // รับการอัปเดตการตั้งค่าจาก Admin และแจ้งเตือนผู้ใช้ทุกคน
   socket.on("adminUpdateConfig", (newConfig) => {
     config = { ...config, ...newConfig };
     io.emit("configUpdate", config);
   });
 });
 
-// เปลี่ยนจาก app.listen เป็น server.listen
+// เริ่มต้นเซิร์ฟเวอร์ (ใช้ server.listen แทน app.listen เพื่อรองรับ Socket.IO)
 server.listen(port, () => {
   console.log(`Server + WebSocket running on http://localhost:${port}`);
 });
 
-// ----- Gift APIs -----
+// ===== APIs สำหรับระบบของขวัญ (Gift System) =====
+
+// API ดึงรายการของขวัญทั้งหมด
 app.get("/api/gifts", async (req, res) => {
   try {
     const settings = await fetchGiftSettingsFromAdmin();
@@ -821,8 +866,10 @@ app.get("/api/gifts", async (req, res) => {
   }
 });
 
+// API สร้างคำสั่งซื้อของขวัญ
 app.post("/api/gifts/order", async (req, res) => {
   try {
+    // ดึงข้อมูลคำสั่งซื้อจาก request body
     const { items, tableNumber, note, senderName } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: "กรุณาเลือกรายการสินค้า" });
@@ -879,6 +926,7 @@ app.post("/api/gifts/order", async (req, res) => {
   }
 });
 
+// API ดึงข้อมูลคำสั่งซื้อของขวัญด้วย orderId
 app.get("/api/gifts/order/:orderId", (req, res) => {
   const { orderId } = req.params;
   const order = giftOrders.find((item) => item.id === orderId);
@@ -888,6 +936,7 @@ app.get("/api/gifts/order/:orderId", (req, res) => {
   res.json({ success: true, order });
 });
 
+// API ยืนยันการชำระเงินสำหรับคำสั่งซื้อของขวัญและส่งข้อมูลไปยัง Admin
 app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   const { orderId } = req.params;
   const { userId, email, avatar } = req.body; // รับข้อมูล user จาก frontend
@@ -950,9 +999,10 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   }
 });
 
+// ===== API ดึงข้อมูลอันดับผู้ใช้ชั้นนำ (Rankings) =====
 app.get("/api/rankings/top", async (req, res) => {
   try {
-    // Forward ไปยัง CMES-ADMIN
+    // ส่งต่อคำขอไปยังฝั่ง Admin
     const response = await fetch(`${ADMIN_API_BASE}/api/rankings/top`);
     if (!response.ok) {
       throw new Error("Failed to fetch rankings from admin");

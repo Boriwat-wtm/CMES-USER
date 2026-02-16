@@ -1,6 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Reset */
+/* ========================
+   Reset
+   ======================== */
+/* Reset ค่า default ของ browser */
 * {
   margin: 0;
   padding: 0;
@@ -8,6 +11,7 @@
 }
 
 /* Main Container */
+/* Container หลักที่ครอบทั้งหน้า Report ด้วย gradient background */
 .report-container {
   min-height: 100vh;
   background: linear-gradient(145deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
@@ -17,6 +21,7 @@
 }
 
 /* Success Animation Overlay */
+/* เลเยอร์ที่ครอบหน้าจอเมื่อส่ง Report สำเร็จ */
 .success-overlay {
   position: fixed;
   top: 0;
@@ -31,6 +36,7 @@
   backdrop-filter: blur(10px);
 }
 
+/* Card แสดง animation ความสำเร็จ */
 .success-animation {
   background: white;
   padding: 3rem 2rem;
@@ -40,6 +46,7 @@
   animation: successPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* วงกลมสีเขียวพร้อล gradient */
 .check-circle {
   width: 80px;
   height: 80px;
@@ -52,6 +59,7 @@
   animation: checkBounce 0.8s ease-out 0.3s both;
 }
 
+/* เครื่องหมาย check (V) ทำจาก border */
 .check-mark {
   width: 30px;
   height: 15px;
@@ -61,23 +69,27 @@
   animation: checkDraw 0.5s ease-out 0.5s both;
 }
 
+/* Animation: Card โผล่ขึ้นมาแบบโตขึ้น */
 @keyframes successPop {
   0% { transform: scale(0.3); opacity: 0; }
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* Animation: วงกลมเด้ง */
 @keyframes checkBounce {
   0% { transform: scale(0); }
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
 
+/* Animation: วาดเครื่องหมาย check ค่อยๆ */
 @keyframes checkDraw {
   0% { width: 0; height: 0; }
   100% { width: 30px; height: 15px; }
 }
 
 /* Wrapper */
+/* Wrapper จำกัดความกว้างและ center เนื้อหา */
 .report-wrapper {
   max-width: 900px;
   margin: 0 auto;
@@ -85,11 +97,11 @@
 }
 
 /* Header */
+/* ส่วนหัวของหน้ามีปุ่ม Back และหัวข้อ */
 .report-header {
   margin-bottom: 2rem;
 }
-
-.back-btn {
+/* ปุ่มกลับหน้าก่อนหน้านี้ */.back-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -106,6 +118,7 @@
   margin-bottom: 1.5rem;
 }
 
+/* Hover effect เลื่อนไปทางซ้ายเล็กน้อย */
 .back-btn:hover {
   background: rgba(255, 255, 255, 0.25);
   transform: translateX(-5px);
@@ -135,6 +148,7 @@
 }
 
 /* Report Card */
+/* Card หลักที่แสดงฟอร์ม Report ด้วย glass morphism effect */
 .report-card {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
@@ -149,6 +163,7 @@
   overflow: hidden;
 }
 
+/* เส้นสี gradient บนขอบ card */
 .report-card::before {
   content: '';
   position: absolute;
@@ -159,12 +174,14 @@
   background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
 }
 
+/* Grid layout แบ่งส่วนฟอร์มและคือ sidebar */
 .report-content-grid {
   display: grid;
   gap: 2rem;
 }
 
 /* Card Header */
+/* หัวข้อของ card มี pulse dot และหัวข้อ */
 .card-header {
   text-align: center;
   margin-bottom: 2.5rem;
@@ -180,6 +197,7 @@
   animation: pulse 2s infinite;
 }
 
+/* Animation: จุดกระพริบสีเขียว */
 @keyframes pulse {
   0%, 100% { opacity: 0.8; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
@@ -199,6 +217,7 @@
 }
 
 /* Form */
+/* ฟอร์มหลักสำหรับกรอกข้อมูล */
 .report-form {
   display: flex;
   flex-direction: column;
@@ -217,6 +236,7 @@
   gap: 0.75rem;
 }
 
+/* Label และ required dot (จุดแดง) */
 .input-label {
   display: flex;
   align-items: center;
@@ -235,6 +255,7 @@
 }
 
 /* Custom Select */
+/* Dropdown select แบบกำหนดเอง */
 .custom-select {
   position: relative;
 }
@@ -268,6 +289,7 @@
   pointer-events: none;
 }
 
+/* กล่องข้อมูลแสดงหมวดหมู่ที่เลือก */
 .category-info {
   display: flex;
   align-items: center;
@@ -279,6 +301,7 @@
   animation: slideIn 0.3s ease-out;
 }
 
+/* Animation: เลื่อนลงมา */
 @keyframes slideIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -295,6 +318,7 @@
 }
 
 /* Textarea */
+/* Textarea สำหรับกรอกรายละเอียด */
 .textarea-wrapper {
   position: relative;
 }
@@ -318,6 +342,7 @@
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
 }
 
+/* Footer ของ textarea มี tips และ counter */
 .input-footer {
   display: flex;
   justify-content: space-between;
@@ -326,6 +351,7 @@
   gap: 1rem;
 }
 
+/* คำแนะนำในการเขียน */
 .writing-tips {
   display: flex;
   align-items: center;
@@ -353,6 +379,7 @@
 }
 
 /* Quick Tips */
+/* กล่องแสดงคำแนะนำในการเขียน Report */
 .quick-tips {
   background: linear-gradient(135deg, #fefce8, #fef3c7);
   padding: 1.5rem;
@@ -407,6 +434,7 @@
   line-height: 1.4;
 }
 
+/* กล่องข้อมูลติดต่อ */
 .support-card {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 18px;
@@ -449,17 +477,20 @@
 }
 
 /* Status Message */
+/* ข้อความแจ้งสถานะ Success/Error */
 .status-message {
   padding: 1rem 1.25rem;
   border-radius: 12px;
   animation: messageSlide 0.4s ease-out;
 }
 
+/* สไตล์ Success message */
 .status-message.success {
   background: linear-gradient(135deg, #ecfdf5, #d1fae5);
   border: 1px solid #a7f3d0;
 }
 
+/* สไตล์ Error message */
 .status-message.error {
   background: linear-gradient(135deg, #fef2f2, #fee2e2);
   border: 1px solid #fecaca;
@@ -484,12 +515,14 @@
   color: #dc2626;
 }
 
+/* Animation สำหรับข้อความ */
 @keyframes messageSlide {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 /* Form Actions */
+/* ปุ่ม Cancel และ Submit */
 .form-actions {
   display: flex;
   gap: 1rem;
@@ -513,6 +546,7 @@
   min-height: 48px;
 }
 
+/* ปุ่มยกเลิก */
 .cancel-btn {
   background: #f8fafc;
   color: #64748b;
@@ -524,17 +558,20 @@
   color: #475569;
 }
 
+/* ปุ่มส่ง Report (ปุ่มหลัก) */
 .submit-btn {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 }
 
+/* Hover effect ยกปุ่มขึ้นเล็กน้อย */
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
 }
 
+/* Disabled state */
 .submit-btn:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -542,6 +579,7 @@
 }
 
 /* Loading Spinner */
+/* Spinner แสดงขณะกำลังโหลด */
 .loading-spinner {
   width: 18px;
   height: 18px;
@@ -551,12 +589,14 @@
   animation: spin 1s linear infinite;
 }
 
+/* Animation: หมุนวง */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
 /* Responsive */
+/* สำหรับหน้าจอขนาดเล็กกว่า 768px (Tablet) */
 @media (max-width: 768px) {
   .report-wrapper {
     padding: 1rem;
@@ -591,6 +631,7 @@
   }
 }
 
+/* สำหรับหน้าจอขนาดเล็กกว่า 480px (Mobile) */
 @media (max-width: 480px) {
   .report-card {
     padding: 1.25rem;
@@ -607,6 +648,7 @@
   }
 }
 
+/* สำหรับหน้าจอขนาดใหญ่กว่า 1024px (Desktop) ใช้ 2-column layout */
 @media (min-width: 1024px) {
   .report-content-grid {
     grid-template-columns: 2fr 1fr;

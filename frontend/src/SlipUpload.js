@@ -2,54 +2,100 @@ import React, { useState, useRef } from "react";
 import axios from "axios";
 import API_BASE_URL from "./config/apiConfig";
 
+/**
+ * Component สำหรับอัปโหลดและตรวจสอบสลิปการชำระเงิน
+ * 
+ * Props:
+ * - price: ราคาที่ต้องชำระ (ใช้สำหรับตรวจสอบจำนวนเงินในสลิป)
+ * - onSuccess: Callback function ที่จะถูกเรียกเมื่อการชำระเงินสำเร็จ
+ * 
+ * การทำงาน:
+ * 1. ผู้ใช้เลือกไฟล์รูปสลิป (JPG, PNG)
+ * 2. กดปุ่มยืนยัน -> ส่งสลิปไปยัง backend API (/verify-slip)
+ * 3. Backend ตรวจสอบความถูกต้องและจำนวนเงิน
+ * 4. แสดงผลสถานะ: success, pending, หรือ failed
+ */
 function SlipUpload({ price, onSuccess }) {
+  // State เก็บไฟล์สลิปที่ผู้ใช้เลือก
   const [slipFile, setSlipFile] = useState(null);
+  
+  // State สำหรับแสดงว่ากำลังตรวจสอบสลิปอยู่หรือไม่
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
+  
+  // State สถานะการชำระเงิน: null | "pending" | "success" | "failed"
   const [paymentStatus, setPaymentStatus] = useState(null);
+  
+  // Ref สำหรับ trigger input file (เพื่อให้สามารถคลิกจากที่อื่นได้)
   const fileInputRef = useRef(null);
 
+  /**
+   * จัดการเมื่อผู้ใช้เลือกไฟล์สลิป
+   */
   const handleSlipChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setSlipFile(e.target.files[0]);
     }
   };
 
+  /**
+   * ฟังก์ชันสำหรับยืนยันแบบง่าย (ไม่ได้ใช้งานตอนนี้)
+   * เก็บไว้เผื่อใช้ในอนาคต
+   */
   const handleVerify = () => {
     if (!slipFile) return;
     console.log("[SlipUpload] verification success");
     onSuccess && onSuccess();
   };
 
+  /**
+   * อัปโหลดสลิปและตรวจสอบความถูกต้อง
+   * - ส่งไฟล์สลิปและจำนวนเงินไปยัง backend
+   * - Backend จะตรวจสอบว่าสลิปถูกต้องและจำนวนเงินตรงหรือไม่
+   * - ถ้าสำเร็จ จะเรียก onSuccess callback
+   */
   const handleUploadSlipAndVerify = async () => {
     if (!slipFile) {
       alert("กรุณาเลือกไฟล์สลิปก่อน");
       return;
     }
+    
+    // เริ่มต้นการตรวจสอบ
     setIsVerifyingSlip(true);
     setPaymentStatus("pending");
+    
+    // เตรียมข้อมูลสำหรับส่งไป backend
     const formData = new FormData();
-    formData.append("slip", slipFile);
-    formData.append("amount", price);
+    formData.append("slip", slipFile);        // ไฟล์รูปสลิป
+    formData.append("amount", price);         // จำนวนเงินที่ต้องชำระ
 
     try {
+      // ส่ง request ไปยัง backend เพื่อตรวจสอบสลิป
       const response = await axios.post(`${API_BASE_URL}/verify-slip`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      
       if (response.data.success) {
+        // ✅ สลิปถูกต้อง
         setPaymentStatus("success");
         console.log("[SlipUpload] verification success, calling onSuccess");
-        onSuccess && onSuccess();
+        onSuccess && onSuccess();  // เรียก callback เพื่อดำเนินการต่อ
       } else {
+        // ❌ สลิปไม่ถูกต้อง
         setPaymentStatus("failed");
         alert(response.data.message || "สลิปไม่ถูกต้องหรือจำนวนเงินไม่ตรง");
       }
     } catch (error) {
+      // ⚠️ เกิดข้อผิดพลาดในการเชื่อมต่อหรือตรวจสอบ
       setPaymentStatus("failed");
       alert("เกิดข้อผิดพลาดในการตรวจสอบสลิป");
     }
+    
     setIsVerifyingSlip(false);
   };
 
+  /**
+   * เปิด file input dialog (เพราะ input แท้จริงถูกซ่อนไว้)
+   */
   const triggerFileInput = () => {
     if (fileInputRef.current) {
         fileInputRef.current.click();
@@ -58,6 +104,7 @@ function SlipUpload({ price, onSuccess }) {
 
   return (
     <div style={{ marginTop: '20px', width: '100%' }}>
+      {/* Hidden file input - ใช้ ref เพื่อ trigger จาก UI ที่สวยงามกว่า */}
       <input
         type="file"
         accept="image/*"
@@ -67,7 +114,11 @@ function SlipUpload({ price, onSuccess }) {
         style={{ display: 'none' }}
       />
       
-      {/* Upload Area */}
+      {/* 
+        พื้นที่อัปโหลดสลิป (Upload Area)
+        - คลิกเพื่อเลือกไฟล์
+        - แสดงสถานะว่าเลือกไฟล์แล้วหรือยัง (สีเขียว = เลือกแล้ว)
+      */}
       <div 
         onClick={!isVerifyingSlip ? triggerFileInput : undefined}
         style={{
@@ -86,6 +137,7 @@ function SlipUpload({ price, onSuccess }) {
             minHeight: '120px'
         }}
       >
+        {/* ไอคอนกลาง - เปลี่ยนเป็น checkmark เมื่อเลือกไฟล์แล้ว */}
         <div style={{ 
             width: '48px', 
             height: '48px', 
@@ -108,6 +160,8 @@ function SlipUpload({ price, onSuccess }) {
                 </svg>
             )}
         </div>
+        
+        {/* ข้อความแสดงสถานะและคำแนะนำ */}
         <div style={{ textAlign: 'center' }}>
             <span style={{ display: 'block', fontSize: '15px', color: '#1e293b', fontWeight: '500', marginBottom: '4px' }}>
                 {slipFile ? "เลือกสลิปเรียบร้อย" : "แตะเพื่ออัปโหลดสลิป"}
@@ -118,6 +172,11 @@ function SlipUpload({ price, onSuccess }) {
         </div>
       </div>
 
+      {/* 
+        ปุ่มยืนยันการชำระเงิน
+        - Disabled ถ้ายังไม่ได้เลือกไฟล์หรือกำลังตรวจสอบอยู่
+        - แสดง spinner animation เมื่อกำลังตรวจสอบ
+      */}
       <button
         className="confirm-button"
         onClick={handleUploadSlipAndVerify}
@@ -142,6 +201,7 @@ function SlipUpload({ price, onSuccess }) {
       >
         {isVerifyingSlip ? (
            <>
+             {/* Loading spinner */}
              <div className="spinner" style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
              กำลังตรวจสอบ...
            </>
@@ -155,6 +215,12 @@ function SlipUpload({ price, onSuccess }) {
         )}
       </button>
 
+      {/* 
+        แสดงสถานะการชำระเงิน (Payment Status)
+        - success: สีเขียว - การชำระเงินสำเร็จ
+        - pending: สีน้ำเงิน - กำลังตรวจสอบ
+        - failed: สีแดง - ล้มเหลว
+      */}
       {paymentStatus && (
         <div className="payment-status" style={{ 
             marginTop: '16px', 

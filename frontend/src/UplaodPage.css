@@ -1,75 +1,93 @@
+/* ==================== หน้าอัปโหลดเต็มหน้า ==================== */
+/* Container หลักของหน้า Upload - ใช้ flexbox จัดให้อยู่กึ่งกลางหน้าจอ */
 .upload-page {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px;
-  min-height: 100vh;
-  background: linear-gradient(to bottom, #cce7ff, #99d6ff);
+  min-height: 100vh; /* ความสูงเต็มหน้าจอ */
+  background: linear-gradient(to bottom, #cce7ff, #99d6ff); /* พื้นหลังไล่สีฟ้า */
 }
 
+/* ==================== กล่องเนื้อหาหลัก ==================== */
+/* Card สีขาวที่บรรจุฟอร์มอัปโหลด */
 .upload-container {
   background-color: #ffffff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* เงาเบาๆ ให้ดูลอยจากพื้นหลัง */
   border-radius: 12px;
   padding: 32px;
   width: 100%;
-  max-width: 500px;
+  max-width: 500px; /* จำกัดความกว้างสูงสุด */
 }
 
+/* ==================== หัวข้อและคำอธิบาย ==================== */
+/* หัวข้อหลักของหน้า */
 .upload-title {
   font-size: 24px;
   font-weight: bold;
-  color: #007bff;
+  color: #007bff; /* สีน้ำเงิน */
   text-align: center;
   margin-bottom: 16px;
 }
 
+/* คำอธิบายใต้หัวข้อ */
 .upload-description {
   font-size: 14px;
-  color: #6c757d;
+  color: #6c757d; /* สีเทา */
   text-align: center;
   margin-bottom: 24px;
 }
 
+/* ==================== ตัวเลือกประเภทการอัปโหลด ==================== */
+/* Container สำหรับปุ่มเลือกประเภท (รูปภาพ/ข้อความ) */
 .upload-type-selector {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-around; /* กระจายปุ่มให้เท่าๆ กัน */
   margin-bottom: 16px;
 }
 
+/* ==================== พื้นที่กรอกข้อความ ==================== */
+/* Textarea สำหรับพิมพ์ข้อความ */
 .upload-textarea {
   width: 100%;
   height: 100px;
-  border: 1px solid #ced4da;
+  border: 1px solid #ced4da; /* ขอบสีเทาอ่อน */
   border-radius: 8px;
   padding: 12px;
   font-size: 14px;
   margin-bottom: 16px;
-  outline: none;
-  transition: border-color 0.3s;
+  outline: none; /* ลบ outline เริ่มต้น */
+  transition: border-color 0.3s; /* animation เมื่อเปลี่ยนสีขอบ */
 }
 
+/* เมื่อ focus ที่ textarea */
 .upload-textarea:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
+  border-color: #007bff; /* ขอบเปลี่ยนเป็นสีน้ำเงิน */
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.5); /* เงาสีน้ำเงินเบาๆ */
 }
 
+/* ==================== อินพุตไฟล์ ==================== */
+/* Input สำหรับเลือกไฟล์รูปภาพ */
 .upload-file-input {
   display: block;
   width: 100%;
   margin-bottom: 16px;
 }
 
+/* ==================== พื้นที่แสดงตัวอย่างรูป ==================== */
+/* Container สำหรับแสดง preview ของรูปที่อัปโหลด */
 .upload-preview img {
-  max-height: 160px;
+  max-height: 160px; /* จำกัดความสูงสูงสุด */
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* เงาเบาๆ */
 }
 
+/* ==================== ปุ่มอัปโหลด ==================== */
+/* ปุ่มหลักสำหรับยืนยันการอัปโหลด */
 .upload-button {
   width: 100%;
-  background-color: #007bff;
+  background-color: #007bff; /* พื้นหลังสีน้ำเงิน */
   color: white;
   font-size: 16px;
   font-weight: bold;
@@ -77,9 +95,10 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s; /* animation เมื่อ hover */
 }
 
+/* เมื่อ hover เหนือปุ่ม */
 .upload-button:hover {
-  background-color: #0056b3;
+  background-color: #0056b3; /* สีน้ำเงินเข้มขึ้น */
 }

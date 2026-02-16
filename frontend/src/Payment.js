@@ -1,35 +1,55 @@
+// ========================
+// Import Libraries
+// ========================
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
-// import axios from "axios"; // ลบออกถ้าไม่ได้ใช้
 import "./Payment.css";
 import promptpayLogo from "./data-icon/promptpay-logo.png";
 import paymentLogo from "./data-icon/payment-logo.jpg";
 import { incrementQueueNumber } from "./utils";
 import SlipUpload from "./SlipUpload";
 
+/**
+ * Payment Component - หน้าชำระเงิน
+ * รองรับการชำระเงินสำหรับ:
+ * 1. การแสดงรูปภาพ/ข้อความ (image/text)
+ * 2. การส่งของขวัญ (gift)
+ * 
+ * รองรับการชำระเงินผ่าน PromptPay QR Code
+ */
 function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // ดึงข้อมูลจาก URL query parameters
   const queryParams = new URLSearchParams(location.search);
-  const type = queryParams.get("type");
-  const time = queryParams.get("time");
-  const price = queryParams.get("price");
-  const orderId = queryParams.get("orderId");
-  const isGift = type === "gift";
+  const type = queryParams.get("type"); // ประเภท: "image", "text", "gift"
+  const time = queryParams.get("time"); // ระยะเวลาแสดง (วินาที)
+  const price = queryParams.get("price"); // ราคา
+  const orderId = queryParams.get("orderId"); // ID ของคำสั่งซื้อของขวัญ
+  const isGift = type === "gift"; // ตรวจสอบว่าเป็นการส่งของขวัญหรือไม่
 
-  const [paymentMethod, setPaymentMethod] = useState(null);
-  const [showPopup, setShowPopup] = useState(false);
-  // const [phone, setPhone] = useState(""); // ลบออกถ้าไม่ได้ใช้
-  // const [otp, setOtp] = useState("");     // ลบออกถ้าไม่ได้ใช้
-  const [errorMessage, setErrorMessage] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // เพิ่ม
-  const [giftOrder, setGiftOrder] = useState(null);
-  const [isLoadingOrder, setIsLoadingOrder] = useState(isGift);
+  // ========================
+  // State Management
+  // ========================
+  const [paymentMethod, setPaymentMethod] = useState(null); // วิธีการชำระเงินที่เลือก
+  const [showPopup, setShowPopup] = useState(false); // แสดง popup ชำระเงิน
+  const [errorMessage, setErrorMessage] = useState(""); // ข้อความ error
+  const [isProcessing, setIsProcessing] = useState(false); // สถานะกำลังประมวลผล
+  const [showSuccessModal, setShowSuccessModal] = useState(false); // แสดง modal สำเร็จ
+  const [giftOrder, setGiftOrder] = useState(null); // ข้อมูลคำสั่งซื้อของขวัญ
+  const [isLoadingOrder, setIsLoadingOrder] = useState(isGift); // สถานะกำลังโหลดคำสั่งซื้อ
 
   console.log("[Payment render] showSuccessModal =", showSuccessModal);
 
+  // ========================
+  // useEffect: โหลดข้อมูลคำสั่งซื้อของขวัญ
+  // ========================
+  /**
+   * ถ้าเป็นการส่งของขวัญ จะดึงข้อมูลคำสั่งซื้อจาก API
+   * เพื่อแสดงรายละเอียดของขวัญและราคา
+   */
   useEffect(() => {
     if (!isGift) return;
     if (!orderId) {
@@ -58,12 +78,21 @@ function Payment() {
     fetchOrder();
   }, [isGift, orderId]);
 
+  // ========================
+  // Form Handlers
+  // ========================
+  /**
+   * จัดการการยืนยันการชำระเงิน
+   * สำหรับ image/text: ยืนยันการชำระเงินด้วย uploadId
+   * สำหรับ gift: ยืนยันคำสั่งซื้อของขวัญ
+   */
   const handleConfirmPayment = async () => {
     if (isProcessing) return;
     setIsProcessing(true);
     setErrorMessage("");
+    
     try {
-      // ดึงข้อมูล user จาก localStorage
+      // ดึงข้อมูลผู้ใช้จาก localStorage เพื่อบันทึกข้อมูลผู้ชำระเงิน
       let userId = null;
       let email = null;
       let avatar = null;
@@ -86,10 +115,12 @@ function Payment() {
         console.warn("[Payment] Cannot parse user data:", err);
       }
 
+      // === กรณีส่งของขวัญ ===
       if (isGift) {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
         }
+        // เรียก API เพื่อยืนยันคำสั่งซื้อของขวัญ
         const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}/confirm`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -99,6 +130,8 @@ function Payment() {
         if (!response.ok || !data.success) {
           throw new Error(data.message || "ยืนยันคำสั่งซื้อไม่สำเร็จ");
         }
+        
+        // สร้างหมายเลขคิวใหม่
         const currentQueueNumber = incrementQueueNumber();
         const newOrder = {
           type: "gift",
@@ -109,15 +142,17 @@ function Payment() {
           orderId: orderId
         };
 
-        // เก็บ orders เป็น array
+        // เก็บคำสั่งซื้อใน localStorage เป็น array
         const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
         existingOrders.push(newOrder);
         localStorage.setItem("orders", JSON.stringify(existingOrders));
-        // เก็บ order ล่าสุดไว้ด้วย (backward compatibility)
+        // เก็บ order ล่าสุดไว้ด้วย (สำหรับ backward compatibility)
         localStorage.setItem("order", JSON.stringify(newOrder));
         setGiftOrder(data.order);
+        
+      // === กรณีแสดงรูปภาพ/ข้อความ ===
       } else {
-        // ไฟล์ถูกอัพโหลดไว้แล้วตอน Upload.js (ใช้ uploadId)
+        // ดึงข้อมูลการอัพโหลดที่เก็บไว้จาก Upload.js (มี uploadId)
         const savedData = localStorage.getItem("pendingUploadData");
         console.log("[Payment] Saved upload data:", savedData);
 
@@ -134,7 +169,7 @@ function Payment() {
 
         console.log("[Payment] Confirming payment for uploadId:", uploadId);
 
-        // เรียก API confirm-payment
+        // เรียก API เพื่อยืนยันการชำระเงิน
         const response = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -155,6 +190,7 @@ function Payment() {
         console.log("[Payment] Payment confirmed:", result);
         console.log("[Payment] Received uploadId from Admin:", result.uploadId);
 
+        // สร้างหมายเลขคิวและข้อมูลคำสั่งซื้อใหม่
         const currentQueueNumber = incrementQueueNumber();
         const newOrder = {
           type: uploadData.type,
@@ -166,19 +202,23 @@ function Payment() {
 
         console.log("[Payment] Creating order with orderId:", newOrder.orderId);
 
+        // เก็บคำสั่งซื้อใน localStorage
         const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
         existingOrders.push(newOrder);
         localStorage.setItem("orders", JSON.stringify(existingOrders));
         localStorage.setItem("order", JSON.stringify(newOrder));
 
+        // ลบข้อมูลชั่วคราวที่ใช้ในกระบวนการอัพโหลด
         localStorage.removeItem("pendingUploadData");
         localStorage.removeItem("uploadFormDraft");
         localStorage.removeItem("uploadFormImage");
       }
 
+      // ปิด popup และแสดง modal สำเร็จ
       setShowPopup(false);
       setShowSuccessModal(true);
       console.log("[Payment] after setShowSuccessModal ->", true);
+      
     } catch (err) {
       console.error("[Payment] Error:", err);
       setErrorMessage(`❌ ${err.message || "เกิดข้อผิดพลาดในการยืนยันการชำระเงิน"}`);
@@ -187,6 +227,10 @@ function Payment() {
     }
   };
 
+  /**
+   * จัดการการเลือกวิธีการชำระเงิน
+   * ตรวจสอบสถานะและแสดง popup ชำระเงิน
+   */
   const handlePaymentSelection = (method) => {
     if (!method) return;
     if (isGift && (isLoadingOrder || !giftOrder)) {
@@ -198,21 +242,36 @@ function Payment() {
     setErrorMessage("");
   };
 
+  /**
+   * ปิด popup ชำระเงิน
+   */
   const closePopup = () => {
     setShowPopup(false);
     setErrorMessage("");
   };
 
+  /**
+   * กลับไปหน้าก่อนหน้า
+   */
   const handleGoBack = () => {
     navigate(-1);
   };
 
+  // คำนวณยอดเงินที่ต้องชำระ
   const amountToPay = isGift ? giftOrder?.totalPrice ?? price : price;
+  
+  // ปิดใช้งานปุ่มชำระเงินถ้า:
+  // - ยังไม่เลือกวิธีการชำระเงิน
+  // - กำลังประมวลผล
+  // - เป็นของขวัญแต่ยังไม่มีข้อมูลหรือกำลังโหลด
   const disablePayButton =
     !paymentMethod ||
     isProcessing ||
     (isGift && (!giftOrder || isLoadingOrder));
 
+  // ========================
+  // Render Component
+  // ========================
   return (
     <div className="payment-container">
       <div className="payment-wrapper">

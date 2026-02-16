@@ -1,3 +1,8 @@
+/**
+ * Gift.js
+ * หน้าสำหรับเลือกและสั่งซื้อของขวัญส่งถึงโต๊ะต่างๆ ในงาน
+ * มีระบบเลือกสินค้า คำนวณราคา และชำระเงิน
+ */
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Gift.css";
@@ -5,12 +10,19 @@ import { incrementQueueNumber } from "./utils";
 
 import API_BASE_URL, { REALTIME_URL } from './config/apiConfig';
 
+// API endpoints สำหรับเชื่อมต่อกับ backend
 const API_BASE = API_BASE_URL;
 const REALTIME_BASE = REALTIME_URL;
 
+// Admin API สำหรับดึงรูปภาพสินค้า
 const ADMIN_API_BASE = process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com';
 
 
+/**
+ * แปลง URL รูปภาพให้เป็น absolute URL
+ * @param {string} url - URL ของรูปภาพ (อาจเป็น relative หรือ absolute)
+ * @returns {string} - URL ที่สมบูรณ์
+ */
 const resolveImageSrc = (url) => {
 	if (!url) return "";
 	return url.startsWith("http") ? url : `${ADMIN_API_BASE}${url}`;
@@ -18,26 +30,38 @@ const resolveImageSrc = (url) => {
 
 function Gift() {
 	const navigate = useNavigate();
-	const [settings, setSettings] = useState({ items: [], tableCount: 0 });
-	const [quantities, setQuantities] = useState({});
-	const [tableNumber, setTableNumber] = useState("");
-	const [note, setNote] = useState("");
-	const [senderName, setSenderName] = useState("");
-	const [loading, setLoading] = useState(true);
-	const [submitting, setSubmitting] = useState(false);
-	const [errorMessage, setErrorMessage] = useState("");
-	const [giftDisabled, setGiftDisabled] = useState(false);
-	const [statusChecked, setStatusChecked] = useState(false);
-	const [giftStatusMessage, setGiftStatusMessage] = useState("");
-	const [showConfirmModal, setShowConfirmModal] = useState(false);
-	const [userAvatar, setUserAvatar] = useState(null);
+	
+	// State สำหรับข้อมูลสินค้าและการตั้งค่า
+	const [settings, setSettings] = useState({ items: [], tableCount: 0 }); // ข้อมูลสินค้าและจำนวนโต๊ะสูงสุด
+	const [quantities, setQuantities] = useState({}); // จำนวนสินค้าที่เลือกแต่ละรายการ { itemId: quantity }
+	
+	// State สำหรับข้อมูลการสั่งซื้อ
+	const [tableNumber, setTableNumber] = useState(""); // เลขโต๊ะปลายทาง
+	const [note, setNote] = useState(""); // ข้อความถึงผู้รับ
+	const [senderName, setSenderName] = useState(""); // ชื่อผู้ส่ง
+	
+	// State สำหรับการจัดการ UI
+	const [loading, setLoading] = useState(true); // สถานะโหลดข้อมูล
+	const [submitting, setSubmitting] = useState(false); // สถานะกำลังส่งคำสั่งซื้อ
+	const [errorMessage, setErrorMessage] = useState(""); // ข้อความ error
+	const [giftDisabled, setGiftDisabled] = useState(false); // ระบบปิดฟังก์ชันส่งของขวัญหรือไม่
+	const [statusChecked, setStatusChecked] = useState(false); // ตรวจสอบสถานะระบบแล้วหรือยัง
+	const [giftStatusMessage, setGiftStatusMessage] = useState(""); // ข้อความสถานะระบบ
+	const [showConfirmModal, setShowConfirmModal] = useState(false); // แสดง Modal ยืนยันหรือไม่
+	const [userAvatar, setUserAvatar] = useState(null); // รูป Avatar ของผู้ใช้
 
+	/**
+	 * โหลดข้อมูลผู้ใช้จาก localStorage
+	 * ดึงชื่อและรูป avatar มาใส่เป็นค่า default
+	 */
 	useEffect(() => {
 		const storedUser = localStorage.getItem("user");
 		if (storedUser) {
 			try {
 				const parsed = JSON.parse(storedUser);
+				// ตั้งชื่อผู้ส่งจากข้อมูล user
 				setSenderName(parsed.name || parsed.username || "");
+				// ตั้ง avatar URL
 				if (parsed.avatar) {
 					const avatarUrl = parsed.avatar.startsWith('http')
 						? parsed.avatar
@@ -45,17 +69,22 @@ function Gift() {
 					setUserAvatar(avatarUrl);
 				}
 			} catch {
-				/* ignore */
+				/* ignore parsing error */
 			}
 		}
 	}, []);
 
+	/**
+	 * ตรวจสอบสถานะระบบว่าเปิดรับคำสั่งซื้อของขวัญหรือไม่
+	 * เช็คจาก realtime server ว่า systemOn และ enableGift เป็น true หรือไม่
+	 */
 	useEffect(() => {
 		const checkGiftStatus = async () => {
 			try {
 				const response = await fetch(`${REALTIME_BASE}/api/status`);
 				if (!response.ok) throw new Error("CONFIG_ERROR");
 				const data = await response.json();
+				// ระบบต้องเปิดทั้ง systemOn และ enableGift
 				const allowed = (data.systemOn ?? true) && (data.enableGift ?? true);
 				setGiftDisabled(!allowed);
 				if (!allowed) {
@@ -70,9 +99,14 @@ function Gift() {
 		checkGiftStatus();
 	}, []);
 
+	/**
+	 * โหลดข้อมูลสินค้าและการตั้งค่าจาก API
+	 * ทำงานหลังจากตรวจสอบสถานะระบบเสร็จแล้ว
+	 */
 	useEffect(() => {
-		if (!statusChecked) return;
+		if (!statusChecked) return; // รอให้ตรวจสอบสถานะก่อน
 		if (giftDisabled) {
+			// ถ้าระบบปิด ไม่ต้องโหลดข้อมูล
 			setLoading(false);
 			return;
 		}
@@ -83,6 +117,7 @@ function Gift() {
 				if (!response.ok) throw new Error("NETWORK_ERROR");
 				const data = await response.json();
 				if (!data.success) throw new Error(data.message || "โหลดข้อมูลไม่สำเร็จ");
+				// บันทึกข้อมูลสินค้าและจำนวนโต๊ะสูงสุด
 				setSettings(data.settings || { items: [], tableCount: 0 });
 			} catch (error) {
 				console.error("Gift settings load failed", error);
@@ -97,54 +132,88 @@ function Gift() {
 
 	const tableLimit = settings.tableCount || 0;
 
+	/**
+	 * คำนวณรายการสินค้าที่ผู้ใช้เลือก (quantity > 0)
+	 * ใช้ useMemo เพื่อ optimize performance
+	 */
 	const selectedItems = useMemo(() => {
 		return (settings.items || [])
 			.map((item) => ({
 				...item,
 				quantity: quantities[item.id] || 0,
 			}))
-			.filter((item) => item.quantity > 0);
+			.filter((item) => item.quantity > 0); // เอาเฉพาะที่มีการเลือก
 	}, [settings.items, quantities]);
 
+	/**
+	 * คำนวณราคารวมทั้งหมด
+	 * ใช้ useMemo เพื่อคำนวณใหม่เฉพาะเมื่อ selectedItems เปลี่ยน
+	 */
 	const totalPrice = useMemo(() => {
 		return selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 	}, [selectedItems]);
 
+	/**
+	 * เพิ่มหรือลดจำนวนสินค้า
+	 * @param {number} id - ID ของสินค้า
+	 * @param {number} delta - จำนวนที่จะเพิ่ม (+1) หรือลด (-1)
+	 */
 	const handleQuantityChange = (id, delta) => {
 		setQuantities((prev) => {
-			const nextValue = Math.max(0, (prev[id] || 0) + delta);
+			const nextValue = Math.max(0, (prev[id] || 0) + delta); // ป้องกันไม่ให้ติดลบ
 			return { ...prev, [id]: nextValue };
 		});
 	};
 
+	/**
+	 * แปลงตัวเลขเป็นรูปแบบสกุลเงิน
+	 * @param {number} amount - จำนวนเงิน
+	 * @returns {string} - ข้อความแสดงราคา (เช่น "ฟรี" หรือ "฿100")
+	 */
 	const formatCurrency = (amount) => {
 		const num = Number(amount || 0);
 		return num === 0 ? 'ฟรี' : `฿${num.toLocaleString("th-TH")}`;
 	};
 
+	/**
+	 * รีเซ็ตการเลือกสินค้าทั้งหมด
+	 */
 	const handleResetSelection = () => {
 		setQuantities({});
 	};
 
+	/**
+	 * ตรวจสอบข้อมูลก่อนแสดง Modal ยืนยัน
+	 * เช็คว่ามีการเลือกสินค้าและระบุเลขโต๊ะหรือไม่
+	 */
 	const handleSubmit = () => {
 		setErrorMessage("");
 
+		// ตรวจสอบว่ามีการเลือกสินค้าหรือไม่
 		if (selectedItems.length === 0) {
 			setErrorMessage("กรุณาเลือกสินค้าอย่างน้อย 1 รายการ");
 			return;
 		}
+		// ตรวจสอบว่าระบุเลขโต๊ะหรือไม่
 		if (!tableNumber) {
 			setErrorMessage("กรุณาระบุเลขโต๊ะที่ต้องการส่ง");
 			return;
 		}
 
+		// แสดง Modal ยืนยัน
 		setShowConfirmModal(true);
 	};
 
+	/**
+	 * ยืนยันและส่งคำสั่งซื้อไปยัง backend
+	 * ถ้าราคา 0 บาท จะยืนยันและไปหน้า home ทันที
+	 * ถ้ามีราคา จะไปหน้าชำระเงิน
+	 */
 	const handleConfirmSubmit = async () => {
-		if (submitting) return;
+		if (submitting) return; // ป้องกันการกดซ้ำ
 		setSubmitting(true);
 		try {
+			// เตรียมข้อมูลสำหรับส่งไปยัง API
 			const payload = {
 				senderName,
 				note,
@@ -159,6 +228,7 @@ function Gift() {
 				avatar: userAvatar || null
 			};
 
+			// ส่งคำสั่งซื้อไปยัง backend
 			const response = await fetch(`${API_BASE}/api/gifts/order`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -170,10 +240,10 @@ function Gift() {
 				throw new Error(data.message || "ไม่สามารถสร้างคำสั่งซื้อได้");
 			}
 
-			// ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
+			// กรณีพิเศษ: ถ้าของขวัญฟรี (ราคา 0 บาท) ให้ยืนยันและไปหน้า home ทันที
 			if (data.order.totalPrice === 0) {
 				try {
-					// ดึงข้อมูล user
+					// ดึงข้อมูล user จาก localStorage สำหรับยืนยันคำสั่งซื้อ
 					let userId = null, email = null, avatar = null;
 					try {
 						const storedUser = localStorage.getItem("user");
@@ -187,7 +257,7 @@ function Gift() {
 						console.warn("[Gift] Cannot parse user data:", err);
 					}
 
-					// Confirm order
+					// ยืนยันคำสั่งซื้อทันที (เพราะฟรี ไม่ต้องชำระเงิน)
 				const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
@@ -198,7 +268,7 @@ function Gift() {
 						throw new Error(confirmData.message || "ยืนยันคำสั่งซื้อไม่สำเร็จ");
 					}
 
-					// บันทึกลง localStorage
+					// บันทึกคำสั่งซื้อลง localStorage เพื่อแสดงใน Home
 					const currentQueueNumber = incrementQueueNumber();
 					const newOrder = {
 						type: "gift",
@@ -209,12 +279,13 @@ function Gift() {
 						orderId: data.order.id
 					};
 
+					// เพิ่มคำสั่งซื้อใหม่เข้าไปในรายการ orders
 					const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
 					existingOrders.push(newOrder);
 					localStorage.setItem("orders", JSON.stringify(existingOrders));
-					localStorage.setItem("order", JSON.stringify(newOrder));
+					localStorage.setItem("order", JSON.stringify(newOrder)); // backward compatibility
 
-					// ไปหน้า home
+					// ไปหน้า home แสดงสถานะคำสั่งซื้อ
 					navigate("/home");
 					return;
 				} catch (confirmError) {
@@ -225,7 +296,7 @@ function Gift() {
 				}
 			}
 
-			// มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
+			// กรณีปกติ: มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
 			navigate(`/payment?type=gift&price=${data.order.totalPrice}&orderId=${data.order.id}`);
 		} catch (error) {
 			console.error("Create gift order error", error);
@@ -235,6 +306,7 @@ function Gift() {
 		}
 	};
 
+	// แสดงหน้าเมื่อระบบปิดฟังก์ชันส่งของขวัญ
 	if (giftDisabled) {
 		return (
 			<div className="gift-shell">
@@ -248,6 +320,7 @@ function Gift() {
 		);
 	}
 
+	// แสดงหน้าโหลดข้อมูล
 	if (loading) {
 		return (
 			<div className="gift-shell">

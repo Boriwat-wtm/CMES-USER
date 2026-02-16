@@ -3,20 +3,40 @@ import { useNavigate } from "react-router-dom";
 import "./Report.css";
 import API_BASE_URL from "./config/apiConfig"; 
 
+/**
+ * หน้า Report - ศูนย์รายงานปัญหาและข้อเสนอแนะ
+ * 
+ * ฟังก์ชันหลัก:
+ * - ให้ผู้ใช้รายงานปัญหาหรือข้อเสนอแนะ
+ * - เลือกประเภทปัญหา (technical, display, payment, etc.)
+ * - กรอกรายละเอียดปัญหา (สูงสุด 500 ตัวอักษร)
+ * - ส่งข้อมูลไปยัง backend API
+ * - แสดง animation เมื่อส่งสำเร็จ
+ */
 function Report() {
   const navigate = useNavigate();
-  const [category, setCategory] = useState("");
-  const [detail, setDetail] = useState("");
-  const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);
+  
+  // State สำหรับเก็บข้อมูลฟอร์ม
+  const [category, setCategory] = useState("");      // ประเภทปัญหาที่เลือก
+  const [detail, setDetail] = useState("");          // รายละเอียดปัญหา
+  const [message, setMessage] = useState("");        // ข้อความแจ้งเตือน (success/error)
+  const [isSubmitting, setIsSubmitting] = useState(false);  // สถานะกำลังส่งข้อมูล
+  const [showSuccessAnimation, setShowSuccessAnimation] = useState(false);  // แสดง animation สำเร็จ
 
-  const MAX_DETAIL_LENGTH = 500;
+  const MAX_DETAIL_LENGTH = 500;  // จำกัดความยาวรายละเอียดสูงสุด
 
+  /**
+   * ฟังก์ชันย้อนกลับไปหน้าก่อนหน้า
+   */
   const handleBack = () => {
     navigate(-1);
   };
 
+  /**
+   * จัดการเมื่อผู้ใช้พิมพ์รายละเอียดปัญหา
+   * - จำกัดความยาวไม่เกิน MAX_DETAIL_LENGTH
+   * - ล้างข้อความ error เมื่อเริ่มพิมพ์
+   */
   const handleDetailChange = (e) => {
     const inputText = e.target.value;
     if (inputText.length <= MAX_DETAIL_LENGTH) {
@@ -27,9 +47,20 @@ function Report() {
     }
   };
 
+  /**
+   * ฟังก์ชันส่งรายงานไปยัง Backend
+   * 
+   * ขั้นตอน:
+   * 1. Validate ข้อมูล (ต้องเลือกประเภทและกรอกรายละเอียด)
+   * 2. ดึง token จาก localStorage (ถ้ามี)
+   * 3. ส่ง POST request ไปที่ /api/report
+   * 4. แสดง success animation เมื่อสำเร็จ
+   * 5. Clear ฟอร์มหลังส่งสำเร็จ
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validation - ตรวจสอบว่ากรอกข้อมูลครบหรือไม่
     if (!category) {
       setMessage("โปรดเลือกประเภทปัญหาที่พบ");
       return;
@@ -39,22 +70,23 @@ function Report() {
       return;
     }
 
-    setIsSubmitting(true);
-    setMessage("");
+    setIsSubmitting(true);  // เริ่มต้นการส่งข้อมูล
+    setMessage("");         // ล้างข้อความเก่า
 
     try {
-      // ดึง token จาก localStorage
+      // ดึง token จาก localStorage (สำหรับ authentication)
       const token = localStorage.getItem("token");
       
       const headers = {
         "Content-Type": "application/json"
       };
       
-      // เพิ่ม Authorization header ถ้ามี token
+      // เพิ่ม Authorization header ถ้าผู้ใช้ login อยู่
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
 
+      // ส่ง request ไปยัง backend
       const res = await fetch(`${API_BASE_URL}/api/report`, {
         method: "POST",
         headers: headers,
@@ -73,25 +105,34 @@ function Report() {
       const data = await res.json();
       console.log("Report saved:", data);
 
+      // แสดง success animation
       setShowSuccessAnimation(true);
       setMessage("🎉 ขอบคุณสำหรับการแจ้งปัญหา! เราจะดำเนินการแก้ไขในเร็วๆ นี้");
+      
+      // Clear ฟอร์ม
       setCategory("");
       setDetail("");
 
+      // ซ่อน animation หลังจาก 3 วินาที
       setTimeout(() => setShowSuccessAnimation(false), 3000);
     } catch (err) {
       console.error(err);
       setMessage("⚠️ เกิดปัญหาในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง");
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false);  // หยุดสถานะการส่งข้อมูล
     }
   };
 
+  /**
+   * รายการประเภทปัญหาทั้งหมด
+   * ใช้สำหรับ dropdown เลือกประเภทรายงาน
+   * แต่ละประเภทประกอบด้วย: value, label, emoji, description
+   */
   const problemTypes = [
     { 
       value: "", 
       label: "เลือกประเภทปัญหา", 
-      disabled: true,
+      disabled: true,  // ไม่สามารถเลือก option นี้ได้ (เป็นหัวข้อเท่านั้น)
       emoji: "🔽"
     },
     { 
@@ -140,6 +181,7 @@ function Report() {
 
   return (
     <div className="report-container">
+      {/* Success Animation Overlay - แสดงเมื่อส่งรายงานสำเร็จ */}
       {showSuccessAnimation && (
         <div className="success-overlay">
           <div className="success-animation">
@@ -153,6 +195,7 @@ function Report() {
       )}
 
       <div className="report-wrapper">
+        {/* Header - ส่วนหัวพร้อมปุ่มย้อนกลับ */}
         <header className="report-header">
           <button className="back-btn" onClick={handleBack}>
             <span className="back-icon">←</span>
@@ -166,20 +209,25 @@ function Report() {
 
         <main className="report-main">
           <div className="report-card">
+            {/* Card Header - หัวข้อการ์ด */}
             <div className="card-header">
               <div className="pulse-dot"></div>
               <h2>แจ้งปัญหาหรือแชร์ไอเดีย</h2>
               <span className="subtitle">เราพร้อมฟังและปรับปรุง</span>
             </div>
 
+            {/* Content Grid - แบ่งหน้าจอเป็น 2 ส่วน: ฟอร์ม (ซ้าย) + เทคนิค (ขวา) */}
             <div className="report-content-grid">
+              {/* ฟอร์มรายงานปัญหา */}
               <form className="report-form" onSubmit={handleSubmit}>
+              {/* Input Group 1: เลือกประเภทปัญหา */}
               <div className="input-group">
                 <label className="input-label">
                   <span className="label-text">ประเภทปัญหา</span>
                   <span className="required-dot">*</span>
                 </label>
                 
+                {/* Custom Select Dropdown */}
                 <div className="custom-select">
                   <select
                     value={category}
@@ -200,6 +248,7 @@ function Report() {
                   <div className="select-arrow">⌄</div>
                 </div>
 
+                {/* แสดงคำอธิบายประเภทที่เลือก (ถ้ามีการเลือก) */}
                 {category && (
                   <div className="category-info">
                     <span className="category-emoji">
@@ -212,6 +261,7 @@ function Report() {
                 )}
               </div>
 
+              {/* Input Group 2: กรอกรายละเอียดปัญหา */}
               <div className="input-group">
                 <label className="input-label">
                   <span className="label-text">รายละเอียด</span>
@@ -229,6 +279,7 @@ function Report() {
                     required
                   />
                   
+                  {/* Footer ของ textarea: เทคนิคการเขียน + ตัวนับจำนวนตัวอักษร */}
                   <div className="input-footer">
                     <div className="writing-tips">
                       <span className="tip-icon">💡</span>
@@ -243,6 +294,7 @@ function Report() {
                 </div>
               </div>
 
+              {/* Status Message - แสดงข้อความสำเร็จหรือ error */}
               {message && (
                 <div className={`status-message ${message.includes("🎉") ? 'success' : 'error'}`}>
                   <div className="message-content">
@@ -251,6 +303,7 @@ function Report() {
                 </div>
               )}
 
+              {/* Form Actions - ปุ่มยกเลิกและส่งรายงาน */}
               <div className="form-actions">
                 <button 
                   type="button" 
@@ -281,7 +334,9 @@ function Report() {
               </div>
               </form>
 
+              {/* Side Panel - แสดงเทคนิคการรายงานและช่องทางติดต่อ */}
               <aside className="report-side-panel">
+                {/* เทคนิคการรายงานที่มีประสิทธิภาพ */}
                 <div className="quick-tips">
                   <h4>📋 เทคนิคการรายงานที่มีประสิทธิภาพ</h4>
                   <div className="tips-grid">
@@ -309,6 +364,7 @@ function Report() {
                   </div>
                 </div>
 
+                {/* การ์ดช่องทางติดต่อด่วน */}
                 <div className="support-card">
                   <h4>📞 ช่องทางติดต่อด่วน</h4>
                   <p>ถ้าต้องการความช่วยเหลือทันที สามารถติดต่อทีมงานได้ที่</p>

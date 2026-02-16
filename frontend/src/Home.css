@@ -1,26 +1,42 @@
+/* ============================================
+   สไตล์หน้าแรก (HOME PAGE)
+   ไฟล์ CSS หลักสำหรับหน้าแรก/Landing Page
+   ============================================ */
 
+/* สไตล์พิเศษสำหรับการ์ดบริการของขวัญ */
 .service-card.gift-service {
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(20px);
 }
 
+/* แสดงค่ารายการของขวัญในสรุป */
 .order-summary .gift-items-value,
 .summary-item .gift-items-value {
   display: block;
   text-align: right;
   white-space: normal;
 }
+
+/* นำเข้าฟอนต์ */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Reset */
+/* ============================================
+   รีเซ็ตและสไตล์พื้นฐาน
+   ============================================ */
+
+/* รีเซ็ตค่าเริ่มต้น */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Main Container */
+/* ============================================
+   คอนเทนเนอร์หลัก
+   ============================================ */
+
+/* คอนเทนเนอร์หลัก - พื้นหลังไล่สีเต็มจอ */
 .home-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
@@ -29,7 +45,12 @@
   overflow-x: hidden;
 }
 
-/* Floating Background Shapes */
+/* ============================================
+   รูปทรงลอยพื้นหลัง
+   องค์ประกอบตกแต่งที่เคลื่อนไหวในพื้นหลัง
+   ============================================ */
+
+/* รูปทรงลอยพื้นหลัง - คอนเทนเนอร์ */
 .floating-shapes {
   position: fixed;
   top: 0;
@@ -40,6 +61,7 @@
   z-index: 0;
 }
 
+/* สไตล์พื้นฐานของรูปทรง */
 .shape {
   position: absolute;
   border-radius: 50%;
@@ -48,6 +70,7 @@
   filter: blur(40px);
 }
 
+/* ตำแหน่งและสีของแต่ละรูปทรง */
 .shape-1 {
   width: 200px;
   height: 200px;
@@ -75,6 +98,7 @@
   background: radial-gradient(circle, rgba(168, 85, 247, 0.3), rgba(236, 72, 153, 0.2));
 }
 
+/* แอนิเมชั่นลอย - การเคลื่อนไหวแบบคลื่นนุ่มนวล */
 @keyframes float {
   0%, 100% { 
     transform: translateY(0px) translateX(0px) scale(1); 
@@ -90,7 +114,11 @@
   }
 }
 
-/* Wrapper */
+/* ============================================
+   ตัวห่อหน้าเว็บ
+   ============================================ */
+
+/* ตัวห่อเนื้อหา - จัดกึ่งกลางพร้อมความกว้างสูงสุด */
 .home-wrapper {
   position: relative;
   z-index: 1;
@@ -99,7 +127,12 @@
   padding: 1.5rem;
 }
 
-/* Header */
+/* ============================================
+   ส่วนหัว (HEADER)
+   แถบนำทางพร้อมแบรนด์และการควบคุมผู้ใช้
+   ============================================ */
+
+/* ส่วนหัว - แถบนำทางหลัก */
 .home-header {
   display: flex;
   justify-content: space-between;
@@ -115,12 +148,14 @@
   z-index: 5;
 }
 
+/* ส่วนแบรนด์ - ด้านซ้ายของส่วนหัว */
 .header-brand {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
+/* ไอคอนแบรนด์ - กล่องโลโก้ */
 .brand-icon {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
   color: white;
@@ -134,6 +169,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+/* ข้อความแบรนด์ - ชื่อเว็บไซต์ */
 .brand-text h1 {
   font-size: 1.5rem;
   font-weight: 700;
@@ -141,18 +177,21 @@
   margin-bottom: 0.25rem;
 }
 
+/* คำบรรยายแบรนด์ */
 .brand-text p {
   font-size: 0.875rem;
   color: rgba(255, 255, 255, 0.8);
   font-weight: 300;
 }
 
+/* ส่วนการนำทาง - ด้านขวาของส่วนหัว */
 .header-nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
+/* ปุ่มรูปโปรไฟล์ - รูปภาพโปรไฟล์ผู้ใช้ */
 .profile-avatar-btn {
   width: 48px;
   height: 48px;
@@ -177,6 +216,7 @@
   outline-offset: 3px;
 }
 
+/* วงแหวนรูปโปรไฟล์ - ขอบไล่สีรอบรูป */
 .profile-avatar-ring {
   width: 100%;
   height: 100%;
@@ -189,10 +229,12 @@
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
 }
 
+/* สไตล์วงแหวนที่ปรับแต่งเมื่อผู้ใช้มีรูปโปรไฟล์ */
 .profile-avatar-btn.has-image .profile-avatar-ring {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(102, 126, 234, 0.85));
 }
 
+/* รูปภาพอวาตาร์ */
 .profile-avatar-image {
   width: 100%;
   height: 100%;
@@ -202,20 +244,24 @@
   background: #0f172a;
 }
 
+/* ไอคอนอวาตาร์เริ่มต้นเมื่อไม่มีรูป */
 .profile-avatar-icon {
   color: #fff;
 }
 
+/* ตัวห่อเมนูโปรไฟล์ - กล่องดรอปดาวน์ */
 .profile-menu-wrapper {
   position: relative;
   z-index: 10;
 }
 
+/* คอนเทนเนอร์ปุ่มยืนยันตัวตน */
 .auth-buttons {
   display: flex;
   gap: 0.5rem;
 }
 
+/* สไตล์พื้นฐานของปุ่มนำทาง */
 .nav-btn {
   display: flex;
   align-items: center;
@@ -230,12 +276,14 @@
   backdrop-filter: blur(10px);
 }
 
+/* ปุ่มเข้าสู่ระบบและโปรไฟล์ */
 .signin-btn, .profile-btn {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* ปุ่มสมัครสมาชิก - เน้นสีพิเศษ */
 .signup-btn {
   background: linear-gradient(135deg, #ffffff, #f0f0f0);
   color: #6366f1;
@@ -243,12 +291,14 @@
   box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3);
 }
 
+/* ปุ่มรายงาน - ธีมสีแดง */
 .report-btn {
   background: rgba(239, 68, 68, 0.2);
   color: white;
   border-color: rgba(239, 68, 68, 0.3);
 }
 
+/* เอฟเฟกต์เมื่อเมาส์อยู่บนปุ่ม */
 .nav-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
@@ -266,7 +316,12 @@
   background: rgba(239, 68, 68, 0.3);
 }
 
-/* Hero Section */
+/* ============================================
+   ส่วนฮีโร่ (HERO SECTION)
+   แบนเนอร์หลักพร้อมชื่อเรื่องและคำอธิบาย
+   ============================================ */
+
+/* คอนเทนเนอร์ส่วนฮีโร่ */
 .hero-section {
   text-align: center;
   margin-bottom: 3rem;
@@ -544,7 +599,12 @@
   transform: translateY(-2px);
 }
 
-/* Service Cards */
+/* ============================================
+   การ์ดบริการ
+   กริดแสดงบริการที่มีให้บริการ
+   ============================================ */
+
+/* กริดการ์ดบริการ - 2 คอลัมน์ */
 .service-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -658,7 +718,12 @@
   font-size: 0.95rem;
 }
 
-/* Status Section */
+/* ============================================
+   ส่วนสถานะคำสั่งซื้อ (STATUS)
+   แสดงสถานะคำสั่งซื้อปัจจุบัน
+   ============================================ */
+
+/* คอนเทนเนอร์ส่วนสถานะ */
 .status-section {
   margin-bottom: 3rem;
 }
@@ -773,7 +838,12 @@
   box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5), 0 4px 16px rgba(139, 92, 246, 0.3);
 }
 
-/* Footer */
+/* ============================================
+   ส่วนท้าย (FOOTER)
+   ลิงก์และลิขสิทธิ์
+   ============================================ */
+
+/* คอนเทนเนอร์ส่วนท้าย */
 .home-footer {
   margin-top: 2rem;
   padding: 2rem 0;
@@ -803,7 +873,12 @@
   color: white;
 }
 
-/* Modal */
+/* ============================================
+   โมดอล (MODAL)
+   กล่องข้อมูลคำสั่งซื้อแบบ overlay
+   ============================================ */
+
+/* พื้นหลัง overlay ของโมดอล */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -911,7 +986,12 @@
   color: #374151;
 }
 
-/* Responsive */
+/* ============================================
+   การออกแบบระบบแบบตอบสนอง (RESPONSIVE)
+   การปรับแต่งสำหรับมือถือและแท็บเล็ต
+   ============================================ */
+
+/* อุปกรณ์แท็บเล็ตและมือถือ (max-width: 768px) */
 @media (max-width: 768px) {
   .home-wrapper {
     padding: 0.75rem;

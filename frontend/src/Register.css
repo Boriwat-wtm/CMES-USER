@@ -1,6 +1,8 @@
 /* ========================
    Auth Container & Wrapper
    ======================== */
+/* Container หลักที่ครอบทั้งหน้า Login/Register
+   ใช้ gradient animation แบบไหลเลื่อน */
 .register-container {
   display: flex;
   align-items: center;
@@ -13,6 +15,7 @@
   padding: 1rem;
 }
 
+/* กำหนด animation สำหรับ background gradient ให้เคลื่อนที่แบบนิ่มนวล */
 @keyframes gradientShift {
   0% {
     background-position: 0% 50%;
@@ -27,6 +30,8 @@
   }
 }
 
+/* Card ที่แสดงฟอร์ม Login/Register
+   ใช้ glass morphism effect ด้วย backdrop-filter */
 .auth-wrapper {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
@@ -39,6 +44,7 @@
   animation: slideUp 0.6s ease;
 }
 
+/* Animation สำหรับให้ card เลื่อนขึ้นมาอย่างนิ่มนวล */
 @keyframes slideUp {
   from {
     opacity: 0;
@@ -72,6 +78,7 @@
   animation: bounce 2s ease-in-out infinite;
 }
 
+/* Animation ให้ logo เด้งขึ้นลงเบาๆ */
 @keyframes bounce {
 
   0%,
@@ -95,6 +102,7 @@
   letter-spacing: 2px;
 }
 
+/* ข้อความบรรยายใต้หัวข้อ */
 .tagline {
   color: #666;
   font-size: 1.05rem;
@@ -105,6 +113,7 @@
 /* ========================
    Tab Navigation
    ======================== */
+/* ปุ่มสำหรับสลับระหว่าง Register และ Login */
 .tab-navigation {
   display: flex;
   gap: 1rem;
@@ -127,10 +136,12 @@
   font-family: 'Kanit', 'Prompt', sans-serif;
 }
 
+/* Hover effect สำหรับ tab */
 .tab-btn:hover {
   color: #667eea;
 }
 
+/* สไตล์สำหรับ tab ที่ถูกเลือก */
 .tab-btn.active {
   color: #667eea;
   border-bottom-color: #667eea;
@@ -139,6 +150,7 @@
 /* ========================
    Form Styles
    ======================== */
+/* ฟอร์มหลักสำหรับกรอกข้อมูล */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -159,6 +171,7 @@
   letter-spacing: 0.5px;
 }
 
+/* กรอบครอบ input field พร้อม icon */
 .input-wrapper {
   display: flex;
   align-items: center;
@@ -170,6 +183,7 @@
   overflow: hidden;
 }
 
+/* เปลี่ยนสีเมื่อ focus ที่ input */
 .input-wrapper:focus-within {
   border-color: #667eea;
   background: #fff;
@@ -214,6 +228,7 @@
 /* ========================
    Password Strength
    ======================== */
+/* แสดงแถบและข้อความบอกความแข็งแรงของรหัสผ่าน */
 .password-strength {
   display: flex;
   align-items: center;
@@ -229,6 +244,7 @@
   overflow: hidden;
 }
 
+/* แถบกรอกเต็มตามความแข็งแรงของรหัสผ่าน (สีเปลี่ยนตาม JS) */
 .strength-fill {
   height: 100%;
   width: 0;
@@ -246,6 +262,7 @@
 /* ========================
    Messages
    ======================== */
+/* ข้อความแจ้งเตือนเมื่อเกิด error */
 .error-message {
   color: #d32f2f;
   font-size: 0.9rem;
@@ -256,6 +273,7 @@
   animation: slideIn 0.3s ease;
 }
 
+/* ข้อความแจ้งเมื่อสำเร็จ */
 .success-message {
   color: #388e3c;
   font-size: 0.9rem;
@@ -266,6 +284,7 @@
   animation: slideIn 0.3s ease;
 }
 
+/* Animation สำหรับข้อความเลื่อนลงมา */
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -281,6 +300,7 @@
 /* ========================
    Buttons
    ======================== */
+/* ปุ่มหลักในฟอร์ม */
 .auth-button {
   padding: 1.1rem;
   border: none;
@@ -294,17 +314,20 @@
   font-family: 'Kanit', 'Prompt', sans-serif;
 }
 
+/* ปุ่มหลักสีม่วง (Login/Register) พร้อม gradient และ shadow */
 .auth-button.primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
 }
 
+/* Hover effect ให้ปุ่มยกขึ้นและเพิ่ม shadow */
 .auth-button.primary:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
 }
 
+/* สไตล์ปุ่ม disabled */
 .auth-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
@@ -327,6 +350,7 @@
 /* ========================
    Divider
    ======================== */
+/* เส้นแบ่งระหว่างฟอร์มกับปุ่ม Social Login */
 .divider {
   display: flex;
   align-items: center;
@@ -351,6 +375,7 @@
 /* ========================
    Social Login
    ======================== */
+/* ส่วนสำหรับปุ่ม Login ด้วย Google */
 .social-login {
   display: flex;
   flex-direction: column;
@@ -374,6 +399,7 @@
   font-family: 'Kanit', 'Prompt', sans-serif;
 }
 
+/* Hover effect ยกปุ่มขึ้นและเพิ่ม shadow */
 .social-btn:hover:not(:disabled) {
   border-color: #667eea;
   background: #fff;
@@ -381,6 +407,7 @@
   transform: translateY(-2px);
 }
 
+/* สไตล์เฉพาะสำหรับปุ่ม Google (สีแดง) */
 .social-btn.google {
   border-color: #ea4335;
   color: #ea4335;
@@ -399,6 +426,7 @@
 /* ========================
    Footer
    ======================== */
+/* ข้อความท้ายฟอร์มสำหรับสลับระหว่าง Login/Register */
 .auth-footer {
   text-align: center;
   font-size: 0.95rem;
@@ -406,6 +434,7 @@
   margin: 1.5rem 0 1rem;
 }
 
+/* ปุ่มสำหรับสลับ tab */
 .switch-tab-btn {
   background: none;
   border: none;
@@ -418,11 +447,13 @@
   font-size: inherit;
 }
 
+/* Hover effect สำหรับปุ่มสลับ tab */
 .switch-tab-btn:hover {
   color: #764ba2;
   text-decoration: underline;
 }
 
+/* ข้อความข้อกำหนดและนโยบาย */
 .terms-text {
   text-align: center;
   font-size: 0.85rem;
@@ -441,21 +472,23 @@
   text-decoration: underline;
 }
 
-/* ให้ form-group เป็น column ชัดเจน */
+/* === ปุ่มยืนยันอีเมล (Send OTP) === */
+/* จัด layout ให้ form-group เป็น column ชัดเจน */
 .form-group {
   display: flex;
   flex-direction: column;
   margin-bottom: 16px;
 }
 
-/* input wrapper ปกติ */
+/* input wrapper ปกติครอบ input และ icon */
 .input-wrapper {
   display: flex;
   align-items: center;
   width: 100%;
 }
 
-/* === ปุ่มยืนยันอีเมล === */
+/* === ปุ่มยืนยันอีเมล ===
+   ปุ่มสำหรับส่งรหัส OTP ไปยังอีเมล */
 .send-otp-btn {
   margin-top: 8px;          /* อยู่ใต้ input */
   align-self: flex-end;     /* ชิดขวา */
@@ -474,13 +507,13 @@
   transition: all 0.2s ease;
 }
 
-/* hover */
+/* Hover effect ให้ปุ่มโปร่งขึ้นและยกขึ้นเล็กน้อย */
 .send-otp-btn:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
 }
 
-/* disabled */
+/* Disabled state - แสดงเป็นสีเทาเมื่อปิดใช้งาน (กำลังนับถอยหลัง) */
 .send-otp-btn:disabled {
   background: #d1d5db;
   cursor: not-allowed;
@@ -490,6 +523,7 @@
 /* ========================
    Responsive
    ======================== */
+/* สำหรับหน้าจอขนาดเล็กกว่า 768px (Tablet และ Mobile) */
 @media (max-width: 768px) {
   .auth-wrapper {
     padding: 2rem 1.5rem;
