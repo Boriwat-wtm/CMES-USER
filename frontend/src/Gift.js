@@ -188,7 +188,7 @@ function Gift() {
 					}
 
 					// Confirm order
-					const confirmResponse = await fetch(`/api/gifts/order/${data.order.id}/confirm`, {
+				const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ userId, email, avatar })
