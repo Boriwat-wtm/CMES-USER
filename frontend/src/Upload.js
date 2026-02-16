@@ -489,7 +489,7 @@ function Upload() {
           textColor,
           socialType: selectedSocial,
           socialName: socialName,
-          status: "approved"  // อนุมัติอัตโนมัติสำหรับข้อความฟรี
+          status: "pending"  // อนุมัติอัตโนมัติสำหรับข้อความฟรี
         };
 
         try {
@@ -534,111 +534,62 @@ function Upload() {
         }
       } else {
         // ==================== กรณี: ข้อความมีค่าใช้จ่าย ====================
-        // เก็บข้อมูลลง localStorage แล้วไปหน้าชำระเงิน
-        const uploadData = {
-          type,
-          text,
-          time,
-          price,
-          sender,
-          userId,
-          email,
-          avatar,
-          textColor,
-          socialType: selectedSocial,
-          socialName
-        };
-
+        // ส่งข้อมูลไป User Backend เพื่อสร้าง uploadId ก่อน
         try {
-          // บันทึกข้อมูลลง localStorage
+          const formData = new FormData();
+          formData.append("type", type);
+          formData.append("text", text);
+          formData.append("time", time || "60");
+          formData.append("price", price || "1");
+          formData.append("textColor", textColor);
+          formData.append("socialType", selectedSocial || "");
+          formData.append("socialName", socialName || "");
+          formData.append("sender", sender);
+          formData.append("userId", userId || "guest");
+          formData.append("email", email || "");
+          formData.append("avatar", avatar || "");
+
+          console.log("[Upload] Sending text data to backend...");
+          const response = await fetch(`${API_BASE_URL}/api/upload`, {
+            method: "POST",
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to upload text data");
+          }
+
+          const data = await response.json();
+          if (!data.success || !data.uploadId) {
+            throw new Error("Invalid response from server");
+          }
+
+          console.log("[Upload] Text uploaded, uploadId:", data.uploadId);
+
+          // เก็บ uploadId และข้อมูลสำคัญ
+          const uploadData = {
+            uploadId: data.uploadId,
+            type,
+            text,
+            time: time || "60",
+            price: price || "1",
+            sender,
+            userId,
+            email,
+            avatar
+          };
+
           localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-          console.log("[Upload] Saved text upload data to localStorage, navigating to Payment");
-        } catch (e) {
-          // จัดการกรณี localStorage เต็ม
-          if (e.name === 'QuotaExceededError') {
-            console.warn('[Upload] localStorage full for text, clearing...');
-            // ลบข้อมูลเก่าเพื่อเพิ่มพื้นที่
-            localStorage.removeItem("uploadFormImage");
-            localStorage.removeItem("uploadFormDraft");
-            try {
-              localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
-              console.log("[Upload] Retry: Saved text data after cleanup");
-            } catch (retryError) {
-              console.error('[Upload] Failed to save text data:', retryError);
-              setAlertMessage("ไม่สามารถบันทึกข้อมูลได้ กรุณาลองใหม่");
-              return;
-            }
-          } else {
-            setAlertMessage("เกิดข้อผิดพลาด กรุณาลองใหม่");
-            return;
-          }
+          console.log("[Upload] Saved uploadId to localStorage");
+
+          setShowPreviewModal(false);
+
+          // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
+          navigate(`/payment?price=${price}&type=${type}&time=${time}&uploadId=${data.uploadId}`);
+        } catch (error) {
+          console.error('[Upload] Error uploading text:', error);
+          setAlertMessage("เกิดข้อผิดพลาดในการอัพโหลดข้อมูล กรุณาลองใหม่");
         }
-
-        setShowPreviewModal(false);
-
-        // ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
-        if (Number(price) === 0) {
-          try {
-            const savedData = localStorage.getItem("pendingUploadData");
-            if (!savedData) {
-              throw new Error("ไม่พบข้อมูลการอัปโหลด");
-            }
-
-            const uploadData = JSON.parse(savedData);
-            const uploadId = uploadData.uploadId;
-
-            if (!uploadId) {
-              throw new Error("ไม่พบ uploadId กรุณาอัพโหลดใหม่");
-            }
-
-            const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                uploadId,
-                userId: uploadData.userId,
-                email: uploadData.email,
-                avatar: uploadData.avatar
-              })
-            });
-
-            if (!confirmResponse.ok) {
-              const errText = await confirmResponse.text();
-              throw new Error(`Payment confirmation failed: ${confirmResponse.status} ${errText}`);
-            }
-
-            const result = await confirmResponse.json();
-            console.log("[Upload] Free text payment confirmed:", result);
-
-            const currentQueueNumber = incrementQueueNumber();
-            const newOrder = {
-              type: uploadData.type,
-              time: uploadData.time,
-              price: uploadData.price,
-              queueNumber: currentQueueNumber,
-              orderId: result.uploadId || uploadId
-            };
-
-            const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
-            existingOrders.push(newOrder);
-            localStorage.setItem("orders", JSON.stringify(existingOrders));
-            localStorage.setItem("order", JSON.stringify(newOrder));
-
-            localStorage.removeItem("pendingUploadData");
-            localStorage.removeItem("uploadFormDraft");
-            localStorage.removeItem("uploadFormImage");
-
-            navigate("/home");
-            return;
-          } catch (confirmError) {
-            console.error('[Upload] Free text order confirmation error:', confirmError);
-            setAlertMessage("เกิดข้อผิดพลาดในการยืนยันคำสั่ง กรุณาลองใหม่");
-            return;
-          }
-        }
-
-        // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
-        navigate(`/payment?price=${price}&type=${type}&time=${time}`);
       }
     }
   };
