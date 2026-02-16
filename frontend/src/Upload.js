@@ -305,6 +305,7 @@ function Upload() {
           if (response.ok) {
             const result = await response.json();
             console.log("[Upload] Upload success:", result);
+            console.log("[Upload] Received uploadId from Admin:", result.uploadId);
 
             // สร้างหมายเลขคิวใหม่
             const currentQueueNumber = parseInt(localStorage.getItem("currentQueueNumber") || "0") + 1;
@@ -316,8 +317,10 @@ function Upload() {
               time: time,
               price: 0,
               queueNumber: currentQueueNumber,
-              orderId: result.uploadId
+              orderId: result.uploadId  // uploadId จาก Admin
             };
+
+            console.log("[Upload] Creating FREE order with orderId:", newOrder.orderId, "type:", newOrder.type);
 
             // บันทึกคำสั่งซื้อลง localStorage
             const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
@@ -423,8 +426,10 @@ function Upload() {
                 time: uploadData.time,
                 price: uploadData.price,
                 queueNumber: currentQueueNumber,
-                orderId: result.uploadId || data.uploadId
+                orderId: result.uploadId || data.uploadId  // ใช้ uploadId จาก Admin (ถ้ามี) หรือ User Backend
               };
+
+              console.log("[Upload] Creating order with orderId:", newOrder.orderId, "from Admin");
 
               const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
               existingOrders.push(newOrder);

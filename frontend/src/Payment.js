@@ -153,6 +153,7 @@ function Payment() {
 
         const result = await response.json();
         console.log("[Payment] Payment confirmed:", result);
+        console.log("[Payment] Received uploadId from Admin:", result.uploadId);
 
         const currentQueueNumber = incrementQueueNumber();
         const newOrder = {
@@ -160,8 +161,10 @@ function Payment() {
           time: uploadData.time,
           price: uploadData.price,
           queueNumber: currentQueueNumber,
-          orderId: result.uploadId || uploadId
+          orderId: result.uploadId || uploadId  // ใช้ uploadId จาก Admin (result.uploadId) เป็นหลัก
         };
+
+        console.log("[Payment] Creating order with orderId:", newOrder.orderId);
 
         const existingOrders = JSON.parse(localStorage.getItem("orders") || "[]");
         existingOrders.push(newOrder);
