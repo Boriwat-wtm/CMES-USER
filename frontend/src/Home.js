@@ -546,7 +546,7 @@ function Home() {
       badge: "ภาพ + ข้อความ",
       title: "ส่งรูปขึ้นจอ",
       description: "อัปโหลดรูปภาพพร้อมข้อความแสดงบนหน้าจอดิจิทัล",
-      features: ["📸 รองรับ JPG, PNG, GIF", "💬 เพิ่มข้อความได้", "🎨 เลือกสีข้อความ"],
+      features: ["📸 รองรับ JPG, PNG", "💬 เพิ่มข้อความได้", "🎨 เลือกสีข้อความ"],
       price: "เริ่มต้น 1 บาท",
       icon: (
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -941,12 +941,12 @@ function Home() {
                           <>
                             <span className="feature">✅ ใช้จ่ายครบแล้ว ฿{birthdayEligibility.totalSpent.toLocaleString()}</span>
                             <span className="feature">🎂 รอวันเกิดเพื่อใช้งานฟรี</span>
-                            <span className="feature">📸 รองรับ JPG, PNG, GIF</span>
+                            <span className="feature">📸 รองรับ JPG, PNG</span>
                           </>
                         ) : (
                           <>
                             <span className="feature">🎉 สิทธิ์ฟรีสำหรับเจ้าของวันเกิด</span>
-                            <span className="feature">📸 รองรับ JPG, PNG, GIF</span>
+                            <span className="feature">📸 รองรับ JPG, PNG</span>
                             <span className="feature">💬 เพิ่มข้อความได้</span>
                           </>
                         )}

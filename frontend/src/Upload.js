@@ -678,7 +678,7 @@ function Upload() {
                           <path d="M21 15l-5-5L5 21" />
                         </svg>
                         <span>คลิกเพื่อเลือกรูปภาพ</span>
-                        <small>รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB</small>
+                        <small>รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 20MB</small>
                       </div>
                     )}
                   </label>
