@@ -6,9 +6,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Gift.css";
-import { incrementQueueNumber } from "./utils";
+import { incrementQueueNumber } from "../utils";
 
-import API_BASE_URL, { REALTIME_URL } from './config/apiConfig';
+import API_BASE_URL, { REALTIME_URL } from '../config/apiConfig';
 
 // API endpoints สำหรับเชื่อมต่อกับ backend
 const API_BASE = API_BASE_URL;
@@ -30,16 +30,16 @@ const resolveImageSrc = (url) => {
 
 function Gift() {
 	const navigate = useNavigate();
-	
+
 	// State สำหรับข้อมูลสินค้าและการตั้งค่า
 	const [settings, setSettings] = useState({ items: [], tableCount: 0 }); // ข้อมูลสินค้าและจำนวนโต๊ะสูงสุด
 	const [quantities, setQuantities] = useState({}); // จำนวนสินค้าที่เลือกแต่ละรายการ { itemId: quantity }
-	
+
 	// State สำหรับข้อมูลการสั่งซื้อ
 	const [tableNumber, setTableNumber] = useState(""); // เลขโต๊ะปลายทาง
 	const [note, setNote] = useState(""); // ข้อความถึงผู้รับ
 	const [senderName, setSenderName] = useState(""); // ชื่อผู้ส่ง
-	
+
 	// State สำหรับการจัดการ UI
 	const [loading, setLoading] = useState(true); // สถานะโหลดข้อมูล
 	const [submitting, setSubmitting] = useState(false); // สถานะกำลังส่งคำสั่งซื้อ
@@ -113,7 +113,10 @@ function Gift() {
 
 		const loadSettings = async () => {
 			try {
-				const response = await fetch(`${API_BASE}/api/gifts`);
+				const shopId = localStorage.getItem("shopId") || "";
+				const response = await fetch(`${API_BASE}/api/gifts`, {
+					headers: { "x-shop-id": shopId }
+				});
 				if (!response.ok) throw new Error("NETWORK_ERROR");
 				const data = await response.json();
 				if (!data.success) throw new Error(data.message || "โหลดข้อมูลไม่สำเร็จ");
@@ -229,9 +232,13 @@ function Gift() {
 			};
 
 			// ส่งคำสั่งซื้อไปยัง backend
+			const shopId = localStorage.getItem("shopId") || "";
 			const response = await fetch(`${API_BASE}/api/gifts/order`, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+					"x-shop-id": shopId
+				},
 				body: JSON.stringify(payload),
 			});
 
@@ -258,9 +265,13 @@ function Gift() {
 					}
 
 					// ยืนยันคำสั่งซื้อทันที (เพราะฟรี ไม่ต้องชำระเงิน)
-				const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
+					const shopId = localStorage.getItem("shopId") || "";
+					const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
 						method: "POST",
-						headers: { "Content-Type": "application/json" },
+						headers: {
+							"Content-Type": "application/json",
+							"x-shop-id": shopId
+						},
 						body: JSON.stringify({ userId, email, avatar })
 					});
 					const confirmData = await confirmResponse.json();
@@ -286,7 +297,8 @@ function Gift() {
 					localStorage.setItem("order", JSON.stringify(newOrder)); // backward compatibility
 
 					// ไปหน้า home แสดงสถานะคำสั่งซื้อ
-					navigate("/home");
+					const shopIdStr = localStorage.getItem("shopId") || "";
+					navigate(`/home${shopIdStr ? `?shopId=${shopIdStr}` : ''}`);
 					return;
 				} catch (confirmError) {
 					console.error("[Gift] Free order confirmation error:", confirmError);

@@ -14,6 +14,11 @@ export const removeToken = () => {
   localStorage.removeItem("token");
 };
 
+// ===== Shop Management =====
+export const getShopId = () => {
+  return localStorage.getItem("shopId") || "";
+};
+
 // ===== User Management =====
 export const getUser = () => {
   const userJson = localStorage.getItem("user");
@@ -30,9 +35,13 @@ export const removeUser = () => {
 
 // ===== Authentication Calls =====
 export const registerUser = async (username, email, password) => {
+  const shopId = getShopId();
   const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-shop-id": shopId
+    },
     body: JSON.stringify({ username, email, password }),
   });
   const data = await response.json();
@@ -43,9 +52,13 @@ export const registerUser = async (username, email, password) => {
 };
 
 export const loginUser = async (email, password) => {
+  const shopId = getShopId();
   const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-shop-id": shopId
+    },
     body: JSON.stringify({ email, password }),
   });
   const data = await response.json();
@@ -57,11 +70,13 @@ export const loginUser = async (email, password) => {
 
 export const logoutUser = async () => {
   const token = getToken();
+  const shopId = getShopId();
   await fetch(`${API_BASE_URL}/api/auth/logout`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "x-shop-id": shopId
     },
   });
   removeToken();
@@ -69,9 +84,13 @@ export const logoutUser = async () => {
 };
 
 export const verifyToken = async (token) => {
+  const shopId = getShopId();
   const response = await fetch(`${API_BASE_URL}/api/auth/verify-token`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-shop-id": shopId
+    },
     body: JSON.stringify({ token }),
   });
   const data = await response.json();
@@ -83,6 +102,7 @@ export const verifyToken = async (token) => {
 
 export const getUserProfile = async () => {
   const token = getToken();
+  const shopId = getShopId();
   if (!token) {
     throw new Error("No token found");
   }
@@ -92,6 +112,7 @@ export const getUserProfile = async () => {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "x-shop-id": shopId
     },
   });
   const data = await response.json();
@@ -103,6 +124,7 @@ export const getUserProfile = async () => {
 
 export const updateUserProfile = async (updates) => {
   const token = getToken();
+  const shopId = getShopId();
   if (!token) {
     throw new Error("No token found");
   }
@@ -112,6 +134,7 @@ export const updateUserProfile = async (updates) => {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
+      "x-shop-id": shopId
     },
     body: JSON.stringify(updates),
   });
@@ -125,8 +148,10 @@ export const updateUserProfile = async (updates) => {
 // ===== API Helper with Token =====
 export const apiCall = async (endpoint, options = {}) => {
   const token = getToken();
+  const shopId = getShopId();
   const headers = {
     "Content-Type": "application/json",
+    "x-shop-id": shopId,
     ...options.headers,
   };
 
@@ -160,8 +185,12 @@ export const checkAuthStatus = async () => {
     return data.success;
   } catch (error) {
     console.error("Auth check failed:", error);
-    removeToken();
-    removeUser();
+    // ลบทิ้งเฉพาะกรณีที่เซิร์ฟเวอร์ตอบกลับว่า Token ผิดหรือหมดอายุจริงๆ (401)
+    // ถ้ายิง API ไม่ติด (Network error) จะไม่ลบเพื่อกันผู้ใช้หลุด
+    if (error.message && (error.message.includes("Invalid") || error.message.includes("expired") || error.message.includes("No token"))) {
+      removeToken();
+      removeUser();
+    }
     return false;
   }
 };
@@ -173,15 +202,42 @@ export const initializeAuth = async () => {
       return null;
     }
 
-    const data = await getUserProfile();
-    if (data.success) {
-      setUser(data.user);
-      return data.user;
+    // ตรวจสอบ token กับ backend โดยตรง (ไม่ผ่าน getUserProfile เพื่อควบคุม error ได้ดีกว่า)
+    const shopId = getShopId();
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "x-shop-id": shopId,
+      },
+    });
+
+    // ❌ ลบ token เฉพาะตอน 401 (Unauthorized) เท่านั้น
+    // ไม่ลบถ้าเป็น network error, server timeout, หรือ error อื่นๆ
+    if (response.status === 401) {
+      console.warn("[Auth] Token invalid (401), removing token");
+      removeToken();
+      removeUser();
+      return null;
     }
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.user) {
+        setUser(data.user);
+        return data.user;
+      }
+    }
+
+    // กรณี server error (500, 503 ฯลฯ) หรือ network หลุด → เก็บ token ไว้ก่อน
+    // ผู้ใช้จะยังคงสถานะ login (ตรวจจาก localStorage token ที่ยังอยู่)
+    console.warn("[Auth] initializeAuth: non-401 error, keeping token. Status:", response.status);
+    return null;
   } catch (error) {
-    console.error("Auth initialization failed:", error);
-    removeToken();
-    removeUser();
+    // Network error (fetch ล้มเหลว เช่น backend ปิดอยู่) → ไม่ลบ token
+    console.warn("[Auth] initializeAuth network error, keeping token:", error.message);
+    return null;
   }
-  return null;
 };
+

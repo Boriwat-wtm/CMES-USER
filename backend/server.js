@@ -56,7 +56,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-shop-id']
 }));
 
 
@@ -94,9 +94,9 @@ app.use("/api/auth", authRoutes);
 
 // ===== การตั้งค่า CLOUDINARY สำหรับจัดเก็บไฟล์บนคลาวด์ =====
 // ตั้งค่า Cloudinary API credentials
-cloudinary.config({ 
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt', 
-  api_key: process.env.CLOUDINARY_API_KEY || '396185692714272', 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt',
+  api_key: process.env.CLOUDINARY_API_KEY || '396185692714272',
   api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file เพื่อความปลอดภัย
 });
 
@@ -285,19 +285,19 @@ const genericStorage = new CloudinaryStorage({
 });
 
 // Multer middleware สำหรับอัปโหลดรูปโปรไฟล์ (ขนาดไฟล์สูงสุด 20MB)
-const uploadAvatar = multer({ 
+const uploadAvatar = multer({
   storage: avatarStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
 
 // Multer middleware สำหรับอัปโหลดสลิปการชำระเงิน (ขนาดไฟล์สูงสุด 20MB)
-const uploadSlip = multer({ 
+const uploadSlip = multer({
   storage: slipStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
 
 // Multer middleware สำหรับอัปโหลดไฟล์ทั่วไป (ขนาดไฟล์สูงสุด 20MB)
-const uploadGeneric = multer({ 
+const uploadGeneric = multer({
   storage: genericStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB
 });
@@ -338,7 +338,7 @@ app.post("/api/report", optionalAuth, async (req, res) => {
   if (!category || !detail) {
     return res.status(400).json({ status: "error", message: "category and detail are required" });
   }
-  
+
   try {
     // บันทึกลง MongoDB ก่อน (พร้อม userId ถ้ามี)
     const reportData = {
@@ -347,10 +347,10 @@ app.post("/api/report", optionalAuth, async (req, res) => {
       userId: req.userId || null,  // จาก optionalAuth middleware
       status: "open"
     };
-    
+
     const newReport = await Report.create(reportData);
     console.log("✓ Report saved to MongoDB:", newReport._id);
-    
+
     // พยายามส่งไป Admin API (แต่ไม่ให้ล้มถ้า Admin API มีปัญหา)
     try {
       const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
@@ -358,7 +358,7 @@ app.post("/api/report", optionalAuth, async (req, res) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category, detail }),
       });
-      
+
       if (adminRes.ok) {
         console.log("✓ Report forwarded to Admin API");
       } else {
@@ -367,19 +367,19 @@ app.post("/api/report", optionalAuth, async (req, res) => {
     } catch (adminErr) {
       console.warn("⚠ Failed to forward to Admin API, but report saved locally:", adminErr.message);
     }
-    
+
     // ส่ง response สำเร็จ (เพราะบันทึกลง MongoDB แล้ว)
-    res.json({ 
-      status: "ok", 
+    res.json({
+      status: "ok",
       message: "Report saved successfully",
-      reportId: newReport._id 
+      reportId: newReport._id
     });
-    
+
   } catch (err) {
     console.error("✗ Failed to save report:", err);
-    res.status(500).json({ 
-      status: "error", 
-      message: "Failed to save report to database" 
+    res.status(500).json({
+      status: "error",
+      message: "Failed to save report to database"
     });
   }
 });
@@ -463,10 +463,10 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
       status = "success";
       detail = `ชำระเงินสำเร็จ จำนวนเงิน: ${amount}`;
       console.log("===> ตรวจพบจำนวนเงินในสลิป");
-      
+
       // ลบสลิปทันทีหลังยืนยันการชำระเงิน
       await deleteSlip();
-      
+
       await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -476,10 +476,10 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
     } else {
       detail = "ชำระเงินไม่ถูกต้อง หรือจำนวนเงินไม่ตรง";
       console.log("===> ชำระเงินไม่ถูกต้อง หรือจำนวนเงินไม่ตรง");
-      
+
       // ลบสลิปแม้จะไม่ผ่านเพื่อป้องกันการเก็บสะสม
       await deleteSlip();
-      
+
       await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -490,7 +490,7 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
   } catch (err) {
     detail = "OCR ผิดพลาด";
     console.log("===> OCR ผิดพลาด", err);
-    
+
     // ลบสลิปแม้เกิด error
     if (req.file && req.file.filename) {
       try {
@@ -500,7 +500,7 @@ app.post("/verify-slip", uploadSlip.single("slip"), async (req, res) => {
         console.error("Failed to delete slip:", delErr);
       }
     }
-    
+
     await fetch(`${ADMIN_API_BASE}/api/stat-slip`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -574,17 +574,17 @@ app.post("/api/upload", uploadFields, (req, res) => {
       }
     }, 10 * 60 * 1000); // 10 นาที
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       uploadId,
       fileUrl: uploadData.filePath,
       qrCodeUrl: uploadData.qrCodePath
     });
   } catch (error) {
     console.error('[/api/upload] Error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Upload failed: ' + error.message 
+    res.status(500).json({
+      success: false,
+      message: 'Upload failed: ' + error.message
     });
   }
 });
@@ -593,9 +593,15 @@ app.post("/api/upload", uploadFields, (req, res) => {
 app.post("/api/confirm-payment", async (req, res) => {
   try {
     const { uploadId, userId, email, avatar } = req.body;
+    // รับ shopId จาก header ที่ Frontend ส่งมา แล้วส่งต่อไปยัง Admin
+    const shopId = req.headers['x-shop-id'] || '';
 
     if (!uploadId) {
       return res.status(400).json({ success: false, message: 'Missing uploadId' });
+    }
+
+    if (!shopId) {
+      return res.status(400).json({ success: false, message: 'Missing shopId (x-shop-id header)' });
     }
 
     const uploadData = pendingUploads.get(uploadId);
@@ -632,28 +638,33 @@ app.post("/api/confirm-payment", async (req, res) => {
       console.log('[/api/confirm-payment] ✓ Sending QR Code URL:', uploadData.qrCodePath);
     }
 
-    // ส่งข้อมูลไปยัง Admin backend
+    // ส่งข้อมูลไปยัง Admin backend พร้อม x-shop-id header
     const response = await fetch(`${ADMIN_API_BASE}/api/upload`, {
       method: 'POST',
       body: formData,
-      headers: formData.getHeaders()
+      headers: {
+        ...formData.getHeaders(),
+        'x-shop-id': shopId  // ✅ ส่ง shopId ไปด้วยเพื่อผ่าน requireShopId middleware
+      }
     });
 
     if (response.ok) {
       const adminResult = await response.json();
       const adminUploadId = adminResult.uploadId; // รับ uploadId จาก Admin
-      
+
       // ลบข้อมูลออกจากรายการรอชำระเงิน
       pendingUploads.delete(uploadId);
 
       console.log('Successfully sent to admin backend, admin uploadId:', adminUploadId);
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Payment confirmed and data sent to admin',
         uploadId: adminUploadId // ส่ง uploadId จาก Admin กลับไปให้ Frontend
       });
     } else {
-      throw new Error('Failed to send to admin backend');
+      const errBody = await response.text();
+      console.error('[/api/confirm-payment] Admin returned error:', response.status, errBody);
+      throw new Error(`Admin backend error: ${response.status} ${errBody}`);
     }
 
   } catch (error) {
@@ -940,6 +951,7 @@ app.get("/api/gifts/order/:orderId", (req, res) => {
 app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   const { orderId } = req.params;
   const { userId, email, avatar } = req.body; // รับข้อมูล user จาก frontend
+  const shopId = req.headers['x-shop-id'] || ''; // รับ shopId จาก header เพื่อส่งต่อไปยัง Admin
 
   console.log("[Gift Order Confirm] orderId:", orderId);
   console.log("[Gift Order Confirm] userId:", userId);
@@ -975,7 +987,10 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
 
     const adminResponse = await fetch(`${ADMIN_API_BASE}/api/gifts/order`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-shop-id": shopId  // ✅ ส่ง shopId ไปด้วยเพื่อผ่าน requireShopId middleware
+      },
       body: JSON.stringify(payload)
     });
 
