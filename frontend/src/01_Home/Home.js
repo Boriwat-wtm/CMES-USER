@@ -642,9 +642,21 @@ function Home() {
         <header className="home-header">
           {/* Logo และชื่อเว็บไซต์ */}
           <div className="header-brand">
-            <div className="brand-icon">
+            <div
+              className="brand-icon"
+              style={shopProfile.logo ? {
+                borderRadius: '50%',
+                background: 'transparent',
+                padding: 0,
+                border: '2px solid rgba(255,255,255,0.5)',
+              } : {}}
+            >
               {shopProfile.logo ? (
-                <img src={shopProfile.logo} alt="Shop Logo" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                <img
+                  src={shopProfile.logo}
+                  alt="Shop Logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
               ) : (
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
