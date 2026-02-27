@@ -30,16 +30,16 @@ const resolveImageSrc = (url) => {
 
 function Gift() {
 	const navigate = useNavigate();
-	
+
 	// State สำหรับข้อมูลสินค้าและการตั้งค่า
 	const [settings, setSettings] = useState({ items: [], tableCount: 0 }); // ข้อมูลสินค้าและจำนวนโต๊ะสูงสุด
 	const [quantities, setQuantities] = useState({}); // จำนวนสินค้าที่เลือกแต่ละรายการ { itemId: quantity }
-	
+
 	// State สำหรับข้อมูลการสั่งซื้อ
 	const [tableNumber, setTableNumber] = useState(""); // เลขโต๊ะปลายทาง
 	const [note, setNote] = useState(""); // ข้อความถึงผู้รับ
 	const [senderName, setSenderName] = useState(""); // ชื่อผู้ส่ง
-	
+
 	// State สำหรับการจัดการ UI
 	const [loading, setLoading] = useState(true); // สถานะโหลดข้อมูล
 	const [submitting, setSubmitting] = useState(false); // สถานะกำลังส่งคำสั่งซื้อ
@@ -258,7 +258,7 @@ function Gift() {
 					}
 
 					// ยืนยันคำสั่งซื้อทันที (เพราะฟรี ไม่ต้องชำระเงิน)
-				const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
+					const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ userId, email, avatar })
@@ -537,7 +537,6 @@ function Gift() {
 						<div className="cyberpunk-items">
 							{selectedItems
 								.sort((a, b) => (b.price * b.quantity) - (a.price * a.quantity)) // เรียงตามมูลค่ารวมสูงสุด
-								.slice(0, 3) // แสดงเฉพาะ Top 3
 								.map((item) => (
 									<div key={item.id} className="cyberpunk-item-box">
 										{item.imageUrl ? (

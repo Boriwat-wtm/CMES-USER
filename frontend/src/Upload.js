@@ -21,7 +21,7 @@ function Upload() {
   // ดึงข้อมูลจาก URL (location) และฟังก์ชันสำหรับเปลี่ยนหน้า (navigate)
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // แปลง query parameters จาก URL (เช่น ?type=image&time=60&price=100)
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type");           // ประเภท: "image", "text", หรือ "birthday"
@@ -35,7 +35,9 @@ function Upload() {
   const [showModal, setShowModal] = useState(false);  // เปิด/ปิด modal ข้อกำหนดการใช้งาน
   const [showPreviewModal, setShowPreviewModal] = useState(false); // เปิด/ปิด modal แสดงตัวอย่างก่อนยืนยัน
   const [alertMessage, setAlertMessage] = useState(""); // ข้อความแจ้งเตือน (error หรือ warning)
-  const [textColor, setTextColor] = useState("white"); // สีของข้อความ (white หรือ black)
+  const [textColor, setTextColor] = useState("#ffffff"); // สีของข้อความ (hex)
+  const [socialColor, setSocialColor] = useState("#ffffff"); // สีของชื่อ social (hex)
+  const [textLayout, setTextLayout] = useState("right"); // เทมเพลต layout: right, left, top, bottom, center
   const [selectedSocial, setSelectedSocial] = useState(""); // โซเชียลมีเดียที่เลือก (ig, fb, line, tiktok)
   const [socialName, setSocialName] = useState(""); // ชื่อ username หรือ ID ของโซเชียลมีเดีย
   const [actualType, setActualType] = useState(type); // type จริงๆ ของคำสั่งซื้อ (อาจแตกต่างจาก URL ถ้ามีการเปลี่ยนแปลง)
@@ -55,12 +57,14 @@ function Upload() {
         if (data) {
           // กู้คืนข้อมูลที่พิมพ์ไว้
           setText(data.text || "");
-          setTextColor(data.textColor || "white");
+          setTextColor(data.textColor || "#ffffff");
+          setSocialColor(data.socialColor || "#ffffff");
+          setTextLayout(data.textLayout || "right");
           setSelectedSocial(data.selectedSocial || "");
           setSocialName(data.socialName || "");
           // หมายเหตุ: ไม่เก็บรูปภาพใน localStorage เพราะขนาดใหญ่เกินไป
         }
-      } catch { 
+      } catch {
         // ถ้า parse ไม่ได้ ให้ข้ามไป
       }
     }
@@ -91,17 +95,19 @@ function Upload() {
       JSON.stringify({
         text,
         textColor,
+        socialColor,
+        textLayout,
         selectedSocial,
         socialName,
       })
     );
-  }, [text, textColor, selectedSocial, socialName]);
+  }, [text, textColor, socialColor, textLayout, selectedSocial, socialName]);
 
   // ==================== HANDLER: การเปลี่ยนแปลงข้อความ ====================
   // จัดการตอนผู้ใช้พิมพ์ข้อความ พร้อมตรวจสอบความยาว
   const handleTextChange = (e) => {
     const inputText = e.target.value;
-    
+
     // ตรวจสอบว่าไม่เกินจำนวนตัวอักษรสูงสุด
     if (inputText.length <= MAX_TEXT_LENGTH) {
       setText(inputText);
@@ -122,11 +128,11 @@ function Upload() {
         setAlertMessage("ขนาดไฟล์ต้องไม่เกิน 5MB");
         return;
       }
-      
+
       // เก็บไฟล์ใน state
       setImage(file);
       setAlertMessage("");
-      
+
       // แปลงรูปเป็น base64 และเก็บลง localStorage เพื่อกู้คืนได้หลัง refresh
       const reader = new FileReader();
       reader.onload = function (ev) {
@@ -236,6 +242,7 @@ function Upload() {
           <span style={{
             fontWeight: "700",
             fontSize: "20px",
+            color: socialColor,
             textShadow: "0 2px 6px rgba(0,0,0,0.8)"
           }}>{socialName}</span>
         </span>
@@ -284,6 +291,8 @@ function Upload() {
         formData.append("time", time || "60");                 // เวลาแสดง (วินาที)
         formData.append("price", "0");                          // ฟรี = 0 บาท
         formData.append("textColor", textColor);                // สีข้อความ
+        formData.append("socialColor", socialColor);             // สี social
+        formData.append("textLayout", textLayout);              // เทมเพลต layout
         formData.append("text", text);                          // ข้อความ
         formData.append("socialType", selectedSocial);          // ประเภท social media
         formData.append("socialName", socialName);              // ญื่อ social
@@ -356,7 +365,9 @@ function Upload() {
           formData.append("time", time || "60");
           formData.append("price", price || "1");
           formData.append("text", text || "");
-          formData.append("textColor", textColor || "white");
+          formData.append("textColor", textColor || "#ffffff");
+          formData.append("socialColor", socialColor || "#ffffff");
+          formData.append("textLayout", textLayout || "right");
           formData.append("sender", sender);
           formData.append("userId", userId || "guest");
           formData.append("email", email || "");
@@ -492,6 +503,8 @@ function Upload() {
           email,
           avatar,
           textColor,
+          socialColor,
+          textLayout,
           socialType: selectedSocial,
           socialName: socialName,
           status: "pending"  // อนุมัติอัตโนมัติสำหรับข้อความฟรี
@@ -547,6 +560,8 @@ function Upload() {
           formData.append("time", time || "60");
           formData.append("price", price || "1");
           formData.append("textColor", textColor);
+          formData.append("socialColor", socialColor || "#ffffff");
+          formData.append("textLayout", textLayout || "right");
           formData.append("socialType", selectedSocial || "");
           formData.append("socialName", socialName || "");
           formData.append("sender", sender);
@@ -685,13 +700,13 @@ function Upload() {
                 </div>
 
                 {image && (
-                  <div className="upload-preview-container">
-                    {/* รูปภาพซ้าย - Fix Size ไม่มีกรอบ */}
+                  <div className={`upload-preview-container layout-${textLayout}`}>
+                    {/* รูปภาพ */}
                     <div className="upload-preview-image-box">
                       <img src={URL.createObjectURL(image)} alt="Preview" />
                     </div>
 
-                    {/* Sidebar ขวา */}
+                    {/* Sidebar ข้อความ */}
                     <div className={`upload-preview-sidebar ${qrCodeFile ? 'has-qr' : ''}`}>
                       {/* Social + Text */}
                       <div className="upload-preview-content">
@@ -878,31 +893,59 @@ function Upload() {
 
             <div className="color-section">
               <h3>สีข้อความ</h3>
-              <div className="color-options">
-                <label className={`color-option ${textColor === "white" ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="textColor"
-                    value="white"
-                    checked={textColor === "white"}
-                    onChange={() => setTextColor("white")}
-                  />
-                  <div className="color-preview white"></div>
-                  <span>สีขาว</span>
-                </label>
-                <label className={`color-option ${textColor === "black" ? 'selected' : ''}`}>
-                  <input
-                    type="radio"
-                    name="textColor"
-                    value="black"
-                    checked={textColor === "black"}
-                    onChange={() => setTextColor("black")}
-                  />
-                  <div className="color-preview black"></div>
-                  <span>สีดำ</span>
-                </label>
+              <div className="color-picker-group">
+                <div className="color-picker-item">
+                  <label>สีชื่อ Social</label>
+                  <div className="color-picker-row">
+                    <input
+                      type="color"
+                      value={socialColor}
+                      onChange={(e) => setSocialColor(e.target.value)}
+                      className="color-input"
+                    />
+                    <span className="color-hex">{socialColor}</span>
+                  </div>
+                </div>
+                <div className="color-picker-item">
+                  <label>สีข้อความที่แสดง</label>
+                  <div className="color-picker-row">
+                    <input
+                      type="color"
+                      value={textColor}
+                      onChange={(e) => setTextColor(e.target.value)}
+                      className="color-input"
+                    />
+                    <span className="color-hex">{textColor}</span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Template Selector - เฉพาะ image/birthday */}
+            {(type === "image" || type === "birthday") && (
+              <div className="template-section">
+                <h3>เทมเพลตจัดวาง</h3>
+                <div className="template-options">
+                  {[
+                    { value: "right", label: "ขวา", icon: "➡️" },
+                    { value: "left", label: "ซ้าย", icon: "⬅️" },
+                    { value: "top", label: "บน", icon: "⬆️" },
+                    { value: "bottom", label: "ล่าง", icon: "⬇️" },
+                    { value: "center", label: "กลาง", icon: "⏺️" },
+                  ].map((tpl) => (
+                    <button
+                      key={tpl.value}
+                      className={`template-btn ${textLayout === tpl.value ? 'active' : ''}`}
+                      onClick={() => setTextLayout(tpl.value)}
+                      type="button"
+                    >
+                      <span className="template-icon">{tpl.icon}</span>
+                      <span className="template-label">{tpl.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {alertMessage && (
               <div className="alert-message">
@@ -982,8 +1025,8 @@ function Upload() {
               <div className="modal-body">
                 <div className="preview-container">
                   {(type === "image" || type === "birthday") && image && (
-                    <div className="upload-preview-container modal-view">
-                      {/* รูปภาพซ้าย - Fix Size ไม่มีกรอบ */}
+                    <div className={`upload-preview-container modal-view layout-${textLayout}`}>
+                      {/* รูปภาพ */}
                       <div className="upload-preview-image-box">
                         <img
                           src={URL.createObjectURL(image)}
@@ -991,7 +1034,7 @@ function Upload() {
                         />
                       </div>
 
-                      {/* Sidebar ขวา */}
+                      {/* Sidebar ข้อความ */}
                       <div className={`upload-preview-sidebar ${qrCodeFile ? 'has-qr' : ''}`}>
                         {/* Social + Text */}
                         <div className="upload-preview-content">
@@ -1048,7 +1091,7 @@ function Upload() {
                           style={{
                             marginBottom: "16px",
                             marginTop: "8px",
-                            color: "#fff",
+                            color: socialColor,
                             padding: "6px 18px",
                             borderRadius: "8px",
                             fontWeight: "700",

@@ -383,10 +383,12 @@
 	.gift-hero {
 		padding: 20px;
 	}
+
 	.hero-left {
 		flex-direction: column;
 		align-items: flex-start;
 	}
+
 	.back-chip {
 		width: 100%;
 		justify-content: center;
@@ -414,8 +416,13 @@
 }
 
 @keyframes fadeInOverlay {
-	from { opacity: 0; }
-	to { opacity: 1; }
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
 }
 
 .cyberpunk-modal-card {
@@ -428,7 +435,7 @@
 	width: 100%;
 	max-height: 90vh;
 	overflow-y: auto;
-	box-shadow: 
+	box-shadow:
 		0 0 60px rgba(255, 215, 0, 0.4),
 		0 20px 80px rgba(0, 0, 0, 0.6),
 		inset 0 0 80px rgba(255, 215, 0, 0.05);
@@ -441,9 +448,11 @@
 		transform: scale(0);
 		opacity: 0;
 	}
+
 	60% {
 		transform: scale(1.1);
 	}
+
 	100% {
 		transform: scale(1);
 		opacity: 1;
@@ -461,8 +470,15 @@
 }
 
 @keyframes flashGold {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.7; }
+
+	0%,
+	100% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0.7;
+	}
 }
 
 .neon-title {
@@ -481,8 +497,13 @@
 }
 
 @keyframes shimmerGold {
-	0% { background-position: 0% 50%; }
-	100% { background-position: 200% 50%; }
+	0% {
+		background-position: 0% 50%;
+	}
+
+	100% {
+		background-position: 200% 50%;
+	}
 }
 
 .neon-sparkle {
@@ -500,9 +521,19 @@
 }
 
 @keyframes rotateSparkle {
-	0%, 100% { transform: rotate(0deg) scale(1); }
-	25% { transform: rotate(20deg) scale(1.3); }
-	75% { transform: rotate(-20deg) scale(1.3); }
+
+	0%,
+	100% {
+		transform: rotate(0deg) scale(1);
+	}
+
+	25% {
+		transform: rotate(20deg) scale(1.3);
+	}
+
+	75% {
+		transform: rotate(-20deg) scale(1.3);
+	}
 }
 
 /* Sender Avatar with Halo */
@@ -525,9 +556,17 @@
 }
 
 @keyframes rotateHalo {
-	0% { background-position: 0% 50%; }
-	50% { background-position: 100% 50%; }
-	100% { background-position: 0% 50%; }
+	0% {
+		background-position: 0% 50%;
+	}
+
+	50% {
+		background-position: 100% 50%;
+	}
+
+	100% {
+		background-position: 0% 50%;
+	}
 }
 
 .avatar-inner {
@@ -573,8 +612,15 @@
 }
 
 @keyframes pulseSender {
-	0%, 100% { transform: scale(1); }
-	50% { transform: scale(1.05); }
+
+	0%,
+	100% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.05);
+	}
 }
 
 /* Action Indicator */
@@ -589,8 +635,15 @@
 }
 
 @keyframes bounceArrow {
-	0%, 100% { transform: translateY(0); }
-	50% { transform: translateY(-8px); }
+
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+
+	50% {
+		transform: translateY(-8px);
+	}
 }
 
 /* Receiver Table Number */
@@ -608,23 +661,26 @@
 	border-radius: 50px;
 	font-size: 3rem;
 	font-weight: 900;
-	text-shadow: 
+	text-shadow:
 		0 0 20px rgba(0, 255, 255, 1),
 		0 0 40px rgba(0, 255, 255, 0.8);
-	box-shadow: 
+	box-shadow:
 		0 0 30px rgba(0, 255, 255, 0.5),
 		inset 0 0 20px rgba(0, 255, 255, 0.2);
 	animation: glowPulse 2s ease-in-out infinite;
 }
 
 @keyframes glowPulse {
-	0%, 100% { 
-		box-shadow: 
+
+	0%,
+	100% {
+		box-shadow:
 			0 0 30px rgba(0, 255, 255, 0.5),
 			inset 0 0 20px rgba(0, 255, 255, 0.2);
 	}
-	50% { 
-		box-shadow: 
+
+	50% {
+		box-shadow:
 			0 0 50px rgba(0, 255, 255, 0.8),
 			inset 0 0 30px rgba(0, 255, 255, 0.4);
 	}
@@ -641,10 +697,27 @@
 /* Item Grid */
 .cyberpunk-items {
 	display: flex;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 	gap: 1.2rem;
-	justify-content: center;
+	justify-content: flex-start;
 	margin: 1.5rem 0;
+	overflow-x: auto;
+	padding-bottom: 0.5rem;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 215, 0, 0.3) transparent;
+}
+
+.cyberpunk-items::-webkit-scrollbar {
+	height: 4px;
+}
+
+.cyberpunk-items::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.cyberpunk-items::-webkit-scrollbar-thumb {
+	background: rgba(255, 215, 0, 0.3);
+	border-radius: 4px;
 }
 
 .cyberpunk-item-box {
@@ -654,6 +727,7 @@
 	border-radius: 18px;
 	padding: 1rem;
 	width: 130px;
+	flex-shrink: 0;
 	text-align: center;
 	position: relative;
 	transition: all 0.3s ease;
@@ -704,8 +778,15 @@
 }
 
 @keyframes badgePulse {
-	0%, 100% { transform: scale(1); }
-	50% { transform: scale(1.1); }
+
+	0%,
+	100% {
+		transform: scale(1);
+	}
+
+	50% {
+		transform: scale(1.1);
+	}
 }
 
 .item-name-label {
@@ -757,7 +838,7 @@
 	font-size: 2rem;
 	font-weight: 900;
 	color: #00ffff;
-	text-shadow: 
+	text-shadow:
 		0 0 15px rgba(0, 255, 255, 1),
 		0 0 30px rgba(0, 255, 255, 0.6);
 }
@@ -799,14 +880,14 @@
 	background: linear-gradient(135deg, #00ffff, #0088ff);
 	color: #000;
 	font-weight: 900;
-	box-shadow: 
+	box-shadow:
 		0 0 20px rgba(0, 255, 255, 0.5),
 		0 8px 25px rgba(0, 136, 255, 0.4);
 }
 
 .cyberpunk-btn.confirm:hover:not(:disabled) {
 	transform: translateY(-3px) scale(1.02);
-	box-shadow: 
+	box-shadow:
 		0 0 30px rgba(0, 255, 255, 0.8),
 		0 12px 35px rgba(0, 136, 255, 0.6);
 }
@@ -840,52 +921,52 @@
 	.cyberpunk-modal-card {
 		padding: 1.8rem;
 	}
-	
+
 	.neon-title {
 		font-size: 1.3rem;
 	}
-	
+
 	.avatar-inner {
 		width: 110px;
 		height: 110px;
 	}
-	
+
 	.avatar-image {
 		width: 100%;
 		height: 100%;
 	}
-	
+
 	.avatar-initial {
 		font-size: 3rem;
 	}
-	
+
 	.sender-display {
 		font-size: 1.5rem;
 	}
-	
+
 	.neon-table-number {
 		font-size: 2.2rem;
 		padding: 1rem 2rem;
 	}
-	
+
 	.cyberpunk-items {
 		gap: 0.8rem;
 	}
-	
+
 	.cyberpunk-item-box {
 		width: 110px;
 	}
-	
+
 	.item-icon,
 	.item-icon-placeholder {
 		width: 70px;
 		height: 70px;
 	}
-	
+
 	.cyberpunk-total strong {
 		font-size: 1.6rem;
 	}
-	
+
 	.cyberpunk-actions {
 		flex-direction: column;
 	}

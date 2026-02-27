@@ -260,52 +260,102 @@
   font-weight: 600;
 }
 
-/* ==================== COLOR OPTIONS: เลือกสีข้อความ ==================== */
-/* แสดงตัวเลือกสีเป็นแถว */
-.color-options {
+/* ==================== COLOR PICKER: เลือกสีข้อความอิสระ ==================== */
+.color-picker-group {
   display: flex;
-  gap: 16px;
+  gap: 24px;
+  flex-wrap: wrap;
 }
 
-.color-option {
+.color-picker-item {
+  flex: 1;
+  min-width: 160px;
+}
+
+.color-picker-item label {
+  display: block;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.color-picker-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.color-input {
+  width: 48px;
+  height: 48px;
+  border: 3px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 2px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.color-input:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.color-hex {
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 8px;
+  letter-spacing: 1px;
+}
+
+/* ==================== TEMPLATE SELECTOR: เลือกเทมเพลตจัดวาง ==================== */
+.template-section {
+  margin-bottom: 1.5rem;
+}
+
+.template-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.template-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   padding: 12px 16px;
   border: 2px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 12px;
+  background: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  min-width: 72px;
 }
 
-.color-option:hover {
-  border-color: #3b82f6;
-}
-
-.color-option.selected {
+.template-btn:hover {
   border-color: #3b82f6;
   background: #eff6ff;
+  transform: translateY(-2px);
 }
 
-/* ซ่อน radio button จริง */
-.color-option input {
-  display: none;
+.template-btn.active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
-.color-preview {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #e2e8f0;
+.template-icon {
+  font-size: 20px;
 }
 
-.color-preview.white {
-  background: white;
-}
-
-.color-preview.black {
-  background: black;
+.template-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
 }
 
 /* ==================== ALERT MESSAGE: ข้อความแจ้งเตือน ==================== */
@@ -554,16 +604,19 @@
 .social-section {
   margin-bottom: 1.5rem;
 }
+
 .social-options {
   display: flex;
   flex-wrap: wrap;
   gap: 1rem;
 }
+
 .social-options label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
+
 .social-input {
   margin-left: 0.5rem;
   padding: 0.4rem 0.7rem;
@@ -572,6 +625,7 @@
   font-size: 1rem;
   max-width: 150px;
 }
+
 .social-preview-text {
   margin-bottom: 0.5rem;
   font-weight: 500;
@@ -605,6 +659,7 @@
   margin-bottom: 0.5rem;
   flex-wrap: wrap;
 }
+
 .social-radio {
   display: flex;
   align-items: center;
@@ -615,16 +670,19 @@
   border: 1px solid transparent;
   transition: border 0.2s;
 }
+
 .social-radio.selected {
   border: 1.5px solid #dc2626;
   background: #fef2f2;
 }
+
 .icon-label {
   display: flex;
   align-items: center;
   gap: 0.3rem;
   font-weight: 500;
 }
+
 .social-input {
   padding: 0.4rem 0.7rem;
   border: 1px solid #d1d5db;
@@ -652,34 +710,38 @@
     flex-direction: column;
   }
 
-  .color-options {
+  .color-picker-group {
     flex-direction: column;
+  }
+
+  .template-options {
+    justify-content: center;
   }
 
   .preview-image {
     max-height: 300px;
   }
-  
+
   .final-preview img {
     max-height: 350px;
   }
-  
+
   .preview-modal {
     max-width: 95%;
     margin: 20px;
   }
-  
+
   .preview-text-overlay,
   .final-text-overlay {
     font-size: 16px;
     padding: 6px 12px;
   }
-  
+
   .text-only-preview {
     padding: 40px 20px;
     min-height: 150px;
   }
-  
+
   .text-only-preview p {
     font-size: 24px;
   }
@@ -687,6 +749,7 @@
 
 /* รูปภาพแนวตั้ง - ใช้ความกว้างเต็ม */
 @media (orientation: portrait) {
+
   .preview-image,
   .final-preview img {
     max-width: 100%;
@@ -696,6 +759,7 @@
 
 /* รูปภาพแนวนอน - จำกัดความสูง */
 @media (orientation: landscape) {
+
   .preview-image,
   .final-preview img {
     max-height: 60vh;
@@ -703,8 +767,8 @@
   }
 }
 
-/* ==================== PREVIEW LAYOUT: แสดงตัวอย่างรูป+ข้อความ (หน้าหลัก) ==================== */
-/* Container หลักสำหรับจัดเรียงรูปภาพ+ข้อความ แบบซ้าย-ขวา */
+/* ==================== PREVIEW LAYOUT: แสดงตัวอย่างรูป+ข้อความ ==================== */
+/* Container หลักสำหรับจัดเรียงรูปภาพ+ข้อความ */
 .upload-preview-container {
   display: flex;
   gap: 20px;
@@ -716,6 +780,74 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   max-width: 100%;
   overflow: hidden;
+}
+
+/* === Layout: ขวา (default) === */
+.upload-preview-container.layout-right {
+  flex-direction: row;
+}
+
+/* === Layout: ซ้าย === */
+.upload-preview-container.layout-left {
+  flex-direction: row-reverse;
+}
+
+/* === Layout: บน === */
+.upload-preview-container.layout-top {
+  flex-direction: column-reverse;
+}
+
+.upload-preview-container.layout-top .upload-preview-image-box {
+  width: 100%;
+  height: 300px;
+}
+
+.upload-preview-container.layout-top .upload-preview-sidebar {
+  max-width: none;
+  margin-left: 0;
+  flex-direction: row;
+  gap: 20px;
+}
+
+/* === Layout: ล่าง === */
+.upload-preview-container.layout-bottom {
+  flex-direction: column;
+}
+
+.upload-preview-container.layout-bottom .upload-preview-image-box {
+  width: 100%;
+  height: 300px;
+}
+
+.upload-preview-container.layout-bottom .upload-preview-sidebar {
+  max-width: none;
+  margin-left: 0;
+  flex-direction: row;
+  gap: 20px;
+}
+
+/* === Layout: กลาง (overlay) === */
+.upload-preview-container.layout-center {
+  position: relative;
+}
+
+.upload-preview-container.layout-center .upload-preview-image-box {
+  width: 100%;
+  height: 400px;
+}
+
+.upload-preview-container.layout-center .upload-preview-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: none;
+  margin-left: 0;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  z-index: 2;
+  padding: 20px;
 }
 
 /* กล่องแสดงรูปภาพด้านซ้าย - ขนาดคงที่ 300x375px */
@@ -802,7 +934,7 @@
   border-radius: 8px;
   background: white;
   padding: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .upload-qr-label {
@@ -816,6 +948,7 @@
     flex-direction: column;
     align-items: center;
   }
+
   .upload-preview-image-box {
     width: 100%;
     max-width: 350px;
@@ -837,8 +970,8 @@
 
 /* กรอบรูปภาพด้านซ้าย - ขนาดคงที่ + กรอบคู่ */
 .preview-image-frame {
-  width: 400px;  
-  height: 500px; 
+  width: 400px;
+  height: 500px;
   flex-shrink: 0;
   border: 2px solid #333;
   outline: 2px solid #333;
@@ -847,7 +980,7 @@
   border-radius: 4px;
   overflow: hidden;
   background-color: #f5f5f5;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -856,7 +989,8 @@
 .preview-image-fixed {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* ไม่ครอบตัด - คงอัตราส่วนเดิม */
+  object-fit: contain;
+  /* ไม่ครอบตัด - คงอัตราส่วนเดิม */
   object-position: center;
   display: block;
 }
@@ -902,7 +1036,7 @@
   line-height: 1.5;
   word-break: break-word;
   padding: 10px;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 8px;
   font-weight: 500;
 }
@@ -918,7 +1052,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
 }
 
@@ -947,7 +1081,7 @@
 
 /* ลดขนาดกล่องรูปภาพ จาก 300px เหลือ 240px */
 .upload-preview-container.modal-view .upload-preview-image-box {
-  width: 240px; 
+  width: 240px;
   height: 300px;
 }
 
@@ -980,11 +1114,12 @@
     flex-direction: column;
     align-items: center;
   }
+
   /* ปรับขนาดกรอบรูปและ sidebar ให้เต็มความกว้าง */
-  .preview-image-frame, .preview-info-sidebar {
+  .preview-image-frame,
+  .preview-info-sidebar {
     width: 100%;
     max-width: 350px;
     height: 450px;
   }
 }
-
