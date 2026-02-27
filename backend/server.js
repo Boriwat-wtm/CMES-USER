@@ -77,7 +77,12 @@ app.use(express.json());
 
 // ===== การเชื่อมต่อ MONGODB DATABASE =====
 // URI สำหรับเชื่อมต่อ MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("✗ MONGODB_URI is not defined in .env file");
+  process.exit(1);
+}
 
 // เชื่อมต่อกับ MongoDB database
 mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
@@ -95,9 +100,9 @@ app.use("/api/auth", authRoutes);
 // ===== การตั้งค่า CLOUDINARY สำหรับจัดเก็บไฟล์บนคลาวด์ =====
 // ตั้งค่า Cloudinary API credentials
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt',
-  api_key: process.env.CLOUDINARY_API_KEY || '396185692714272',
-  api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file เพื่อความปลอดภัย
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 console.log("✓ Cloudinary configured:", {
@@ -738,8 +743,8 @@ app.post("/send-otp", async (req, res) => {
     url: 'https://portal-otp.smsmkt.com/api/otp-send',
     headers: {
       "Content-Type": "application/json",
-      "api_key": "2607fce6276d1f68e8d543e953d76bc4",
-      "secret_key": "5yX5m9LcHVNks99i",
+      "api_key": process.env.SMS_API_KEY,
+      "secret_key": process.env.SMS_SECRET_KEY,
     },
     data: JSON.stringify({
       "project_key": "69a425bf4f",
@@ -788,8 +793,8 @@ app.post("/verify-otp", async (req, res) => {
     url: "https://portal-otp.smsmkt.com/api/otp-validate",
     headers: {
       "Content-Type": "application/json",
-      api_key: "2607fce6276d1f68e8d543e953d76bc4",
-      secret_key: "5yX5m9LcHVNks99i",
+      api_key: process.env.SMS_API_KEY,
+      secret_key: process.env.SMS_SECRET_KEY,
     },
     data: JSON.stringify(verifyData),
   };
