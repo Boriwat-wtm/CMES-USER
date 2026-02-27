@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Report.css";
-import API_BASE_URL from "./config/apiConfig"; 
+import API_BASE_URL from "../config/apiConfig";
 
 /**
  * หน้า Report - ศูนย์รายงานปัญหาและข้อเสนอแนะ
@@ -15,7 +15,7 @@ import API_BASE_URL from "./config/apiConfig";
  */
 function Report() {
   const navigate = useNavigate();
-  
+
   // State สำหรับเก็บข้อมูลฟอร์ม
   const [category, setCategory] = useState("");      // ประเภทปัญหาที่เลือก
   const [detail, setDetail] = useState("");          // รายละเอียดปัญหา
@@ -76,15 +76,19 @@ function Report() {
     try {
       // ดึง token จาก localStorage (สำหรับ authentication)
       const token = localStorage.getItem("token");
-      
+
       const headers = {
         "Content-Type": "application/json"
       };
-      
+
       // เพิ่ม Authorization header ถ้าผู้ใช้ login อยู่
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
+
+      // แนบ shopId เสมอสำหรับระบบ Multi-tenant
+      const shopId = localStorage.getItem("shopId") || "";
+      headers["x-shop-id"] = shopId;
 
       // ส่ง request ไปยัง backend
       const res = await fetch(`${API_BASE_URL}/api/report`, {
@@ -108,7 +112,7 @@ function Report() {
       // แสดง success animation
       setShowSuccessAnimation(true);
       setMessage("🎉 ขอบคุณสำหรับการแจ้งปัญหา! เราจะดำเนินการแก้ไขในเร็วๆ นี้");
-      
+
       // Clear ฟอร์ม
       setCategory("");
       setDetail("");
@@ -129,51 +133,51 @@ function Report() {
    * แต่ละประเภทประกอบด้วย: value, label, emoji, description
    */
   const problemTypes = [
-    { 
-      value: "", 
-      label: "เลือกประเภทปัญหา", 
+    {
+      value: "",
+      label: "เลือกประเภทปัญหา",
       disabled: true,  // ไม่สามารถเลือก option นี้ได้ (เป็นหัวข้อเท่านั้น)
       emoji: "🔽"
     },
-    { 
-      value: "technical", 
-      label: "ปัญหาทางเทคนิค", 
+    {
+      value: "technical",
+      label: "ปัญหาทางเทคนิค",
       emoji: "⚡",
       description: "ระบบล่ม, โหลดช้า, ข้อผิดพลาด"
     },
-    { 
-      value: "display", 
-      label: "ปัญหาการแสดงผล", 
+    {
+      value: "display",
+      label: "ปัญหาการแสดงผล",
       emoji: "🖼️",
       description: "รูปไม่แสดง, ข้อความผิด, หน้าจอเพี้ยน"
     },
-    { 
-      value: "payment", 
-      label: "ปัญหาการเงิน", 
+    {
+      value: "payment",
+      label: "ปัญหาการเงิน",
       emoji: "💰",
       description: "ชำระเงินไม่ได้, หักเงินผิด"
     },
-    { 
-      value: "upload", 
-      label: "ปัญหาอัปโหลด", 
+    {
+      value: "upload",
+      label: "ปัญหาอัปโหลด",
       emoji: "📁",
       description: "ไฟล์อัปไม่ได้, ใช้เวลานาน"
     },
-    { 
-      value: "account", 
-      label: "ปัญหาบัญชีผู้ใช้", 
+    {
+      value: "account",
+      label: "ปัญหาบัญชีผู้ใช้",
       emoji: "👤",
       description: "เข้าสู่ระบบไม่ได้, ลืมรหัสผ่าน"
     },
-    { 
-      value: "suggestion", 
-      label: "ข้อเสนอแนะ", 
+    {
+      value: "suggestion",
+      label: "ข้อเสนอแนะ",
       emoji: "💡",
       description: "ไอเดียปรับปรุง, ฟีเจอร์ใหม่"
     },
-    { 
-      value: "other", 
-      label: "อื่นๆ", 
+    {
+      value: "other",
+      label: "อื่นๆ",
       emoji: "📝",
       description: "ปัญหาอื่นที่ไม่อยู่ในหมวดข้างต้น"
     }
@@ -220,118 +224,118 @@ function Report() {
             <div className="report-content-grid">
               {/* ฟอร์มรายงานปัญหา */}
               <form className="report-form" onSubmit={handleSubmit}>
-              {/* Input Group 1: เลือกประเภทปัญหา */}
-              <div className="input-group">
-                <label className="input-label">
-                  <span className="label-text">ประเภทปัญหา</span>
-                  <span className="required-dot">*</span>
-                </label>
-                
-                {/* Custom Select Dropdown */}
-                <div className="custom-select">
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className="select-input"
-                    required
-                  >
-                    {problemTypes.map((type) => (
-                      <option 
-                        key={type.value} 
-                        value={type.value}
-                        disabled={type.disabled}
-                      >
-                        {type.emoji} {type.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="select-arrow">⌄</div>
-                </div>
+                {/* Input Group 1: เลือกประเภทปัญหา */}
+                <div className="input-group">
+                  <label className="input-label">
+                    <span className="label-text">ประเภทปัญหา</span>
+                    <span className="required-dot">*</span>
+                  </label>
 
-                {/* แสดงคำอธิบายประเภทที่เลือก (ถ้ามีการเลือก) */}
-                {category && (
-                  <div className="category-info">
-                    <span className="category-emoji">
-                      {problemTypes.find(t => t.value === category)?.emoji}
-                    </span>
-                    <span className="category-desc">
-                      {problemTypes.find(t => t.value === category)?.description}
-                    </span>
+                  {/* Custom Select Dropdown */}
+                  <div className="custom-select">
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="select-input"
+                      required
+                    >
+                      {problemTypes.map((type) => (
+                        <option
+                          key={type.value}
+                          value={type.value}
+                          disabled={type.disabled}
+                        >
+                          {type.emoji} {type.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="select-arrow">⌄</div>
                   </div>
-                )}
-              </div>
 
-              {/* Input Group 2: กรอกรายละเอียดปัญหา */}
-              <div className="input-group">
-                <label className="input-label">
-                  <span className="label-text">รายละเอียด</span>
-                  <span className="required-dot">*</span>
-                </label>
-                
-                <div className="textarea-wrapper">
-                  <textarea
-                    value={detail}
-                    onChange={handleDetailChange}
-                    placeholder="อธิบายปัญหาที่พบ หรือข้อเสนอแนะ...&#10;&#10;💭 ตัวอย่าง:&#10;• เมื่อไหร่ที่เกิดปัญหา&#10;• ขั้นตอนที่ทำก่อนเกิดปัญหา&#10;• ผลที่เกิดขึ้น&#10;• ข้อความ error (ถ้ามี)"
-                    className="detail-input"
-                    maxLength={MAX_DETAIL_LENGTH}
-                    rows="7"
-                    required
-                  />
-                  
-                  {/* Footer ของ textarea: เทคนิคการเขียน + ตัวนับจำนวนตัวอักษร */}
-                  <div className="input-footer">
-                    <div className="writing-tips">
-                      <span className="tip-icon">💡</span>
-                      <span>เขียนรายละเอียดให้ชัดเจนจะช่วยให้เราแก้ไขได้เร็วขึ้น</span>
-                    </div>
-                    <div className="char-counter">
-                      <span className={detail.length >= MAX_DETAIL_LENGTH ? 'limit' : ''}>
-                        {detail.length}/{MAX_DETAIL_LENGTH}
+                  {/* แสดงคำอธิบายประเภทที่เลือก (ถ้ามีการเลือก) */}
+                  {category && (
+                    <div className="category-info">
+                      <span className="category-emoji">
+                        {problemTypes.find(t => t.value === category)?.emoji}
+                      </span>
+                      <span className="category-desc">
+                        {problemTypes.find(t => t.value === category)?.description}
                       </span>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Status Message - แสดงข้อความสำเร็จหรือ error */}
-              {message && (
-                <div className={`status-message ${message.includes("🎉") ? 'success' : 'error'}`}>
-                  <div className="message-content">
-                    <span className="message-text">{message}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Form Actions - ปุ่มยกเลิกและส่งรายงาน */}
-              <div className="form-actions">
-                <button 
-                  type="button" 
-                  className="cancel-btn" 
-                  onClick={handleBack}
-                >
-                  <span>✕</span>
-                  <span>ยกเลิก</span>
-                </button>
-                
-                <button 
-                  type="submit" 
-                  className="submit-btn"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="loading-spinner"></div>
-                      <span>กำลังส่ง...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>🚀</span>
-                      <span>ส่งรายงาน</span>
-                    </>
                   )}
-                </button>
-              </div>
+                </div>
+
+                {/* Input Group 2: กรอกรายละเอียดปัญหา */}
+                <div className="input-group">
+                  <label className="input-label">
+                    <span className="label-text">รายละเอียด</span>
+                    <span className="required-dot">*</span>
+                  </label>
+
+                  <div className="textarea-wrapper">
+                    <textarea
+                      value={detail}
+                      onChange={handleDetailChange}
+                      placeholder="อธิบายปัญหาที่พบ หรือข้อเสนอแนะ...&#10;&#10;💭 ตัวอย่าง:&#10;• เมื่อไหร่ที่เกิดปัญหา&#10;• ขั้นตอนที่ทำก่อนเกิดปัญหา&#10;• ผลที่เกิดขึ้น&#10;• ข้อความ error (ถ้ามี)"
+                      className="detail-input"
+                      maxLength={MAX_DETAIL_LENGTH}
+                      rows="7"
+                      required
+                    />
+
+                    {/* Footer ของ textarea: เทคนิคการเขียน + ตัวนับจำนวนตัวอักษร */}
+                    <div className="input-footer">
+                      <div className="writing-tips">
+                        <span className="tip-icon">💡</span>
+                        <span>เขียนรายละเอียดให้ชัดเจนจะช่วยให้เราแก้ไขได้เร็วขึ้น</span>
+                      </div>
+                      <div className="char-counter">
+                        <span className={detail.length >= MAX_DETAIL_LENGTH ? 'limit' : ''}>
+                          {detail.length}/{MAX_DETAIL_LENGTH}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Message - แสดงข้อความสำเร็จหรือ error */}
+                {message && (
+                  <div className={`status-message ${message.includes("🎉") ? 'success' : 'error'}`}>
+                    <div className="message-content">
+                      <span className="message-text">{message}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Form Actions - ปุ่มยกเลิกและส่งรายงาน */}
+                <div className="form-actions">
+                  <button
+                    type="button"
+                    className="cancel-btn"
+                    onClick={handleBack}
+                  >
+                    <span>✕</span>
+                    <span>ยกเลิก</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="submit-btn"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <div className="loading-spinner"></div>
+                        <span>กำลังส่ง...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>🚀</span>
+                        <span>ส่งรายงาน</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
 
               {/* Side Panel - แสดงเทคนิคการรายงานและช่องทางติดต่อ */}

@@ -4,16 +4,16 @@ import React, { useState, useEffect } from "react";
 // นำเข้า hooks สำหรับการนำทาง (routing)
 import { useLocation, useNavigate } from "react-router-dom";
 // นำเข้า URL ของ Backend API (User และ Admin)
-import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
+import API_BASE_URL, { ADMIN_API_URL } from "../config/apiConfig";
 // นำเข้าฟังก์ชันสำหรับเพิ่มหมายเลขคิว (Queue Number)
-import { incrementQueueNumber } from "./utils";
+import { incrementQueueNumber } from "../utils";
 // นำเข้า CSS สำหรับ styling
 import "./Upload.css";
 // นำเข้า logo ของ social media ต่างๆ
-import igLogo from "./data-icon/ig-logo.png";
-import fbLogo from "./data-icon/facebook-logo.png";
-import lineLogo from "./data-icon/line-logo.png";
-import tiktokLogo from "./data-icon/tiktok-logo.png";
+import igLogo from "../data-icon/ig-logo.png";
+import fbLogo from "../data-icon/facebook-logo.png";
+import lineLogo from "../data-icon/line-logo.png";
+import tiktokLogo from "../data-icon/tiktok-logo.png";
 
 // ==================== COMPONENT MAIN ====================
 function Upload() {
@@ -304,10 +304,12 @@ function Upload() {
         if (avatar) formData.append("avatar", avatar);         // Avatar URL
 
         try {
+          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Uploading FREE item with type:", actualType, "to Admin backend");
           // ส่งไปยัง Admin Backend
           const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
+            headers: { "x-shop-id": shopId },
             body: formData,
           });
 
@@ -341,8 +343,9 @@ function Upload() {
             localStorage.removeItem("uploadFormDraft");
             localStorage.removeItem("uploadFormImage");
 
-            setShowPreviewModal(false);
-            navigate("/home");  // กลับไปหน้าหลัก
+            alert("✅ อัปโหลดสำเร็จ!");
+            const shopIdParam = localStorage.getItem("shopId") || "";
+            navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);  // กลับไปหน้าหลัก
           } else {
             const errText = await response.text();
             console.error("[Upload] Upload failed:", response.status, errText);
@@ -375,10 +378,12 @@ function Upload() {
           formData.append("socialType", selectedSocial || "");
           formData.append("socialName", socialName || "");
 
+          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Sending file to backend...");
           // ส่งไฟล์ไปยัง User Backend เพื่อเก็บชั่วคราว
           const response = await fetch(`${API_BASE_URL}/api/upload`, {
             method: "POST",
+            headers: { "x-shop-id": shopId },
             body: formData
           });
 
@@ -401,7 +406,8 @@ function Upload() {
             price: price || "1",
             sender,
             userId,
-            email
+            email,
+            avatar  // ✅ ส่ง avatar ไปด้วยเพื่อให้ ranking record มีรูป
           };
 
           localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));
@@ -412,9 +418,13 @@ function Upload() {
           // ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
           if (Number(price) === 0) {
             try {
+              const shopId = localStorage.getItem("shopId") || "";
               const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-shop-id": shopId
+                },
                 body: JSON.stringify({
                   uploadId: data.uploadId,
                   userId,
@@ -451,7 +461,8 @@ function Upload() {
               localStorage.removeItem("uploadFormDraft");
               localStorage.removeItem("uploadFormImage");
 
-              navigate("/home");
+              const shopIdParam = localStorage.getItem("shopId") || "";
+              navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);
               return;
             } catch (confirmError) {
               console.error('[Upload] Free order confirmation error:', confirmError);
@@ -511,9 +522,13 @@ function Upload() {
         };
 
         try {
+          const shopId = localStorage.getItem("shopId") || "";
           const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-shop-id": shopId
+            },
             body: JSON.stringify(payload)
           });
 
@@ -542,7 +557,8 @@ function Upload() {
             localStorage.removeItem("uploadFormDraft");
 
             setShowPreviewModal(false);
-            navigate("/home");
+            const shopIdParam = localStorage.getItem("shopId") || "";
+            navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);
           } else {
             throw new Error('Failed to upload');
           }
@@ -569,9 +585,11 @@ function Upload() {
           formData.append("email", email || "");
           formData.append("avatar", avatar || "");
 
+          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Sending text data to backend...");
           const response = await fetch(`${API_BASE_URL}/api/upload`, {
             method: "POST",
+            headers: { "x-shop-id": shopId },
             body: formData
           });
 
@@ -596,7 +614,7 @@ function Upload() {
             sender,
             userId,
             email,
-            avatar
+            avatar  // ✅ ส่ง avatar ไปด้วยเพื่อให้ ranking record มีรูป
           };
 
           localStorage.setItem("pendingUploadData", JSON.stringify(uploadData));

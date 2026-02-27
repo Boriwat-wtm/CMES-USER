@@ -8,10 +8,15 @@ export const GOOGLE_CONFIG = {
   
   // These should match your Google Cloud Console settings
   redirectUris: [
+    // ===== LOCAL DEVELOPMENT =====
+    "http://localhost:3000",              // Admin Frontend
+    "http://localhost:3001",              // User Frontend
+    "http://localhost:3001/auth/callback",
+    
+    // ===== PRODUCTION =====
     "https://cmesadminfrontend.vercel.app/",
     "https://cmesuserfrontend.vercel.app/",
     "https://cmes-user.onrender.com",
-    // Add production URLs here later
   ],
 };
 

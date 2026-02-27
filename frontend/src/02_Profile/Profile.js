@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
-import API_BASE_URL from "./config/apiConfig";
+import API_BASE_URL from "../config/apiConfig";
 
 // Custom Modal Component
 const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm, showCancel = false, confirmText = "ตรวจสอบ", cancelText = "ยกเลิก" }) => {
@@ -23,8 +23,8 @@ const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm
               {cancelText}
             </button>
           )}
-          <button 
-            className="modal-btn confirm-btn" 
+          <button
+            className="modal-btn confirm-btn"
             onClick={() => {
               if (onConfirm) onConfirm();
               else onClose();
@@ -40,7 +40,7 @@ const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm
 
 function Profile() {
   const navigate = useNavigate();
-  
+
   // ========================
   // State Management
   // ========================
@@ -66,7 +66,7 @@ function Profile() {
   const [canEditBirthday, setCanEditBirthday] = useState(true); // สามารถแก้ไขวันเกิดได้หรือไม่
 
   const [selectedFile, setSelectedFile] = useState(null); // เก็บ raw file สำหรับอัพโหลด
-  
+
   // Modal states - สถานะสำหรับควบคุม modal
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -115,7 +115,7 @@ function Profile() {
     const d1 = new Date(s);
     if (!isNaN(d1.getTime())) return d1;
     // try dd/mm/yyyy or dd-mm-yyyy
-    const m = s.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    const m = s.match(/^(\d{2})[/-](\d{2})[/-](\d{4})$/);
     if (m) {
       const day = parseInt(m[1], 10);
       const month = parseInt(m[2], 10) - 1;
@@ -135,7 +135,7 @@ function Profile() {
   useEffect(() => {
     const loadUserData = async () => {
       const token = localStorage.getItem("token");
-      
+
       if (token) {
         try {
           // ดึงข้อมูลจาก backend API
@@ -159,14 +159,14 @@ function Profile() {
               };
               setUser(userData);
               setTempUser(userData);
-              
+
               // อัพเดท localStorage
               localStorage.setItem("username", userData.username);
               localStorage.setItem("email", userData.email);
               if (userData.avatar) localStorage.setItem("avatar", userData.avatar);
               if (userData.birthday) localStorage.setItem("birthday", userData.birthday);
               if (userData.lastBirthdayEdit) localStorage.setItem("lastBirthdayEdit", userData.lastBirthdayEdit);
-              
+
               // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
               localStorage.setItem("user", JSON.stringify({
                 id: data.user._id || data.user.id,
@@ -175,7 +175,7 @@ function Profile() {
                 avatar: userData.avatar || null,
                 birthday: userData.birthday || ""
               }));
-              
+
               return;
             }
           }
@@ -183,7 +183,7 @@ function Profile() {
           console.error("[Profile] Error loading user data from backend:", error);
         }
       }
-      
+
       // ถ้าไม่มี token หรือโหลดจาก backend ไม่สำเร็จ => ใช้ข้อมูลจาก localStorage
       const userData = {
         username: localStorage.getItem("username") || "User",
@@ -468,7 +468,7 @@ function Profile() {
         });
 
         const data = await response.json();
-        
+
         if (!response.ok) {
           // จัดการกรณีที่ backend ตอบกลับด้วย error
           showModal({
@@ -477,17 +477,17 @@ function Profile() {
             type: "error",
             confirmText: "รับทราบ"
           });
-          
+
           // ย้อนค่ากลับเป็นค่าเดิม
           setTempUser({ ...user });
           setSelectedFile(null);
           setPreviewUrl(user.avatar);
           return;
         }
-        
+
         if (data.success) {
           console.log("[Profile] Profile updated on backend");
-          
+
           // อัปเดตข้อมูลจาก response ของ backend
           const updatedUserData = {
             username: data.user.username || newUser.username,
@@ -496,11 +496,11 @@ function Profile() {
             birthday: data.user.birthday || newUser.birthday,
             lastBirthdayEdit: data.user.lastBirthdayEdit || data.user.lastBirthdayUpdate || newUser.lastBirthdayEdit
           };
-          
+
           // อัปเดต state
           setUser(updatedUserData);
           setTempUser(updatedUserData);
-          
+
           // อัพเดท localStorage เพื่อเก็บข้อมูลลงถาวร
           localStorage.setItem("username", updatedUserData.username);
           localStorage.setItem("email", updatedUserData.email);
@@ -513,7 +513,7 @@ function Profile() {
           if (updatedUserData.lastBirthdayEdit) {
             localStorage.setItem("lastBirthdayEdit", updatedUserData.lastBirthdayEdit);
           }
-          
+
           // เก็บ user object ทั้งหมดลง localStorage สำหรับใช้ใน Payment.js และ Gift.js
           localStorage.setItem("user", JSON.stringify({
             id: updatedUserData._id || updatedUserData.id,
@@ -526,9 +526,10 @@ function Profile() {
           // ล้างข้อมูลชั่วคราว
           setSelectedFile(null);
           setPreviewUrl(null); // Clear preview since we saved
-          
+
           // ไปหน้าหลัก (ไม่แจ้งเตือน popup เพราะจะรบกวนผู้ใช้)
-          navigate("/home");
+          const shopIdVal = localStorage.getItem("shopId") || "";
+          navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`);
         } else {
           console.error("[Profile] Failed to update profile on backend:", data.message);
           showModal({
@@ -555,7 +556,10 @@ function Profile() {
   /**
    * กลับไปหน้าหลัก (Home)
    */
-  const handleGoBack = () => navigate("/home");
+  const handleGoBack = () => {
+    const shopIdVal = localStorage.getItem("shopId") || "";
+    navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`);
+  };
 
   // ========================
   // Render Component
@@ -625,13 +629,13 @@ function Profile() {
 
               <div className="info-group">
                 <label>อีเมล</label>
-                <input 
-                  name="email" 
-                  value={tempUser.email} 
-                  onChange={handleInputChange} 
-                  className="profile-input disabled" 
-                  placeholder="กรุณาใส่อีเมล" 
-                  disabled 
+                <input
+                  name="email"
+                  value={tempUser.email}
+                  onChange={handleInputChange}
+                  className="profile-input disabled"
+                  placeholder="กรุณาใส่อีเมล"
+                  disabled
                   readOnly
                 />
               </div>

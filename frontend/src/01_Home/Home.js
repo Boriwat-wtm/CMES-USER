@@ -3,14 +3,14 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 // นำเข้า routing tools สำหรับการนำทางและลิงก์
 import { useNavigate, Link } from "react-router-dom";
 // นำเข้า API base URL สำหรับเชื่อมต่อกับ backend
-import API_BASE_URL from "./config/apiConfig";
+import API_BASE_URL, { ADMIN_API_URL } from "../config/apiConfig";
 // นำเข้า socket.io สำหรับการสื่อสาร realtime
 import { io } from "socket.io-client";
 // นำเข้า CSS styles
 import "./Home.css";
-import "./Report.css";
+import "../07_Report/Report.css";
 // นำเข้าไอคอนสำหรับผู้ใช้ที่ไม่มีรูปโปรไฟล์
-import unknownPersonIcon from "./data-icon/unknown-person-icon.png";
+import unknownPersonIcon from "../data-icon/unknown-person-icon.png";
 
 // สไตล์สำหรับแสดงข้อความประกาศพิเศษ (เช่น ระบบปิดบริการชั่วคราว)
 const NOTICE_STYLE = {
@@ -48,15 +48,18 @@ function Home() {
   // ===== Navigation & Refs =====
   const navigate = useNavigate(); // สำหรับนำทางไปหน้าอื่น
   const profileMenuRef = useRef(null); // ref สำหรับเมนูโปรไฟล์ (ใช้ detect click outside)
-  
+
   // ===== Modal States =====
   const [showModal, setShowModal] = useState(false); // แสดง/ซ่อน modal สถานะคำสั่งซื้อ
   const [showPerkModal, setShowPerkModal] = useState(false); // แสดง/ซ่อน modal สิทธิพิเศษ
   const [showProfileMenu, setShowProfileMenu] = useState(false); // แสดง/ซ่อน เมนูโปรไฟล์
-  
+
   // ===== Order States =====
   const [orders, setOrders] = useState([]); // เก็บรายการคำสั่งซื้อทั้งหมด
   const [ordersStatus, setOrdersStatus] = useState({}); // เก็บสถานะของแต่ละคำสั่งซื้อ (Map: orderId -> statusObj)
+
+  // ===== Shop Profile States =====
+  const [shopProfile, setShopProfile] = useState({ name: "Digital Signage CMES", logo: null }); // ข้อมูลร้านค้าจาก Backend
 
   // ===== User & UI States =====
   const [statusLoading, setStatusLoading] = useState(false); // สถานะการโหลดข้อมูลคำสั่งซื้อ
@@ -64,7 +67,7 @@ function Home() {
   const [profileImage, setProfileImage] = useState(null); // รูปโปรไฟล์ของผู้ใช้
   const [alertMessage, setAlertMessage] = useState(""); // ข้อความแจ้งเตือนชั่วคราว
   const [isBirthday, setIsBirthday] = useState(null); // เช็คว่าวันนี้เป็นวันเกิดของผู้ใช้หรือไม่
-  
+
   // ===== System Status States =====
   // สถานะการเปิด/ปิด ฟีเจอร์ต่างๆ ของระบบ
   const [status, setStatus] = useState({
@@ -87,7 +90,7 @@ function Home() {
     required: 100, // จำนวนเงินที่ต้องใช้เพื่อปลดล็อก
     reason: "not_checked" // เหตุผล
   });
-  
+
   // ===== Premium Perks States =====
   const [perks, setPerks] = useState([
     "🎁 แสดงชื่อและโปรไฟล์บนหน้าจออันดับผู้สนับสนุน",
@@ -95,7 +98,7 @@ function Home() {
     "🚀 สิทธิ์เข้าถึงโปรโมชั่นหรือกิจกรรมก่อนใคร",
     "💬 ช่องทางติดต่อพิเศษสำหรับเคสเร่งด่วน"
   ]); // สิทธิพิเศษสำหรับสมาชิกพรีเมี่ยม (ดึงจาก Admin)
-  
+
   // ===== Socket.IO Ref =====
   const socketRef = useRef(null); // ref สำหรับ socket connection
 
@@ -165,8 +168,10 @@ function Home() {
   // ===== ฟังก์ชันโหลด Leaderboard จาก Admin Backend =====
   const loadRankings = useCallback(() => {
     setRankLoading(true);
-    // ดึงข้อมูลอันดับตามประเภทที่เลือก (daily/monthly/alltime)
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/rankings/top?type=${rankingType}`)
+    const shopId = localStorage.getItem("shopId") || "";
+    fetch(`${ADMIN_API_URL}/api/rankings/top?type=${rankingType}`, {
+      headers: { "x-shop-id": shopId }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (!data.success) {
@@ -188,7 +193,7 @@ function Home() {
       if (val && val !== "null" && val !== "undefined") return val;
       return null;
     };
-    
+
     // เช็คสถานะการล็อกอิน
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
@@ -218,7 +223,7 @@ function Home() {
               localStorage.removeItem("avatar");
               setProfileImage(null);
             }
-            
+
             // เก็บ user object ทั้งหมดสำหรับใช้ในหน้าอื่น เช่น Payment.js และ Gift.js
             localStorage.setItem("user", JSON.stringify({
               id: data.user._id || data.user.id,
@@ -235,12 +240,37 @@ function Home() {
     };
     fetchUserProfile();
 
+    // ฟังก์ชันดึงข้อมุลร้านค้า (Profile)
+    const fetchShopProfile = async () => {
+      try {
+        const shopId = localStorage.getItem("shopId") || "";
+        const response = await fetch(`${ADMIN_API_URL}/api/shop/profile`, {
+          headers: { "x-shop-id": shopId }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.shop) {
+            setShopProfile({
+              name: data.shop.name || "Digital Signage CMES",
+              logo: data.shop.logo || null
+            });
+          }
+        }
+      } catch (error) {
+        console.error("[Home] ❌ Error fetching shop profile:", error);
+      }
+    };
+    fetchShopProfile();
+
     // ฟังก์ชันดึงรายการสิทธิพิเศษ (perks) จาก Admin Backend
     const fetchPerks = async () => {
       try {
-        const API_URL = process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com';
+        const API_URL = ADMIN_API_URL;
         console.log("[Home] 📥 Fetching perks from:", `${API_URL}/api/config/perks`);
-        const response = await fetch(`${API_URL}/api/config/perks`);
+        const shopId = localStorage.getItem("shopId") || "";
+        const response = await fetch(`${API_URL}/api/config/perks`, {
+          headers: { "x-shop-id": shopId }
+        });
         if (response.ok) {
           const data = await response.json();
           console.log("[Home] 📦 Perks fetched:", data);
@@ -288,7 +318,8 @@ function Home() {
   useEffect(() => {
     // เชื่อมต่อกับ Realtime Server จาก Admin Backend
     const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "https://cmes-admin-realtime.onrender.com";
-    const socketInstance = io(REALTIME_URL);
+    const shopId = localStorage.getItem("shopId") || "";
+    const socketInstance = io(REALTIME_URL, { query: { shopId } });
     socketRef.current = socketInstance;
 
     // รับฟังการอัปเดตการตั้งค่าระบบจาก Admin
@@ -338,9 +369,10 @@ function Home() {
 
     // ขอข้อมูลการตั้งค่าเริ่มต้นจาก server
     socketInstance.emit("getConfig");
-    
+
     // Cleanup: ตัดการเชื่อมต่อเมื่อ component unmount
     return () => socketInstance.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ===== useEffect: ดึงสถานะระบบล่าสุดจาก backend เมื่อเข้าหน้า Home =====
@@ -490,7 +522,7 @@ function Home() {
   const handleCloseModal = () => {
     setShowModal(false);
   };
-  
+
   // ออกจากระบบ (ล้าง localStorage และ reload หน้า)
   const handleLogout = () => {
     localStorage.clear();
@@ -523,11 +555,8 @@ function Home() {
     if (isBirthday) navigate("/select?type=birthday");
   };
 
-  // คำนวณยอดรวมของ leaderboard (ใช้ useMemo เพื่อป้องกันการคำนวณซ้ำ)
-  const weeklyTotal = useMemo(
-    () => leaderboard.reduce((sum, entry) => sum + Number(entry.points || 0), 0),
-    [leaderboard]
-  );
+  // weeklyTotal: สำรองไว้ใช้ในอนาคต (ยอดรวม leaderboard)
+  // const weeklyTotal = useMemo(() => leaderboard.reduce((sum, entry) => sum + Number(entry.points || 0), 0), [leaderboard]);
 
   // ฟังก์ชันสร้าง element ข้อความประกาศ
   const renderNotice = (message) => <div style={NOTICE_STYLE}>{message}</div>;
@@ -613,16 +642,32 @@ function Home() {
         <header className="home-header">
           {/* Logo และชื่อเว็บไซต์ */}
           <div className="header-brand">
-            <div className="brand-icon">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
+            <div
+              className="brand-icon"
+              style={shopProfile.logo ? {
+                borderRadius: '50%',
+                background: 'transparent',
+                padding: 0,
+                border: '2px solid rgba(255,255,255,0.5)',
+              } : {}}
+            >
+              {shopProfile.logo ? (
+                <img
+                  src={shopProfile.logo}
+                  alt="Shop Logo"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+              )}
             </div>
             <div className="brand-text">
-              <h1>Digital Signage CMES</h1>
-              <p>University of Phayao, Thailand</p>
+              <h1 style={{ fontSize: '1.2rem', marginBottom: '2px' }}>{shopProfile.name}</h1>
+              <p>Digital Signage System</p>
             </div>
           </div>
 

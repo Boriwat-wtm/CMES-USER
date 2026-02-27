@@ -3,12 +3,12 @@
 // ========================
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import API_BASE_URL, { ADMIN_API_URL } from "./config/apiConfig";
+import API_BASE_URL from "../config/apiConfig";
 import "./Payment.css";
-import promptpayLogo from "./data-icon/promptpay-logo.png";
-import paymentLogo from "./data-icon/payment-logo.jpg";
-import { incrementQueueNumber } from "./utils";
-import SlipUpload from "./SlipUpload";
+import promptpayLogo from "../data-icon/promptpay-logo.png";
+import paymentLogo from "../data-icon/payment-logo.jpg";
+import { incrementQueueNumber } from "../utils";
+import SlipUpload from "../06_Slip upload/SlipUpload";
 
 /**
  * Payment Component - หน้าชำระเงิน
@@ -21,7 +21,7 @@ import SlipUpload from "./SlipUpload";
 function Payment() {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // ดึงข้อมูลจาก URL query parameters
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type"); // ประเภท: "image", "text", "gift"
@@ -61,7 +61,10 @@ function Payment() {
     const fetchOrder = async () => {
       setIsLoadingOrder(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}`);
+        const shopId = localStorage.getItem("shopId") || "";
+        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}`, {
+          headers: { "x-shop-id": shopId }
+        });
         const data = await response.json();
         if (!response.ok || !data.success) {
           throw new Error(data.message || "โหลดรายละเอียดคำสั่งซื้อไม่สำเร็จ");
@@ -90,7 +93,7 @@ function Payment() {
     if (isProcessing) return;
     setIsProcessing(true);
     setErrorMessage("");
-    
+
     try {
       // ดึงข้อมูลผู้ใช้จาก localStorage เพื่อบันทึกข้อมูลผู้ชำระเงิน
       let userId = null;
@@ -120,17 +123,21 @@ function Payment() {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
         }
+        const shopId = localStorage.getItem("shopId") || "";
         // เรียก API เพื่อยืนยันคำสั่งซื้อของขวัญ
         const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}/confirm`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-shop-id": shopId
+          },
           body: JSON.stringify({ userId, email, avatar })
         });
         const data = await response.json();
         if (!response.ok || !data.success) {
           throw new Error(data.message || "ยืนยันคำสั่งซื้อไม่สำเร็จ");
         }
-        
+
         // สร้างหมายเลขคิวใหม่
         const currentQueueNumber = incrementQueueNumber();
         const newOrder = {
@@ -149,8 +156,8 @@ function Payment() {
         // เก็บ order ล่าสุดไว้ด้วย (สำหรับ backward compatibility)
         localStorage.setItem("order", JSON.stringify(newOrder));
         setGiftOrder(data.order);
-        
-      // === กรณีแสดงรูปภาพ/ข้อความ ===
+
+        // === กรณีแสดงรูปภาพ/ข้อความ ===
       } else {
         // ดึงข้อมูลการอัพโหลดที่เก็บไว้จาก Upload.js (มี uploadId)
         const savedData = localStorage.getItem("pendingUploadData");
@@ -168,11 +175,15 @@ function Payment() {
         }
 
         console.log("[Payment] Confirming payment for uploadId:", uploadId);
+        const shopId = localStorage.getItem("shopId") || "";
 
         // เรียก API เพื่อยืนยันการชำระเงิน
         const response = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-shop-id": shopId
+          },
           body: JSON.stringify({
             uploadId,
             userId: uploadData.userId,
@@ -218,7 +229,7 @@ function Payment() {
       setShowPopup(false);
       setShowSuccessModal(true);
       console.log("[Payment] after setShowSuccessModal ->", true);
-      
+
     } catch (err) {
       console.error("[Payment] Error:", err);
       setErrorMessage(`❌ ${err.message || "เกิดข้อผิดพลาดในการยืนยันการชำระเงิน"}`);
@@ -259,7 +270,7 @@ function Payment() {
 
   // คำนวณยอดเงินที่ต้องชำระ
   const amountToPay = isGift ? giftOrder?.totalPrice ?? price : price;
-  
+
   // ปิดใช้งานปุ่มชำระเงินถ้า:
   // - ยังไม่เลือกวิธีการชำระเงิน
   // - กำลังประมวลผล
@@ -471,7 +482,10 @@ function Payment() {
               <h3 style={{ marginBottom: 12 }}>ชำระเงินสำเร็จ</h3>
               <p style={{ marginBottom: 24 }}>ระบบได้รับข้อมูลแล้ว ขอบคุณค่ะ</p>
               <button
-                onClick={() => navigate("/home")}
+                onClick={() => {
+                  const shopId = localStorage.getItem("shopId") || "";
+                  navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);
+                }}
                 style={{
                   background: "#2563eb",
                   color: "#fff",

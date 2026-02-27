@@ -3,10 +3,10 @@
 // ========================
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
-import API_BASE_URL from "./config/apiConfig";
+
+import API_BASE_URL from "../config/apiConfig";
 import "./Register.css";
-import { getGoogleClientId, isGoogleConfigured } from "./config/googleConfig";
+import { getGoogleClientId, isGoogleConfigured } from "../config/googleConfig";
 
 /**
  * Register Component - หน้าลงทะเบียนและเข้าสู่ระบบ
@@ -25,17 +25,17 @@ function Register() {
     username: "",
     otp: "",
   });
-  
+
   // สถานะการแสดงผลและข้อความ
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // UI State
   const [showPassword, setShowPassword] = useState(false); // แสดง/ซ่อนรหัสผ่าน
   const [passwordStrength, setPasswordStrength] = useState(0); // ความแข็งแรงของรหัสผ่าน (0-5)
   const [activeTab, setActiveTab] = useState("register"); // แท็บที่เลือก: register หรือ login
-  
+
   // OTP State
   const [showOtpInput, setShowOtpInput] = useState(false); // แสดงช่องกรอก OTP
   const [otpCooldown, setOtpCooldown] = useState(0); // เวลานับถอยหลังก่อนส่ง OTP ใหม่
@@ -70,6 +70,7 @@ function Register() {
       }
     };
     document.body.appendChild(script);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -247,7 +248,8 @@ function Register() {
       localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ ลงทะเบียนสำเร็จ กำลังนำเข้าสู่ระบบ...");
-      setTimeout(() => navigate("/home"), 1500);
+      const shopIdVal = localStorage.getItem("shopId") || "";
+      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -301,7 +303,8 @@ function Register() {
       localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ เข้าสู่ระบบสำเร็จ...");
-      setTimeout(() => navigate("/home"), 1500);
+      const shopIdVal = localStorage.getItem("shopId") || "";
+      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -359,7 +362,8 @@ function Register() {
       localStorage.setItem("avatar", data.user.avatar || "");
 
       setSuccessMessage("✓ เข้าสู่ระบบด้วย Google สำเร็จ...");
-      setTimeout(() => navigate("/home"), 1500);
+      const shopIdVal = localStorage.getItem("shopId") || "";
+      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -371,6 +375,7 @@ function Register() {
    * เตรียม Google Sign-In button
    * ตรวจสอบว่า Google OAuth ถูก configure หรือยัง
    */
+  // eslint-disable-next-line no-unused-vars
   const handleGoogleLogin = async () => {
     if (!isGoogleConfigured()) {
       setErrorMessage(
@@ -643,9 +648,9 @@ function Register() {
               </div>
             </div>
 
-            <a href="#" className="forgot-password">
+            <button type="button" className="forgot-password" onClick={() => { }}>
               ลืมรหัสผ่าน?
-            </a>
+            </button>
 
             {errorMessage && <p className="error-message">{errorMessage}</p>}
             {successMessage && <p className="success-message">{successMessage}</p>}

@@ -56,7 +56,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-shop-id']
 }));
 
 
@@ -77,7 +77,12 @@ app.use(express.json());
 
 // ===== การเชื่อมต่อ MONGODB DATABASE =====
 // URI สำหรับเชื่อมต่อ MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:password@cluster0.mongodb.net/?retryWrites=true&w=majority";
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error("✗ MONGODB_URI is not defined in .env file");
+  process.exit(1);
+}
 
 // เชื่อมต่อกับ MongoDB database
 mongoose.connect(MONGODB_URI, { dbName: 'cmes-user' })
@@ -95,9 +100,9 @@ app.use("/api/auth", authRoutes);
 // ===== การตั้งค่า CLOUDINARY สำหรับจัดเก็บไฟล์บนคลาวด์ =====
 // ตั้งค่า Cloudinary API credentials
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dfcqbb9pt',
-  api_key: process.env.CLOUDINARY_API_KEY || '396185692714272',
-  api_secret: process.env.CLOUDINARY_API_SECRET // ⚠️ ต้องใส่ใน .env file เพื่อความปลอดภัย
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 console.log("✓ Cloudinary configured:", {
@@ -595,9 +600,15 @@ app.post("/api/upload", uploadFields, (req, res) => {
 app.post("/api/confirm-payment", async (req, res) => {
   try {
     const { uploadId, userId, email, avatar } = req.body;
+    // รับ shopId จาก header ที่ Frontend ส่งมา แล้วส่งต่อไปยัง Admin
+    const shopId = req.headers['x-shop-id'] || '';
 
     if (!uploadId) {
       return res.status(400).json({ success: false, message: 'Missing uploadId' });
+    }
+
+    if (!shopId) {
+      return res.status(400).json({ success: false, message: 'Missing shopId (x-shop-id header)' });
     }
 
     const uploadData = pendingUploads.get(uploadId);
@@ -636,11 +647,14 @@ app.post("/api/confirm-payment", async (req, res) => {
       console.log('[/api/confirm-payment] ✓ Sending QR Code URL:', uploadData.qrCodePath);
     }
 
-    // ส่งข้อมูลไปยัง Admin backend
+    // ส่งข้อมูลไปยัง Admin backend พร้อม x-shop-id header
     const response = await fetch(`${ADMIN_API_BASE}/api/upload`, {
       method: 'POST',
       body: formData,
-      headers: formData.getHeaders()
+      headers: {
+        ...formData.getHeaders(),
+        'x-shop-id': shopId  // ✅ ส่ง shopId ไปด้วยเพื่อผ่าน requireShopId middleware
+      }
     });
 
     if (response.ok) {
@@ -657,7 +671,9 @@ app.post("/api/confirm-payment", async (req, res) => {
         uploadId: adminUploadId // ส่ง uploadId จาก Admin กลับไปให้ Frontend
       });
     } else {
-      throw new Error('Failed to send to admin backend');
+      const errBody = await response.text();
+      console.error('[/api/confirm-payment] Admin returned error:', response.status, errBody);
+      throw new Error(`Admin backend error: ${response.status} ${errBody}`);
     }
 
   } catch (error) {
@@ -731,8 +747,8 @@ app.post("/send-otp", async (req, res) => {
     url: 'https://portal-otp.smsmkt.com/api/otp-send',
     headers: {
       "Content-Type": "application/json",
-      "api_key": "2607fce6276d1f68e8d543e953d76bc4",
-      "secret_key": "5yX5m9LcHVNks99i",
+      "api_key": process.env.SMS_API_KEY,
+      "secret_key": process.env.SMS_SECRET_KEY,
     },
     data: JSON.stringify({
       "project_key": "69a425bf4f",
@@ -781,8 +797,8 @@ app.post("/verify-otp", async (req, res) => {
     url: "https://portal-otp.smsmkt.com/api/otp-validate",
     headers: {
       "Content-Type": "application/json",
-      api_key: "2607fce6276d1f68e8d543e953d76bc4",
-      secret_key: "5yX5m9LcHVNks99i",
+      api_key: process.env.SMS_API_KEY,
+      secret_key: process.env.SMS_SECRET_KEY,
     },
     data: JSON.stringify(verifyData),
   };
@@ -945,6 +961,7 @@ app.get("/api/gifts/order/:orderId", (req, res) => {
 app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
   const { orderId } = req.params;
   const { userId, email, avatar } = req.body; // รับข้อมูล user จาก frontend
+  const shopId = req.headers['x-shop-id'] || ''; // รับ shopId จาก header เพื่อส่งต่อไปยัง Admin
 
   console.log("[Gift Order Confirm] orderId:", orderId);
   console.log("[Gift Order Confirm] userId:", userId);
@@ -980,7 +997,10 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
 
     const adminResponse = await fetch(`${ADMIN_API_BASE}/api/gifts/order`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-shop-id": shopId  // ✅ ส่ง shopId ไปด้วยเพื่อผ่าน requireShopId middleware
+      },
       body: JSON.stringify(payload)
     });
 
