@@ -530,7 +530,7 @@ const uploadFields = uploadGeneric.fields([
 app.post("/api/upload", uploadFields, (req, res) => {
   try {
     // ดึงข้อมูลจาก request body
-    const { text, type, time, price, sender, userId, email, avatar, textColor, socialType, socialName } = req.body;
+    const { text, type, time, price, sender, userId, email, avatar, textColor, socialColor, textLayout, socialType, socialName } = req.body;
     const uploadId = Date.now().toString();
 
     console.log('[/api/upload] Request received:', {
@@ -551,7 +551,9 @@ app.post("/api/upload", uploadFields, (req, res) => {
       userId: userId || 'guest',
       email: email || '',
       avatar: avatar || '',
-      textColor: textColor || 'white',
+      textColor: textColor || '#ffffff',
+      socialColor: socialColor || '#ffffff',
+      textLayout: textLayout || 'right',
       socialType: socialType || '',
       socialName: socialName || '',
       file: req.files?.file?.[0]?.filename || null,
@@ -611,7 +613,9 @@ app.post("/api/confirm-payment", async (req, res) => {
     formData.append('time', uploadData.time.toString());
     formData.append('price', uploadData.price.toString());
     formData.append('sender', uploadData.sender);
-    formData.append('textColor', uploadData.textColor || 'white');
+    formData.append('textColor', uploadData.textColor || '#ffffff');
+    formData.append('socialColor', uploadData.socialColor || '#ffffff');
+    formData.append('textLayout', uploadData.textLayout || 'right');
     formData.append('socialType', uploadData.socialType || '');
     formData.append('socialName', uploadData.socialName || '');
 
