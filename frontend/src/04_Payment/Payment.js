@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import API_BASE_URL from "../config/apiConfig";
+import { ADMIN_API_URL } from "../config/apiConfig";
 import "./Payment.css";
 import promptpayLogo from "../data-icon/promptpay-logo.png";
 import paymentLogo from "../data-icon/payment-logo.jpg";
@@ -40,6 +41,7 @@ function Payment() {
   const [showSuccessModal, setShowSuccessModal] = useState(false); // แสดง modal สำเร็จ
   const [giftOrder, setGiftOrder] = useState(null); // ข้อมูลคำสั่งซื้อของขวัญ
   const [isLoadingOrder, setIsLoadingOrder] = useState(isGift); // สถานะกำลังโหลดคำสั่งซื้อ
+  const [paymentQrImage, setPaymentQrImage] = useState(null); // ภาพ QR code ชำระเงินจาก Admin
 
   console.log("[Payment render] showSuccessModal =", showSuccessModal);
 
@@ -80,6 +82,27 @@ function Payment() {
 
     fetchOrder();
   }, [isGift, orderId]);
+
+  // ========================
+  // useEffect: โหลดภาพ QR Code ชำระเงินจาก Admin
+  // ========================
+  useEffect(() => {
+    const loadPaymentQr = async () => {
+      try {
+        const shopId = localStorage.getItem("shopId") || "";
+        const res = await fetch(`${ADMIN_API_URL}/api/config/payment-qr`, {
+          headers: { "x-shop-id": shopId }
+        });
+        const data = await res.json();
+        if (data.success && data.paymentQrUrl) {
+          setPaymentQrImage(data.paymentQrUrl);
+        }
+      } catch (error) {
+        console.error("[Payment] Failed to load payment QR:", error);
+      }
+    };
+    loadPaymentQr();
+  }, []);
 
   // ========================
   // Form Handlers
@@ -450,7 +473,7 @@ function Payment() {
               </div>
               <div className="modal-body">
                 <div className="qr-section">
-                  <img src={paymentLogo} alt="QR Code" className="qr-code" />
+                  <img src={paymentQrImage || paymentLogo} alt="QR Code" className="qr-code" />
                   <div className="amount-display">
                     <span className="amount-label">ยอดชำระ</span>
                     <span className="amount-value">{amountToPay === 0 ? 'ฟรี' : `฿${amountToPay}`}</span>
