@@ -115,7 +115,10 @@ function Home() {
       if (!ord.orderId) return;
       try {
         // เรียก API จาก Admin Backend เพื่อดึงสถานะล่าสุด
-        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}`);
+        const shopId = localStorage.getItem('shopId') || '';
+        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}`, {
+          headers: { 'x-shop-id': shopId }
+        });
         const data = await response.json();
         if (data.success) {
           newStatuses[ord.orderId] = data;
@@ -467,7 +470,10 @@ function Home() {
 
     // ดึงข้อมูลสิทธิ์จาก Admin Backend โดยใช้ email
     const encodedEmail = encodeURIComponent(email);
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}`)
+    const shopIdForBirthday = localStorage.getItem('shopId') || '';
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}`, {
+      headers: { 'x-shop-id': shopIdForBirthday }
+    })
       .then(res => res.json())
       .then(data => {
         if (data.success) {

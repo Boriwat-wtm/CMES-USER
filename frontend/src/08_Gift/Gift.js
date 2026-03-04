@@ -81,7 +81,10 @@ function Gift() {
 	useEffect(() => {
 		const checkGiftStatus = async () => {
 			try {
-				const response = await fetch(`${REALTIME_BASE}/api/status`);
+				const shopId = localStorage.getItem('shopId') || '';
+				const response = await fetch(`${REALTIME_BASE}/api/status`, {
+					headers: { 'x-shop-id': shopId }
+				});
 				if (!response.ok) throw new Error("CONFIG_ERROR");
 				const data = await response.json();
 				// ระบบต้องเปิดทั้ง systemOn และ enableGift

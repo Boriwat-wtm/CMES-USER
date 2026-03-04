@@ -329,8 +329,10 @@ function saveGiftOrders() {
 }
 
 // ฟังก์ชันดึงข้อมูลการตั้งค่าของขวัญจากฝั่ง Admin
-async function fetchGiftSettingsFromAdmin() {
-  const response = await fetch(`${ADMIN_API_BASE}/api/gifts/settings`);
+async function fetchGiftSettingsFromAdmin(shopId = '') {
+  const response = await fetch(`${ADMIN_API_BASE}/api/gifts/settings`, {
+    headers: { 'x-shop-id': shopId }
+  });
   if (!response.ok) {
     throw new Error("ไม่สามารถดึงข้อมูลสินค้าได้");
   }
@@ -878,7 +880,8 @@ server.listen(port, () => {
 // API ดึงรายการของขวัญทั้งหมด
 app.get("/api/gifts", async (req, res) => {
   try {
-    const settings = await fetchGiftSettingsFromAdmin();
+    const shopId = req.headers['x-shop-id'] || '';
+    const settings = await fetchGiftSettingsFromAdmin(shopId);
     res.json({ success: true, settings });
   } catch (error) {
     console.error("Fetch gift settings failed", error);
@@ -895,7 +898,8 @@ app.post("/api/gifts/order", async (req, res) => {
       return res.status(400).json({ success: false, message: "กรุณาเลือกรายการสินค้า" });
     }
 
-    const settings = await fetchGiftSettingsFromAdmin();
+    const shopId = req.headers['x-shop-id'] || '';
+    const settings = await fetchGiftSettingsFromAdmin(shopId);
     const maxTable = Number(settings.tableCount) || 0;
     const table = Number(tableNumber);
     if (!table || table < 1 || (maxTable && table > maxTable)) {
@@ -1027,8 +1031,11 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
 // ===== API ดึงข้อมูลอันดับผู้ใช้ชั้นนำ (Rankings) =====
 app.get("/api/rankings/top", async (req, res) => {
   try {
-    // ส่งต่อคำขอไปยังฝั่ง Admin
-    const response = await fetch(`${ADMIN_API_BASE}/api/rankings/top`);
+    // ส่งต่อคำขอไปยังฝั่ง Admin พร้อม x-shop-id
+    const shopId = req.headers['x-shop-id'] || '';
+    const response = await fetch(`${ADMIN_API_BASE}/api/rankings/top`, {
+      headers: { 'x-shop-id': shopId }
+    });
     if (!response.ok) {
       throw new Error("Failed to fetch rankings from admin");
     }

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Profile.css";
 import API_BASE_URL from "../config/apiConfig";
+import { handleUnauthorized } from "../authService";
 
 // Custom Modal Component
 const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm, showCancel = false, confirmText = "ตรวจสอบ", cancelText = "ยกเลิก" }) => {
@@ -146,6 +147,11 @@ function Profile() {
               "Content-Type": "application/json"
             }
           });
+
+          if (response.status === 401) {
+            handleUnauthorized();
+            return;
+          }
 
           if (response.ok) {
             const data = await response.json();
@@ -468,6 +474,11 @@ function Profile() {
         });
 
         const data = await response.json();
+
+        if (response.status === 401) {
+          handleUnauthorized();
+          return;
+        }
 
         if (!response.ok) {
           // จัดการกรณีที่ backend ตอบกลับด้วย error

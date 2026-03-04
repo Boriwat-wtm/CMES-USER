@@ -33,6 +33,15 @@ export const removeUser = () => {
   localStorage.removeItem("user");
 };
 
+// ===== Handle 401 Unauthorized =====
+export const handleUnauthorized = () => {
+  console.warn("[User] 401 Unauthorized — session expired, redirecting to login");
+  removeToken();
+  removeUser();
+  const shopId = getShopId();
+  window.location.href = shopId ? `/?shopId=${shopId}` : "/";
+};
+
 // ===== Authentication Calls =====
 export const registerUser = async (username, email, password) => {
   const shopId = getShopId();
@@ -116,6 +125,10 @@ export const getUserProfile = async () => {
     },
   });
   const data = await response.json();
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error("Session expired");
+  }
   if (!response.ok) {
     throw new Error(data.message || "Failed to get profile");
   }
@@ -139,6 +152,10 @@ export const updateUserProfile = async (updates) => {
     body: JSON.stringify(updates),
   });
   const data = await response.json();
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error("Session expired");
+  }
   if (!response.ok) {
     throw new Error(data.message || "Failed to update profile");
   }
@@ -165,6 +182,10 @@ export const apiCall = async (endpoint, options = {}) => {
   });
 
   const data = await response.json();
+  if (response.status === 401) {
+    handleUnauthorized();
+    throw new Error("Session expired");
+  }
   if (!response.ok) {
     throw new Error(data.message || "API call failed");
   }
