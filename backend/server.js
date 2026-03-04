@@ -893,7 +893,7 @@ app.get("/api/gifts", async (req, res) => {
 app.post("/api/gifts/order", async (req, res) => {
   try {
     // ดึงข้อมูลคำสั่งซื้อจาก request body
-    const { items, tableNumber, note, senderName } = req.body;
+    const { items, tableNumber, note, senderName, senderPhone } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, message: "กรุณาเลือกรายการสินค้า" });
     }
@@ -934,6 +934,7 @@ app.post("/api/gifts/order", async (req, res) => {
     const order = {
       id: `gift-${Date.now()}`,
       senderName: senderName?.trim() || "Guest",
+      senderPhone: senderPhone?.trim() || null,
       tableNumber: table,
       note: note ? note.trim() : "",
       items: validItems,
@@ -988,6 +989,7 @@ app.post("/api/gifts/order/:orderId/confirm", async (req, res) => {
     const payload = {
       orderId: order.id,
       sender: order.senderName,
+      senderPhone: order.senderPhone || null,
       userId: userId || null,
       email: email || null,
       avatar: avatar || null,

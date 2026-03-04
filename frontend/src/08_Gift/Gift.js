@@ -39,6 +39,7 @@ function Gift() {
 	const [tableNumber, setTableNumber] = useState(""); // เลขโต๊ะปลายทาง
 	const [note, setNote] = useState(""); // ข้อความถึงผู้รับ
 	const [senderName, setSenderName] = useState(""); // ชื่อผู้ส่ง
+	const [senderPhone, setSenderPhone] = useState(""); // เบอร์โทรผู้ส่ง
 
 	// State สำหรับการจัดการ UI
 	const [loading, setLoading] = useState(true); // สถานะโหลดข้อมูล
@@ -231,7 +232,8 @@ function Gift() {
 					image: item.image,
 					quantity: item.quantity
 				})),
-				avatar: userAvatar || null
+				avatar: userAvatar || null,
+				senderPhone: senderPhone.trim() || null
 			};
 
 			// ส่งคำสั่งซื้อไปยัง backend
@@ -445,6 +447,16 @@ function Gift() {
 						{tableLimit > 0 && (
 							<small className="helper-text">รองรับสูงสุด {tableLimit} โต๊ะ</small>
 						)}
+
+						<label className="input-label">เบอร์โทรผู้ส่ง (สำหรับติดต่อกลับ)</label>
+						<input
+							type="tel"
+							className="input-field"
+							placeholder="0XX-XXX-XXXX"
+							value={senderPhone}
+							onChange={(e) => setSenderPhone(e.target.value)}
+							maxLength={10}
+						/>
 
 						<label className="input-label">ข้อความถึงโต๊ะ</label>
 						<textarea
