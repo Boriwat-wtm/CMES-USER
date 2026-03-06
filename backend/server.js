@@ -18,7 +18,7 @@ import http from "http";
 import { Server as SocketIoServer } from "socket.io";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth-mongodb.js";
-import Report from "./models/Report.js";
+// import Report from "./models/Report.js";  // ลบแล้ว — ไม่ save ลง cmes-user.reports อีกต่อไป
 import { optionalAuth } from "./middleware/authMiddleware.js";
 import { v2 as cloudinary } from 'cloudinary';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
@@ -340,6 +340,7 @@ async function fetchGiftSettingsFromAdmin(shopId = '') {
 }
 
 // API สำหรับส่งรายงานปัญหาหรือข้อเสนอแนะ (รองรับทั้งผู้ใช้ที่ล็อกอินและไม่ล็อกอิน)
+// ส่ง report ไปยัง Admin API โดยตรง (ไม่ save ลง cmes-user.reports อีกต่อไป)
 app.post("/api/report", optionalAuth, async (req, res) => {
   const { category, detail } = req.body;
   if (!category || !detail) {
@@ -347,50 +348,47 @@ app.post("/api/report", optionalAuth, async (req, res) => {
   }
 
   try {
-    // บันทึกลง MongoDB ก่อน (พร้อม userId ถ้ามี)
-    const reportData = {
-      category,
-      detail,
-      userId: req.userId || null,  // จาก optionalAuth middleware
-      status: "open"
-    };
+    const shopId = req.headers['x-shop-id'] || '';
 
-    const newReport = await Report.create(reportData);
-    console.log("✓ Report saved to MongoDB:", newReport._id);
+    // Debug logging สำหรับ production
+    console.log(`[Report] Forwarding to Admin API: ${ADMIN_API_BASE}/api/report`);
+    console.log(`[Report] shopId: "${shopId}", category: "${category}"`);
 
-    // พยายามส่งไป Admin API (แต่ไม่ให้ล้มถ้า Admin API มีปัญหา)
-    try {
-      const shopId = req.headers['x-shop-id'] || '';
-      const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-shop-id": shopId
-        },
-        body: JSON.stringify({ category, detail }),
-      });
-
-      if (adminRes.ok) {
-        console.log("✓ Report forwarded to Admin API");
-      } else {
-        console.warn("⚠ Admin API returned error, but report saved locally");
-      }
-    } catch (adminErr) {
-      console.warn("⚠ Failed to forward to Admin API, but report saved locally:", adminErr.message);
+    if (!shopId) {
+      console.warn("[Report] ⚠ shopId is empty! Report will use fallback shopId on Admin side.");
     }
 
-    // ส่ง response สำเร็จ (เพราะบันทึกลง MongoDB แล้ว)
+    // ส่ง report ไปยัง Admin API (primary action)
+    const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-shop-id": shopId
+      },
+      body: JSON.stringify({ category, detail }),
+    });
+
+    if (!adminRes.ok) {
+      const errBody = await adminRes.text();
+      console.error(`[Report] ✗ Admin API error: ${adminRes.status}`, errBody);
+      throw new Error(`Admin API returned ${adminRes.status}: ${errBody}`);
+    }
+
+    const adminData = await adminRes.json();
+    console.log("[Report] ✓ Report saved to Admin:", adminData);
+
+    // ส่ง response สำเร็จ
     res.json({
       status: "ok",
       message: "Report saved successfully",
-      reportId: newReport._id
+      reportId: adminData.reportId || null
     });
 
   } catch (err) {
-    console.error("✗ Failed to save report:", err);
+    console.error("[Report] ✗ Failed to save report:", err.message);
     res.status(500).json({
       status: "error",
-      message: "Failed to save report to database"
+      message: "Failed to save report"
     });
   }
 });
