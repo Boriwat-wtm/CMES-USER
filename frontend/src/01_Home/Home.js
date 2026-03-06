@@ -53,6 +53,8 @@ function Home() {
   const [showModal, setShowModal] = useState(false); // แสดง/ซ่อน modal สถานะคำสั่งซื้อ
   const [showPerkModal, setShowPerkModal] = useState(false); // แสดง/ซ่อน modal สิทธิพิเศษ
   const [showProfileMenu, setShowProfileMenu] = useState(false); // แสดง/ซ่อน เมนูโปรไฟล์
+  const [expandedOrderId, setExpandedOrderId] = useState(null); // order ที่กดดูเพิ่มเติม
+  const [deletingOrderId, setDeletingOrderId] = useState(null); // order ที่กำลังลบ
 
   // ===== Order States =====
   const [orders, setOrders] = useState([]); // เก็บรายการคำสั่งซื้อทั้งหมด
@@ -535,6 +537,74 @@ function Home() {
     setShowProfileMenu(false);
     navigate("/");
     window.location.reload();
+  };
+
+  // ลบรายการ order (ทุกสถานะ)
+  const handleDeleteOrder = async (orderId) => {
+    if (!orderId || deletingOrderId) return;
+    if (!window.confirm('ต้องการลบรายการนี้หรือไม่?')) return;
+    setDeletingOrderId(orderId);
+    try {
+      const stat = ordersStatus[orderId];
+      // pending: ลบจาก Admin Queue + localStorage
+      if (stat?.status === 'pending') {
+        const shopId = localStorage.getItem('shopId') || '';
+        try {
+          await fetch(`${ADMIN_API_URL}/api/user-delete-order/${orderId}`, {
+            method: 'DELETE',
+            headers: { 'x-shop-id': shopId }
+          });
+        } catch (e) {
+          console.warn('[Home] Admin delete failed (may already be processed):', e);
+        }
+      }
+      // ลบจาก localStorage ทุกสถานะ
+      const stored = JSON.parse(localStorage.getItem('orders') || '[]');
+      const filtered = stored.filter(o => o.orderId !== orderId);
+      localStorage.setItem('orders', JSON.stringify(filtered));
+      setOrders(prev => prev.filter(o => o.orderId !== orderId));
+      setOrdersStatus(prev => { const n = { ...prev }; delete n[orderId]; return n; });
+      setAlertMessage('✅ ลบรายการสำเร็จ');
+    } catch (err) {
+      console.error('[Home] Delete order error:', err);
+      setAlertMessage('❌ เกิดข้อผิดพลาดในการลบ');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  // ลบรายการทั้งหมด
+  const handleDeleteAllOrders = async () => {
+    if (!window.confirm(`ต้องการลบรายการทั้งหมด (${orders.length} รายการ) หรือไม่?`)) return;
+    setDeletingOrderId('all');
+    try {
+      const shopId = localStorage.getItem('shopId') || '';
+      // ลบ pending ออกจาก Admin Queue ด้วย
+      const pendingOrders = orders.filter(o => ordersStatus[o.orderId]?.status === 'pending');
+      await Promise.all(pendingOrders.map(o =>
+        fetch(`${ADMIN_API_URL}/api/user-delete-order/${o.orderId}`, {
+          method: 'DELETE',
+          headers: { 'x-shop-id': shopId }
+        }).catch(() => {}) // ignore errors
+      ));
+      // ล้าง localStorage ทั้งหมด
+      localStorage.setItem('orders', '[]');
+      localStorage.removeItem('order');
+      setOrders([]);
+      setOrdersStatus({});
+      setAlertMessage('✅ ลบรายการทั้งหมดสำเร็จ');
+    } catch (err) {
+      console.error('[Home] Delete all orders error:', err);
+      setAlertMessage('❌ เกิดข้อผิดพลาด');
+    } finally {
+      setDeletingOrderId(null);
+    }
+  };
+
+  // format เวลาแบบไทย (รวมวินาที)
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'medium' });
   };
   // จัดการคลิกการ์ดวันเกิด (ตรวจสอบเงื่อนไขต่างๆ ก่อนอนุญาต)
   const handleBirthdayCardClick = () => {
@@ -1155,14 +1225,30 @@ function Home() {
           <div className="modal-overlay" onClick={handleCloseModal}>
             <div className="modal-content status-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>รายละเอียดคำสั่งซื้อ</h3>
-                {/* ปุ่มปิด modal */}
-                <button className="close-button" onClick={handleCloseModal}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
+                <h3>รายละเอียดคำสั่งซื้อ ({orders.length})</h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {orders.length > 0 && (
+                    <button
+                      onClick={handleDeleteAllOrders}
+                      disabled={deletingOrderId === 'all'}
+                      style={{
+                        background: 'none', border: '1px solid #fecaca', borderRadius: '8px',
+                        color: '#ef4444', padding: '6px 12px', fontSize: '12px', fontWeight: '600',
+                        cursor: deletingOrderId === 'all' ? 'not-allowed' : 'pointer',
+                        opacity: deletingOrderId === 'all' ? 0.5 : 1, whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {deletingOrderId === 'all' ? 'กำลังลบ...' : '🗑️ ลบทั้งหมด'}
+                    </button>
+                  )}
+                  {/* ปุ่มปิด modal */}
+                  <button className="close-button" onClick={handleCloseModal}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div className="modal-body">
                 {statusLoading ? (
@@ -1173,116 +1259,221 @@ function Home() {
                   </div>
                 ) : orders.length > 0 ? (
                   /* รายการคำสั่งซื้อทั้งหมด */
-                  <div className="order-summary-list" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  <div className="order-summary-list" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {orders.map((ord, index) => {
                       const stat = ordersStatus[ord.orderId];
+                      const isExpanded = expandedOrderId === ord.orderId;
+                      const isPending = stat?.status === 'pending';
+                      const statusColor = stat?.status === 'rejected' ? '#ef4444' :
+                        stat?.status === 'pending' ? '#f59e0b' :
+                          stat?.status === 'playing' ? '#0ea5e9' :
+                            stat?.status === 'approved' ? '#3b82f6' :
+                              stat?.status === 'completed' ? '#10b981' : '#6b7280';
+                      const statusBg = stat?.status === 'rejected' ? '#fee2e2' :
+                        stat?.status === 'pending' ? '#fef3c7' :
+                          stat?.status === 'playing' ? '#e0f2fe' :
+                            stat?.status === 'approved' ? '#dbeafe' :
+                              stat?.status === 'completed' ? '#d1fae5' : '#f3f4f6';
+
                       return (
-                        <div key={ord.orderId || index} className="order-summary-card" style={{ borderBottom: index < orders.length - 1 ? '1px solid #e2e8f0' : 'none', paddingBottom: index < orders.length - 1 ? '24px' : '0' }}>
-                          <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#64748b' }}>รายการที่ {orders.length - index}</h4>
-
-                          {/* แสดงสถานะด้วยสีและไอคอนตามสถานะ (pending/approved/playing/completed/rejected) */}
-                          {stat && (
-                            <div className="summary-item" style={{
-                              background: stat.status === 'rejected' ? '#fee2e2' :
-                                stat.status === 'pending' ? '#fef3c7' :
-                                  stat.status === 'playing' ? '#e0f2fe' :
-                                    stat.status === 'approved' ? '#dbeafe' :
-                                      stat.status === 'completed' ? '#d1fae5' : '#f3f4f6',
-                              padding: '16px',
-                              borderRadius: '12px',
-                              marginBottom: '16px',
-                              borderLeft: `4px solid ${stat.status === 'rejected' ? '#ef4444' :
-                                stat.status === 'pending' ? '#f59e0b' :
-                                  stat.status === 'playing' ? '#0ea5e9' :
-                                    stat.status === 'approved' ? '#3b82f6' :
-                                      stat.status === 'completed' ? '#10b981' : '#6b7280'
-                                }`
-                            }}>
-                              <span className="item-label" style={{ fontWeight: '700', fontSize: '16px' }}>สถานะ:</span>
-                              <span className="item-value" style={{
-                                fontWeight: '700',
-                                fontSize: '16px',
-                                color: stat.status === 'rejected' ? '#ef4444' :
-                                  stat.status === 'pending' ? '#f59e0b' :
-                                    stat.status === 'playing' ? '#0ea5e9' :
-                                      stat.status === 'approved' ? '#3b82f6' :
-                                        stat.status === 'completed' ? '#10b981' : '#6b7280'
+                        <div key={ord.orderId || index} style={{ background: '#fff', borderRadius: '16px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                          {/* ===== ส่วน Compact (แสดงเสมอ) ===== */}
+                          <div style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                            onClick={() => setExpandedOrderId(isExpanded ? null : ord.orderId)}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>
+                                รายการที่ {orders.length - index} • {getOrderTypeLabel(ord.type)}
+                              </div>
+                              <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                ราคา: {ord.price === 0 ? 'ฟรี' : `฿${ord.price}`}
+                                {ord.type === 'gift' && ord.tableNumber ? ` • โต๊ะ #${ord.tableNumber}` : ''}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                background: statusBg, color: statusColor, padding: '5px 12px',
+                                borderRadius: '8px', fontSize: '12px', fontWeight: '700'
                               }}>
-                                {stat.statusText}
+                                {stat?.statusText || '...'}
                               </span>
+                              <span style={{ color: '#94a3b8', fontSize: '16px', transition: 'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
                             </div>
-                          )}
+                          </div>
 
-                          {/* แสดงตำแหน่งคิว (ถ้ามี) */}
-                          {stat?.order?.queuePosition && (
-                            <div className="summary-item">
-                              <span className="item-label">ตำแหน่งคิว:</span>
-                              <span className="item-value queue-highlight">#{stat.order.queuePosition} / {stat.order.totalQueue}</span>
-                            </div>
-                          )}
-
-                          {/* เวลาแสดงโดยประมาณ (ถ้ามี) */}
-                          {stat?.order?.waitingForApproval ? (
-                            <div className="summary-item">
-                              <span className="item-label">เวลาแสดงโดยประมาณ:</span>
-                              <span className="item-value" style={{ color: '#f59e0b', fontWeight: '600' }}>
-                                รอตรวจสอบ
-                              </span>
-                            </div>
-                          ) : stat?.status === 'playing' && stat?.order?.remainingSeconds !== undefined ? (
-                            <div className="summary-item">
-                              <span className="item-label">เวลาคงเหลือ:</span>
-                              <span className="item-value" style={{ color: '#0ea5e9', fontWeight: '600' }}>
-                                {stat.order.remainingSeconds} วินาที
-                              </span>
-                            </div>
-                          ) : (
-                            <>
-                              {stat?.order?.estimatedWaitSeconds !== undefined && (
-                                <div className="summary-item">
-                                  <span className="item-label">เวลารอประมาณ:</span>
-                                  <span className="item-value">{stat.order.estimatedWaitSeconds} วินาที</span>
+                          {/* ===== ส่วน Expanded (กดดูเพิ่มเติม) ===== */}
+                          {isExpanded && (
+                            <div style={{ borderTop: '1px solid #f1f5f9', padding: '16px', background: '#f8fafc' }}>
+                              {/* สถานะ */}
+                              {stat && (
+                                <div style={{
+                                  background: statusBg, padding: '12px 16px', borderRadius: '12px', marginBottom: '12px',
+                                  borderLeft: `4px solid ${statusColor}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                                }}>
+                                  <div>
+                                    <span style={{ fontWeight: '700', color: '#334155' }}>สถานะ: </span>
+                                    <span style={{ fontWeight: '700', color: statusColor }}>{stat.statusText}</span>
+                                  </div>
                                 </div>
                               )}
 
-                              {stat?.order?.estimatedStartTime && (
+                              {/* ตำแหน่งคิว */}
+                              {stat?.order?.queuePosition && (
+                                <div className="summary-item">
+                                  <span className="item-label">ตำแหน่งคิว:</span>
+                                  <span className="item-value queue-highlight">#{stat.order.queuePosition} / {stat.order.totalQueue}</span>
+                                </div>
+                              )}
+
+                              {/* เวลาแสดงโดยประมาณ */}
+                              {stat?.order?.waitingForApproval ? (
                                 <div className="summary-item">
                                   <span className="item-label">เวลาแสดงโดยประมาณ:</span>
-                                  <span className="item-value">
-                                    {new Date(stat.order.estimatedStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                                    {' - '}
-                                    {new Date(stat.order.estimatedEndTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
-                                  </span>
+                                  <span className="item-value" style={{ color: '#f59e0b', fontWeight: '600' }}>รอตรวจสอบ</span>
                                 </div>
-                              )}
-                            </>
-                          )}
-
-                          {/* ข้อมูลพื้นฐาน: ประเภท, ราคา, เลขโต๊ะ (สำหรับ Gift) */}
-                          <div className="summary-item">
-                            <span className="item-label">ประเภท:</span>
-                            <span className="item-value">{getOrderTypeLabel(ord.type, { includeEmoji: false })}</span>
-                          </div>
-                          {ord.type === "gift" ? (
-                            <>
-                              <div className="summary-item">
-                                <span className="item-label">โต๊ะ:</span>
-                                <span className="item-value">#{ord.tableNumber}</span>
-                              </div>
-                              {ord.giftItems && ord.giftItems.length > 0 && (
+                              ) : stat?.status === 'playing' && stat?.order?.remainingSeconds !== undefined ? (
                                 <div className="summary-item">
-                                  <span className="item-label">รายการ:</span>
-                                  <span className="item-value gift-items-value">
-                                    {ord.giftItems.map((item) => `${item.name} x${item.quantity}`).join(", ")}
+                                  <span className="item-label">เวลาคงเหลือ:</span>
+                                  <span className="item-value" style={{ color: '#0ea5e9', fontWeight: '600' }}>{stat.order.remainingSeconds} วินาที</span>
+                                </div>
+                              ) : (
+                                <>
+                                  {stat?.order?.estimatedWaitSeconds !== undefined && (
+                                    <div className="summary-item">
+                                      <span className="item-label">เวลารอประมาณ:</span>
+                                      <span className="item-value">{stat.order.estimatedWaitSeconds} วินาที</span>
+                                    </div>
+                                  )}
+                                  {stat?.order?.estimatedStartTime && (
+                                    <div className="summary-item">
+                                      <span className="item-label">เวลาแสดงโดยประมาณ:</span>
+                                      <span className="item-value">
+                                        {new Date(stat.order.estimatedStartTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
+                                        {' - '}
+                                        {new Date(stat.order.estimatedEndTime).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+
+                              {/* ประเภท */}
+                              <div className="summary-item">
+                                <span className="item-label">ประเภท:</span>
+                                <span className="item-value">{getOrderTypeLabel(ord.type, { includeEmoji: false })}</span>
+                              </div>
+
+                              {/* โซเชียล (สำหรับ image + text) */}
+                              {stat?.order?.socialType && stat?.order?.socialName && (
+                                <div className="summary-item">
+                                  <span className="item-label">โซเชียล:</span>
+                                  <span className="item-value" style={{ color: '#7c3aed' }}>
+                                    {stat.order.socialType === 'ig' ? '📷 IG' : stat.order.socialType === 'fb' ? '📘 FB' : stat.order.socialType === 'line' ? '💬 LINE' : stat.order.socialType === 'tiktok' ? '🎵 TikTok' : stat.order.socialType}
+                                    {' : '}{stat.order.socialName}
                                   </span>
                                 </div>
                               )}
-                            </>
-                          ) : null}
-                          <div className="summary-item">
-                            <span className="item-label">ราคา:</span>
-                            <span className="item-value price-highlight">{ord.price === 0 ? 'ฟรี' : `฿${ord.price}`}</span>
-                          </div>
+
+                              {/* ข้อความที่พิมพ์ (สำหรับ image + text) */}
+                              {(stat?.order?.text || stat?.order?.content) && (ord.type === 'image' || ord.type === 'text') && (
+                                <div className="summary-item">
+                                  <span className="item-label">ข้อความ:</span>
+                                  <span className="item-value" style={{ wordBreak: 'break-word' }}>
+                                    "{stat.order.text || stat.order.content}"
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* โน้ตเพิ่มเติม (สำหรับ gift) */}
+                              {stat?.order?.note && ord.type === 'gift' && (
+                                <div className="summary-item">
+                                  <span className="item-label">โน้ตเพิ่มเติม:</span>
+                                  <span className="item-value" style={{ fontStyle: 'italic', wordBreak: 'break-word' }}>
+                                    "{stat.order.note}"
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* ราคา */}
+                              <div className="summary-item">
+                                <span className="item-label">ราคา:</span>
+                                <span className="item-value price-highlight">{ord.price === 0 ? 'ฟรี' : `฿${ord.price}`}</span>
+                              </div>
+
+                              {/* ระยะเวลาแสดง */}
+                              {(stat?.order?.time || stat?.order?.duration || ord.time) && (
+                                <div className="summary-item">
+                                  <span className="item-label">ระยะเวลาแสดง:</span>
+                                  <span className="item-value">{stat?.order?.time || stat?.order?.duration || ord.time} วินาที</span>
+                                </div>
+                              )}
+
+                              {/* เวลาที่ส่ง */}
+                              {stat?.order?.receivedAt && (
+                                <div className="summary-item">
+                                  <span className="item-label">เวลาที่ส่ง:</span>
+                                  <span className="item-value">{formatDateTime(stat.order.receivedAt)}</span>
+                                </div>
+                              )}
+
+                              {/* เริ่มแสดง - จบการแสดง */}
+                              {stat?.order?.startedAt && (
+                                <div className="summary-item">
+                                  <span className="item-label">เริ่มแสดง:</span>
+                                  <span className="item-value">{formatDateTime(stat.order.startedAt)}</span>
+                                </div>
+                              )}
+                              {stat?.order?.endedAt && (
+                                <div className="summary-item">
+                                  <span className="item-label">จบการแสดง:</span>
+                                  <span className="item-value">{formatDateTime(stat.order.endedAt)}</span>
+                                </div>
+                              )}
+
+                              {/* Gift: โต๊ะ + รายการ */}
+                              {ord.type === "gift" && (
+                                <>
+                                  <div className="summary-item">
+                                    <span className="item-label">โต๊ะ:</span>
+                                    <span className="item-value">#{ord.tableNumber}</span>
+                                  </div>
+                                  {ord.giftItems && ord.giftItems.length > 0 && (
+                                    <div className="summary-item">
+                                      <span className="item-label">รายการ:</span>
+                                      <span className="item-value gift-items-value">
+                                        {ord.giftItems.map((item) => `${item.name} x${item.quantity}`).join(", ")}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+
+                              {/* รูปภาพที่อัปโหลด */}
+                              {stat?.order?.mediaUrl && (
+                                <div style={{ marginTop: '8px' }}>
+                                  <span className="item-label" style={{ display: 'block', marginBottom: '6px' }}>รูปภาพที่ส่ง:</span>
+                                  <img src={stat.order.mediaUrl} alt="อัปโหลด" style={{
+                                    width: '100%', maxHeight: '200px', objectFit: 'contain',
+                                    borderRadius: '10px', border: '1px solid #e2e8f0', background: '#fff'
+                                  }} />
+                                </div>
+                              )}
+
+                              {/* ปุ่มลบรายการ (ทุกสถานะ) */}
+                              <div style={{ display: 'flex', gap: '10px', marginTop: '14px' }}>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleDeleteOrder(ord.orderId); }}
+                                  disabled={deletingOrderId === ord.orderId}
+                                  style={{
+                                    flex: 1, padding: '10px', borderRadius: '10px', border: '1px solid #fecaca',
+                                    background: '#fff', color: '#ef4444', fontWeight: '600', fontSize: '14px',
+                                    cursor: deletingOrderId === ord.orderId ? 'not-allowed' : 'pointer', opacity: deletingOrderId === ord.orderId ? 0.5 : 1
+                                  }}
+                                >
+                                  {deletingOrderId === ord.orderId ? 'กำลังลบ...' : '🗑️ ลบรายการ'}
+                                </button>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
