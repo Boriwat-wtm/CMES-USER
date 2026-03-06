@@ -360,9 +360,13 @@ app.post("/api/report", optionalAuth, async (req, res) => {
 
     // พยายามส่งไป Admin API (แต่ไม่ให้ล้มถ้า Admin API มีปัญหา)
     try {
+      const shopId = req.headers['x-shop-id'] || '';
       const adminRes = await fetch(`${ADMIN_API_BASE}/api/report`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-shop-id": shopId
+        },
         body: JSON.stringify({ category, detail }),
       });
 
