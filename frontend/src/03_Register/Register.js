@@ -248,9 +248,13 @@ function Register() {
       localStorage.setItem("birthday", data.user.birthday || "");
       localStorage.setItem("avatar", data.user.avatar || "");
 
+      // บันทึก shopId: URL param (QR code ปัจจุบัน) มาก่อนเสมอ
+      // ไม่ใช้จาก DB เพราะ User อาจไปหลายร้าน
+      const finalShopId = shopId || data.user.shopId || localStorage.getItem("shopId") || "";
+      if (finalShopId) localStorage.setItem("shopId", finalShopId);
+
       setSuccessMessage("✓ ลงทะเบียนสำเร็จ กำลังนำเข้าสู่ระบบ...");
-      const shopIdVal = localStorage.getItem("shopId") || "";
-      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
+      setTimeout(() => navigate(`/home${finalShopId ? `?shopId=${finalShopId}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -303,9 +307,13 @@ function Register() {
       localStorage.setItem("birthday", data.user.birthday || "");
       localStorage.setItem("avatar", data.user.avatar || "");
 
+      // บันทึก shopId: URL param (QR code ปัจจุบัน) มาก่อนเสมอ
+      // ไม่ใช้จาก DB เพราะ User อาจไปหลายร้าน
+      const finalShopId = shopId || data.user.shopId || localStorage.getItem("shopId") || "";
+      if (finalShopId) localStorage.setItem("shopId", finalShopId);
+
       setSuccessMessage("✓ เข้าสู่ระบบสำเร็จ...");
-      const shopIdVal = localStorage.getItem("shopId") || "";
-      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
+      setTimeout(() => navigate(`/home${finalShopId ? `?shopId=${finalShopId}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {
@@ -362,9 +370,13 @@ function Register() {
       localStorage.setItem("birthday", data.user.birthday || "");
       localStorage.setItem("avatar", data.user.avatar || "");
 
+      // บันทึก shopId: URL param (QR code ปัจจุบัน) มาก่อนเสมอ
+      // ไม่ใช้จาก DB เพราะ User อาจไปหลายร้าน
+      const finalShopId = shopId || data.user.shopId || localStorage.getItem("shopId") || "";
+      if (finalShopId) localStorage.setItem("shopId", finalShopId);
+
       setSuccessMessage("✓ เข้าสู่ระบบด้วย Google สำเร็จ...");
-      const shopIdVal = localStorage.getItem("shopId") || "";
-      setTimeout(() => navigate(`/home${shopIdVal ? `?shopId=${shopIdVal}` : ''}`), 1500);
+      setTimeout(() => navigate(`/home${finalShopId ? `?shopId=${finalShopId}` : ''}`), 1500);
     } catch (error) {
       setErrorMessage(error.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
     } finally {

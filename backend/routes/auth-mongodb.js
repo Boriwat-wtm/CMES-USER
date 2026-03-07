@@ -176,6 +176,10 @@ router.post("/register", async (req, res) => {
     // Generate token
     const token = generateToken(newUser._id.toString());
 
+    // shopId comes from the QR-code URL of the current session — NOT stored in User DB
+    // (a user can visit multiple shops, shopId must always reflect the current scan)
+    const requestShopId = req.query.shopId || req.headers['x-shop-id'] || null;
+
     // Return user data (without password)
     const userResponse = {
       id: newUser._id.toString(),
@@ -184,6 +188,7 @@ router.post("/register", async (req, res) => {
       avatar: newUser.avatar,
       birthday: newUser.birthday,
       authMethod: newUser.authMethod,
+      shopId: requestShopId,
     };
 
     res.json({
@@ -238,6 +243,10 @@ router.post("/login", async (req, res) => {
     // Generate token
     const token = generateToken(user._id.toString());
 
+    // shopId comes from the QR-code URL of the current session — NOT stored in User DB
+    // (a user can visit multiple shops, shopId must always reflect the current scan)
+    const requestShopId = req.query.shopId || req.headers['x-shop-id'] || null;
+
     // Return user data (without password)
     const userResponse = {
       id: user._id.toString(),
@@ -246,6 +255,7 @@ router.post("/login", async (req, res) => {
       avatar: user.avatar,
       birthday: user.birthday,
       authMethod: user.authMethod,
+      shopId: requestShopId,
     };
 
     res.json({
@@ -281,6 +291,8 @@ router.post("/google", async (req, res) => {
     // Find user by email
     let user = await User.findOne({ email });
 
+    const requestShopId = req.query.shopId || req.headers['x-shop-id'] || null;
+
     if (user) {
       // User already exists, link Google account if not linked
       if (!user.googleId) {
@@ -290,7 +302,6 @@ router.post("/google", async (req, res) => {
       await user.save();
     } else {
       // Create new user from Google data
-      // ใช้ Google name เป็น username, birthday ปล่อยว่างให้ผู้ใช้กรอก
       user = new User({
         email,
         username: name || email.split("@")[0],
@@ -307,6 +318,7 @@ router.post("/google", async (req, res) => {
     const token = generateToken(user._id.toString());
 
     // Return user data (without password)
+    // shopId comes from the QR-code URL of the current session — NOT stored in User DB
     const userResponse = {
       id: user._id.toString(),
       email: user.email,
@@ -314,6 +326,7 @@ router.post("/google", async (req, res) => {
       avatar: user.avatar,
       birthday: user.birthday,
       authMethod: user.authMethod,
+      shopId: requestShopId,
     };
 
     res.json({

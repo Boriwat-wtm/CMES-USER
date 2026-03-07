@@ -32,7 +32,13 @@ function Select() {
       }
     });
 
-    socket.emit("getConfig");
+    // 🔥 emit getConfig inside connect handler so it fires on initial connect
+    // AND on every reconnect (important: emitting before connect only buffers
+    // once — a disconnect before flush loses the event)
+    socket.on("connect", () => {
+      socket.emit("getConfig");
+    });
+
     return () => socket.disconnect();
   }, [type]);
 

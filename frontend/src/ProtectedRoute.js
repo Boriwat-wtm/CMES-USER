@@ -5,11 +5,13 @@ import { isAuthenticated } from "./authService";
 /**
  * ProtectedRoute Component
  * ป้องกันการเข้าถึงหน้าที่ต้องเข้าสู่ระบบก่อน
- * ถ้ายังไม่ได้เข้าสู่ระบบจะถูกส่งกลับไปหน้า Register
+ * ถ้ายังไม่ได้เข้าสู่ระบบจะถูกส่งกลับไปหน้า Register พร้อม shopId
  */
 export const ProtectedRoute = ({ children }) => {
   if (!isAuthenticated()) {
-    return <Navigate to="/" replace />;
+    // เก็บ shopId ไว้ตอน redirect เพื่อให้หน้า Register รู้ว่าต้อง connect กับร้านไหน
+    const shopId = localStorage.getItem("shopId") || "";
+    return <Navigate to={shopId ? `/?shopId=${shopId}` : "/"} replace />;
   }
   return children;
 };
