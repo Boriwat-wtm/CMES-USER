@@ -55,20 +55,21 @@ function Select() {
 
     const timeSeconds = parseInt(time, 10) || 0;
     const priceNum = Number(price) || 0;
+    const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
 
     if (type === "birthday") {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());
       const newOrderValue = JSON.stringify({ type: "birthday", time: timeSeconds, price: 0 });
       localStorage.setItem("order", newOrderValue);
-      navigate(`/upload?type=birthday&time=${timeSeconds}&price=0&free=true`);
+      navigate(`/upload?type=birthday&time=${timeSeconds}&price=0&free=true&shopId=${shopId}`);
     } else {
       const endTime = new Date(Date.now() + timeSeconds * 1000);
       localStorage.setItem("endTime", endTime.toISOString());
       const newOrderValue = JSON.stringify({ type, time: timeSeconds, price: priceNum });
       localStorage.setItem("order", newOrderValue);
       const freeParam = priceNum === 0 ? "&free=true" : "";
-      navigate(`/upload?type=${encodeURIComponent(type)}&time=${timeSeconds}&price=${priceNum}${freeParam}`);
+      navigate(`/upload?type=${encodeURIComponent(type)}&time=${timeSeconds}&price=${priceNum}${freeParam}&shopId=${shopId}`);
     }
 
     setIsProcessing(false);

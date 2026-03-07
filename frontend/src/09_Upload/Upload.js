@@ -469,7 +469,7 @@ function Upload() {
           }
 
           // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
-          navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}&uploadId=${data.uploadId}`);
+          navigate(`/payment?price=${price}&type=${actualType || type}&time=${time}&uploadId=${data.uploadId}&shopId=${shopId}`);
         } catch (error) {
           console.error('[Upload] Error uploading file:', error);
           setAlertMessage("เกิดข้อผิดพลาดในการอัพโหลดไฟล์ กรุณาลองใหม่");
@@ -617,7 +617,7 @@ function Upload() {
           setShowPreviewModal(false);
 
           // มีค่าใช้จ่าย ไปหน้าชำระเงินตามปกติ
-          navigate(`/payment?price=${price}&type=${type}&time=${time}&uploadId=${data.uploadId}`);
+          navigate(`/payment?price=${price}&type=${type}&time=${time}&uploadId=${data.uploadId}&shopId=${shopId}`);
         } catch (error) {
           console.error('[Upload] Error uploading text:', error);
           setAlertMessage("เกิดข้อผิดพลาดในการอัพโหลดข้อมูล กรุณาลองใหม่");

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 // นำเข้า routing tools สำหรับการนำทางและลิงก์
 import { useNavigate, Link } from "react-router-dom";
 // นำเข้า API base URL สำหรับเชื่อมต่อกับ backend
-import API_BASE_URL, { ADMIN_API_URL } from "../config/apiConfig";
+import API_BASE_URL, { ADMIN_API_URL, REALTIME_URL } from "../config/apiConfig";
 // นำเข้า socket.io สำหรับการสื่อสาร realtime
 import { io } from "socket.io-client";
 // นำเข้า CSS styles
@@ -322,9 +322,8 @@ function Home() {
   // ===== useEffect: เชื่อมต่อ Socket.IO สำหรับรับข้อมูล realtime =====
   useEffect(() => {
     // เชื่อมต่อกับ Realtime Server จาก Admin Backend
-    const REALTIME_URL = process.env.REACT_APP_REALTIME_URL || "https://cmes-admin-realtime.onrender.com";
-    const shopId = localStorage.getItem("shopId") || "";
-    const socketInstance = io(REALTIME_URL, { query: { shopId } });
+    const currentShopId = localStorage.getItem("shopId") || "";
+    const socketInstance = io(REALTIME_URL, { query: { shopId: currentShopId } });
     socketRef.current = socketInstance;
 
     // รับฟังการอัปเดตการตั้งค่าระบบจาก Admin
@@ -513,9 +512,9 @@ function Home() {
 
   // ===== Handler Functions =====
   // นำทางไปหน้าเลือกบริการ (image, text, birthday)
-  const handleSelect = (type) => navigate(`/select?type=${type}`);
+  const handleSelect = (type) => navigate(`/select?type=${type}&shopId=${shopId}`);
   // นำทางไปหน้าส่งของขวัญ
-  const handleGift = () => navigate("/gift");
+  const handleGift = () => navigate(`/gift?shopId=${shopId}`);
 
   // เปิด modal ตรวจสอบสถานะคำสั่งซื้อ
   const handleCheckStatus = () => {
@@ -625,7 +624,7 @@ function Home() {
     }
 
     // ผ่านทุกเงื่อนไข ให้ไปหน้าเลือกบริการวันเกิด
-    if (isBirthday) navigate("/select?type=birthday");
+    if (isBirthday) navigate(`/select?type=birthday&shopId=${shopId}`);
   };
 
   // weeklyTotal: สำรองไว้ใช้ในอนาคต (ยอดรวม leaderboard)
@@ -824,7 +823,7 @@ function Home() {
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                           </svg>
                         ),
-                        action: () => navigate("/profile"),
+                        action: () => navigate(`/profile?shopId=${shopId}`),
                         danger: false,
                       },
                       {
@@ -836,7 +835,7 @@ function Home() {
                             <line x1="12" y1="16" x2="12.01" y2="16" />
                           </svg>
                         ),
-                        action: () => navigate("/report"),
+                        action: () => navigate(`/report?shopId=${shopId}`),
                         danger: false,
                       },
                       {
