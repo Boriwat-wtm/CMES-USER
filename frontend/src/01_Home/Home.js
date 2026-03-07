@@ -1,5 +1,5 @@
 // นำเข้า React และ hooks ต่างๆ สำหรับจัดการ state และ lifecycle
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 // นำเข้า routing tools สำหรับการนำทางและลิงก์
 import { useNavigate, Link } from "react-router-dom";
 // นำเข้า API base URL สำหรับเชื่อมต่อกับ backend
@@ -139,7 +139,7 @@ function Home() {
     // อัปเดตสถานะทั้งหมดพร้อมกัน
     setOrdersStatus(prev => ({ ...prev, ...newStatuses }));
     setStatusLoading(false);
-  }, []);
+  }, [shopId]);
 
   // ===== ฟังก์ชันโหลดคำสั่งซื้อจาก localStorage =====
   const loadOrders = useCallback(() => {
@@ -190,7 +190,7 @@ function Home() {
         console.error("[Home] Failed to fetch rankings:", err);
       })
       .finally(() => setRankLoading(false));
-  }, [rankingType]);
+  }, [rankingType, shopId]);
 
   // ===== useEffect: โหลดข้อมูลผู้ใช้และคำสั่งซื้อเมื่อเปิดหน้า Home =====
   useEffect(() => {
@@ -315,7 +315,7 @@ function Home() {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [loadOrders, loadRankings]);
+  }, [loadOrders, loadRankings, shopId]);
 
 
 
@@ -395,7 +395,7 @@ function Home() {
         });
       })
       .catch(() => { });
-  }, []);
+  }, [shopId]);
 
   // ===== useEffect: โหลด Leaderboard เมื่อ rankingType เปลี่ยน =====
   useEffect(() => {

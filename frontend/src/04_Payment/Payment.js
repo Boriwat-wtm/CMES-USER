@@ -20,6 +20,7 @@ import SlipUpload from "../06_Slip upload/SlipUpload";
  * รองรับการชำระเงินผ่าน PromptPay QR Code
  */
 function Payment() {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const shopId = new URLSearchParams(location.search).get("shopId") || localStorage.getItem("shopId") || "";
