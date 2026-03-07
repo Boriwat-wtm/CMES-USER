@@ -16,7 +16,7 @@ export const removeToken = () => {
 
 // ===== Shop Management =====
 export const getShopId = () => {
-  return localStorage.getItem("shopId") || "";
+  return new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
 };
 
 // ===== User Management =====
@@ -45,7 +45,7 @@ export const handleUnauthorized = () => {
 // ===== Authentication Calls =====
 export const registerUser = async (username, email, password) => {
   const shopId = getShopId();
-  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/register?shopId=${shopId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -62,7 +62,7 @@ export const registerUser = async (username, email, password) => {
 
 export const loginUser = async (email, password) => {
   const shopId = getShopId();
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login?shopId=${shopId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -80,7 +80,7 @@ export const loginUser = async (email, password) => {
 export const logoutUser = async () => {
   const token = getToken();
   const shopId = getShopId();
-  await fetch(`${API_BASE_URL}/api/auth/logout`, {
+  await fetch(`${API_BASE_URL}/api/auth/logout?shopId=${shopId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -94,7 +94,7 @@ export const logoutUser = async () => {
 
 export const verifyToken = async (token) => {
   const shopId = getShopId();
-  const response = await fetch(`${API_BASE_URL}/api/auth/verify-token`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/verify-token?shopId=${shopId}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -116,7 +116,7 @@ export const getUserProfile = async () => {
     throw new Error("No token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -142,7 +142,7 @@ export const updateUserProfile = async (updates) => {
     throw new Error("No token found");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+  const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -176,7 +176,8 @@ export const apiCall = async (endpoint, options = {}) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const urlSeparator = endpoint.includes('?') ? '&' : '?';
+  const response = await fetch(`${API_BASE_URL}${endpoint}${urlSeparator}shopId=${shopId}`, {
     ...options,
     headers,
   });
@@ -225,7 +226,7 @@ export const initializeAuth = async () => {
 
     // ตรวจสอบ token กับ backend โดยตรง (ไม่ผ่าน getUserProfile เพื่อควบคุม error ได้ดีกว่า)
     const shopId = getShopId();
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+    const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

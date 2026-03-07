@@ -20,8 +20,10 @@ import SlipUpload from "../06_Slip upload/SlipUpload";
  * รองรับการชำระเงินผ่าน PromptPay QR Code
  */
 function Payment() {
-  const navigate = useNavigate();
   const location = useLocation();
+
+  const shopId = new URLSearchParams(location.search).get("shopId") || localStorage.getItem("shopId") || "";
+  console.log("[Payment] shopId:", shopId);
 
   // ดึงข้อมูลจาก URL query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -63,8 +65,7 @@ function Payment() {
     const fetchOrder = async () => {
       setIsLoadingOrder(true);
       try {
-        const shopId = localStorage.getItem("shopId") || "";
-        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}?shopId=${shopId}`, {
           headers: { "x-shop-id": shopId }
         });
         const data = await response.json();
@@ -89,8 +90,7 @@ function Payment() {
   useEffect(() => {
     const loadPaymentQr = async () => {
       try {
-        const shopId = localStorage.getItem("shopId") || "";
-        const res = await fetch(`${ADMIN_API_URL}/api/config/payment-qr`, {
+        const res = await fetch(`${ADMIN_API_URL}/api/config/payment-qr?shopId=${shopId}`, {
           headers: { "x-shop-id": shopId }
         });
         const data = await res.json();
@@ -146,9 +146,8 @@ function Payment() {
         if (!orderId) {
           throw new Error("ไม่พบคำสั่งซื้อของขวัญ");
         }
-        const shopId = localStorage.getItem("shopId") || "";
         // เรียก API เพื่อยืนยันคำสั่งซื้อของขวัญ
-        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}/confirm`, {
+        const response = await fetch(`${API_BASE_URL}/api/gifts/order/${orderId}/confirm?shopId=${shopId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -198,10 +197,9 @@ function Payment() {
         }
 
         console.log("[Payment] Confirming payment for uploadId:", uploadId);
-        const shopId = localStorage.getItem("shopId") || "";
 
         // เรียก API เพื่อยืนยันการชำระเงิน
-        const response = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
+        const response = await fetch(`${API_BASE_URL}/api/confirm-payment?shopId=${shopId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -506,7 +504,6 @@ function Payment() {
               <p style={{ marginBottom: 24 }}>ระบบได้รับข้อมูลแล้ว ขอบคุณค่ะ</p>
               <button
                 onClick={() => {
-                  const shopId = localStorage.getItem("shopId") || "";
                   navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);
                 }}
                 style={{

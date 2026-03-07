@@ -16,6 +16,9 @@ import API_BASE_URL from "../config/apiConfig";
 function Report() {
   const navigate = useNavigate();
 
+  const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
+  console.log("[Report] shopId:", shopId);
+
   // State สำหรับเก็บข้อมูลฟอร์ม
   const [category, setCategory] = useState("");      // ประเภทปัญหาที่เลือก
   const [detail, setDetail] = useState("");          // รายละเอียดปัญหา
@@ -87,11 +90,10 @@ function Report() {
       }
 
       // แนบ shopId เสมอสำหรับระบบ Multi-tenant
-      const shopId = localStorage.getItem("shopId") || "";
       headers["x-shop-id"] = shopId;
 
       // ส่ง request ไปยัง backend
-      const res = await fetch(`${API_BASE_URL}/api/report`, {
+      const res = await fetch(`${API_BASE_URL}/api/report?shopId=${shopId}`, {
         method: "POST",
         headers: headers,
         body: JSON.stringify({

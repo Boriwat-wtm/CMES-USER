@@ -30,6 +30,8 @@ const resolveImageSrc = (url) => {
 
 function Gift() {
 	const navigate = useNavigate();
+	const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
+	console.log("[Gift] shopId:", shopId);
 
 	// State สำหรับข้อมูลสินค้าและการตั้งค่า
 	const [settings, setSettings] = useState({ items: [], tableCount: 0 }); // ข้อมูลสินค้าและจำนวนโต๊ะสูงสุด
@@ -82,8 +84,7 @@ function Gift() {
 	useEffect(() => {
 		const checkGiftStatus = async () => {
 			try {
-				const shopId = localStorage.getItem('shopId') || '';
-				const response = await fetch(`${REALTIME_BASE}/api/status`, {
+				const response = await fetch(`${REALTIME_BASE}/api/status?shopId=${shopId}`, {
 					headers: { 'x-shop-id': shopId }
 				});
 				if (!response.ok) throw new Error("CONFIG_ERROR");
@@ -117,8 +118,7 @@ function Gift() {
 
 		const loadSettings = async () => {
 			try {
-				const shopId = localStorage.getItem("shopId") || "";
-				const response = await fetch(`${API_BASE}/api/gifts`, {
+				const response = await fetch(`${API_BASE}/api/gifts?shopId=${shopId}`, {
 					headers: { "x-shop-id": shopId }
 				});
 				if (!response.ok) throw new Error("NETWORK_ERROR");
@@ -237,8 +237,7 @@ function Gift() {
 			};
 
 			// ส่งคำสั่งซื้อไปยัง backend
-			const shopId = localStorage.getItem("shopId") || "";
-			const response = await fetch(`${API_BASE}/api/gifts/order`, {
+			const response = await fetch(`${API_BASE}/api/gifts/order?shopId=${shopId}`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -270,8 +269,7 @@ function Gift() {
 					}
 
 					// ยืนยันคำสั่งซื้อทันที (เพราะฟรี ไม่ต้องชำระเงิน)
-					const shopId = localStorage.getItem("shopId") || "";
-					const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm`, {
+					const confirmResponse = await fetch(`${API_BASE}/api/gifts/order/${data.order.id}/confirm?shopId=${shopId}`, {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
@@ -302,8 +300,7 @@ function Gift() {
 					localStorage.setItem("order", JSON.stringify(newOrder)); // backward compatibility
 
 					// ไปหน้า home แสดงสถานะคำสั่งซื้อ
-					const shopIdStr = localStorage.getItem("shopId") || "";
-					navigate(`/home${shopIdStr ? `?shopId=${shopIdStr}` : ''}`);
+					navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);
 					return;
 				} catch (confirmError) {
 					console.error("[Gift] Free order confirmation error:", confirmError);

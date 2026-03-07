@@ -41,6 +41,7 @@ function Register() {
   const [otpCooldown, setOtpCooldown] = useState(0); // เวลานับถอยหลังก่อนส่ง OTP ใหม่
 
   const navigate = useNavigate();
+  const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
 
   // ========================
   // useEffect Hooks
@@ -162,9 +163,9 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/auth/send-email-otp`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/send-email-otp?shopId=${shopId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-shop-id": shopId },
         body: JSON.stringify({ email: formData.email }),
       });
 
@@ -220,9 +221,9 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register?shopId=${shopId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-shop-id": shopId },
         body: JSON.stringify({
           username: formData.username,
           email: formData.email,
@@ -277,9 +278,9 @@ function Register() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login?shopId=${shopId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-shop-id": shopId },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -334,9 +335,9 @@ function Register() {
       const googleData = JSON.parse(jsonPayload);
 
       // Send to backend
-      const response2 = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      const response2 = await fetch(`${API_BASE_URL}/api/auth/google?shopId=${shopId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "x-shop-id": shopId },
         body: JSON.stringify({
           googleId: googleData.sub,
           email: googleData.email,

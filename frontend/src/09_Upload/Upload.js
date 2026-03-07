@@ -25,6 +25,8 @@ function Upload() {
   // แปลง query parameters จาก URL (เช่น ?type=image&time=60&price=100)
   const queryParams = new URLSearchParams(location.search);
   const type = queryParams.get("type");           // ประเภท: "image", "text", หรือ "birthday"
+  const shopId = queryParams.get("shopId") || localStorage.getItem("shopId") || "";
+  console.log("[Upload] shopId:", shopId);
   const time = parseInt(queryParams.get("time")); // เวลาแสดง (วินาที)
   const price = parseInt(queryParams.get("price")); // ราคา (บาท)
   const isFree = queryParams.get("free") === "true"; // เช็คว่าฟรีหรือไม่
@@ -304,10 +306,9 @@ function Upload() {
         if (avatar) formData.append("avatar", avatar);         // Avatar URL
 
         try {
-          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Uploading FREE item with type:", actualType, "to Admin backend");
           // ส่งไปยัง Admin Backend
-          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload?shopId=${shopId}`, {
             method: "POST",
             headers: { "x-shop-id": shopId },
             body: formData,
@@ -344,8 +345,7 @@ function Upload() {
             localStorage.removeItem("uploadFormImage");
 
             alert("✅ อัปโหลดสำเร็จ!");
-            const shopIdParam = localStorage.getItem("shopId") || "";
-            navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);  // กลับไปหน้าหลัก
+            navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);  // กลับไปหน้าหลัก
           } else {
             const errText = await response.text();
             console.error("[Upload] Upload failed:", response.status, errText);
@@ -378,10 +378,9 @@ function Upload() {
           formData.append("socialType", selectedSocial || "");
           formData.append("socialName", socialName || "");
 
-          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Sending file to backend...");
           // ส่งไฟล์ไปยัง User Backend เพื่อเก็บชั่วคราว
-          const response = await fetch(`${API_BASE_URL}/api/upload`, {
+          const response = await fetch(`${API_BASE_URL}/api/upload?shopId=${shopId}`, {
             method: "POST",
             headers: { "x-shop-id": shopId },
             body: formData
@@ -418,8 +417,7 @@ function Upload() {
           // ถ้าฟรี (ราคา 0) ให้ confirm และส่งไปหน้า home เลย
           if (Number(price) === 0) {
             try {
-              const shopId = localStorage.getItem("shopId") || "";
-              const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment`, {
+              const confirmResponse = await fetch(`${API_BASE_URL}/api/confirm-payment?shopId=${shopId}`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -461,8 +459,7 @@ function Upload() {
               localStorage.removeItem("uploadFormDraft");
               localStorage.removeItem("uploadFormImage");
 
-              const shopIdParam = localStorage.getItem("shopId") || "";
-              navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);
+              navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);
               return;
             } catch (confirmError) {
               console.error('[Upload] Free order confirmation error:', confirmError);
@@ -522,8 +519,7 @@ function Upload() {
         };
 
         try {
-          const shopId = localStorage.getItem("shopId") || "";
-          const response = await fetch(`${ADMIN_API_URL}/api/upload`, {
+          const response = await fetch(`${ADMIN_API_URL}/api/upload?shopId=${shopId}`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -557,8 +553,7 @@ function Upload() {
             localStorage.removeItem("uploadFormDraft");
 
             setShowPreviewModal(false);
-            const shopIdParam = localStorage.getItem("shopId") || "";
-            navigate(`/home${shopIdParam ? `?shopId=${shopIdParam}` : ''}`);
+            navigate(`/home${shopId ? `?shopId=${shopId}` : ''}`);
           } else {
             throw new Error('Failed to upload');
           }
@@ -585,9 +580,8 @@ function Upload() {
           formData.append("email", email || "");
           formData.append("avatar", avatar || "");
 
-          const shopId = localStorage.getItem("shopId") || "";
           console.log("[Upload] Sending text data to backend...");
-          const response = await fetch(`${API_BASE_URL}/api/upload`, {
+          const response = await fetch(`${API_BASE_URL}/api/upload?shopId=${shopId}`, {
             method: "POST",
             headers: { "x-shop-id": shopId },
             body: formData

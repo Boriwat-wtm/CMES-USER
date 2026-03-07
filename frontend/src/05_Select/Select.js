@@ -19,7 +19,8 @@ function Select() {
   const [packages, setPackages] = useState([]);
 
   useEffect(() => {
-    const shopId = localStorage.getItem("shopId") || "";
+    const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
+    console.log("[Select] shopId:", shopId);
     const socket = io(REALTIME_URL, { query: { shopId } });
 
     socket.on("status", (data) => {

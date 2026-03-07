@@ -45,6 +45,10 @@ const getOrderTypeLabel = (type, options = { includeEmoji: true }) => {
 };
 
 function Home() {
+  // ดึง shopId จาก URL
+  const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
+  console.log("[Home] shopId:", shopId);
+
   // ===== Navigation & Refs =====
   const navigate = useNavigate(); // สำหรับนำทางไปหน้าอื่น
   const profileMenuRef = useRef(null); // ref สำหรับเมนูโปรไฟล์ (ใช้ detect click outside)
@@ -117,8 +121,7 @@ function Home() {
       if (!ord.orderId) return;
       try {
         // เรียก API จาก Admin Backend เพื่อดึงสถานะล่าสุด
-        const shopId = localStorage.getItem('shopId') || '';
-        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}`, {
+        const response = await fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/order-status/${ord.orderId}?shopId=${shopId}`, {
           headers: { 'x-shop-id': shopId }
         });
         const data = await response.json();
@@ -173,8 +176,7 @@ function Home() {
   // ===== ฟังก์ชันโหลด Leaderboard จาก Admin Backend =====
   const loadRankings = useCallback(() => {
     setRankLoading(true);
-    const shopId = localStorage.getItem("shopId") || "";
-    fetch(`${ADMIN_API_URL}/api/rankings/top?type=${rankingType}`, {
+    fetch(`${ADMIN_API_URL}/api/rankings/top?type=${rankingType}&shopId=${shopId}`, {
       headers: { "x-shop-id": shopId }
     })
       .then((res) => res.json())
@@ -211,7 +213,7 @@ function Home() {
     const fetchUserProfile = async () => {
       if (!token) return;
       try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {
@@ -248,8 +250,7 @@ function Home() {
     // ฟังก์ชันดึงข้อมุลร้านค้า (Profile)
     const fetchShopProfile = async () => {
       try {
-        const shopId = localStorage.getItem("shopId") || "";
-        const response = await fetch(`${ADMIN_API_URL}/api/shop/profile`, {
+        const response = await fetch(`${ADMIN_API_URL}/api/shop/profile?shopId=${shopId}`, {
           headers: { "x-shop-id": shopId }
         });
         if (response.ok) {
@@ -271,9 +272,8 @@ function Home() {
     const fetchPerks = async () => {
       try {
         const API_URL = ADMIN_API_URL;
-        console.log("[Home] 📥 Fetching perks from:", `${API_URL}/api/config/perks`);
-        const shopId = localStorage.getItem("shopId") || "";
-        const response = await fetch(`${API_URL}/api/config/perks`, {
+        console.log("[Home] 📥 Fetching perks from:", `${API_URL}/api/config/perks?shopId=${shopId}`);
+        const response = await fetch(`${API_URL}/api/config/perks?shopId=${shopId}`, {
           headers: { "x-shop-id": shopId }
         });
         if (response.ok) {
@@ -382,7 +382,7 @@ function Home() {
 
   // ===== useEffect: ดึงสถานะระบบล่าสุดจาก backend เมื่อเข้าหน้า Home =====
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/status`)
+    fetch(`${API_BASE_URL}/api/status?shopId=${shopId}`)
       .then((res) => res.json())
       .then((data) => {
         // อัปเดตสถานะการเปิด/ปิด ฟีเจอร์ทั้งหมด
@@ -472,9 +472,8 @@ function Home() {
 
     // ดึงข้อมูลสิทธิ์จาก Admin Backend โดยใช้ email
     const encodedEmail = encodeURIComponent(email);
-    const shopIdForBirthday = localStorage.getItem('shopId') || '';
-    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}`, {
-      headers: { 'x-shop-id': shopIdForBirthday }
+    fetch(`${process.env.REACT_APP_ADMIN_API_URL || 'https://cmes-admin-server.onrender.com'}/api/birthday-eligibility/${encodedEmail}?shopId=${shopId}`, {
+      headers: { 'x-shop-id': shopId }
     })
       .then(res => res.json())
       .then(data => {
@@ -548,9 +547,8 @@ function Home() {
       const stat = ordersStatus[orderId];
       // pending: ลบจาก Admin Queue + localStorage
       if (stat?.status === 'pending') {
-        const shopId = localStorage.getItem('shopId') || '';
         try {
-          await fetch(`${ADMIN_API_URL}/api/user-delete-order/${orderId}`, {
+          await fetch(`${ADMIN_API_URL}/api/user-delete-order/${orderId}?shopId=${shopId}`, {
             method: 'DELETE',
             headers: { 'x-shop-id': shopId }
           });
@@ -578,11 +576,10 @@ function Home() {
     if (!window.confirm(`ต้องการลบรายการทั้งหมด (${orders.length} รายการ) หรือไม่?`)) return;
     setDeletingOrderId('all');
     try {
-      const shopId = localStorage.getItem('shopId') || '';
       // ลบ pending ออกจาก Admin Queue ด้วย
       const pendingOrders = orders.filter(o => ordersStatus[o.orderId]?.status === 'pending');
       await Promise.all(pendingOrders.map(o =>
-        fetch(`${ADMIN_API_URL}/api/user-delete-order/${o.orderId}`, {
+        fetch(`${ADMIN_API_URL}/api/user-delete-order/${o.orderId}?shopId=${shopId}`, {
           method: 'DELETE',
           headers: { 'x-shop-id': shopId }
         }).catch(() => {}) // ignore errors

@@ -41,6 +41,7 @@ const CustomModal = ({ isOpen, onClose, title, message, type = "info", onConfirm
 
 function Profile() {
   const navigate = useNavigate();
+  const shopId = new URLSearchParams(window.location.search).get("shopId") || localStorage.getItem("shopId") || "";
 
   // ========================
   // State Management
@@ -140,11 +141,12 @@ function Profile() {
       if (token) {
         try {
           // ดึงข้อมูลจาก backend API
-          const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+          const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
             method: "GET",
             headers: {
               "Authorization": `Bearer ${token}`,
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
+              "x-shop-id": shopId
             }
           });
 
@@ -431,8 +433,9 @@ function Profile() {
         const formData = new FormData();
         formData.append("avatar", selectedFile);
 
-        const uploadRes = await fetch(`${API_BASE_URL}/api/upload-avatar`, {
+        const uploadRes = await fetch(`${API_BASE_URL}/api/upload-avatar?shopId=${shopId}`, {
           method: "POST",
+          headers: { "x-shop-id": shopId },
           body: formData
         });
 
@@ -458,11 +461,12 @@ function Profile() {
       // ส่งข้อมูลไปยัง backend API เพื่อบันทึก
       const token = localStorage.getItem("token");
       if (token) {
-        const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/profile?shopId=${shopId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+            "Authorization": `Bearer ${token}`,
+            "x-shop-id": shopId
           },
           body: JSON.stringify({
             username: newUser.username,
