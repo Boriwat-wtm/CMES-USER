@@ -331,7 +331,7 @@ function Home() {
     socketInstance.on("configUpdate", (newConfig) => {
       setStatus((prev) => ({
         ...prev,
-        systemOn: newConfig.systemOn ?? prev.systemOn,
+        systemOn: newConfig.systemOpen ?? newConfig.systemOn ?? prev.systemOn,
         imageOn: newConfig.enableImage ?? prev.imageOn,
         textOn: newConfig.enableText ?? prev.textOn,
         giftOn: newConfig.enableGift ?? prev.giftOn,
@@ -343,7 +343,7 @@ function Home() {
       if (!socketStatus) return;
       setStatus((prev) => ({
         ...prev,
-        systemOn: socketStatus.systemOn ?? prev.systemOn,
+        systemOn: socketStatus.systemOpen ?? socketStatus.systemOn ?? prev.systemOn,
         imageOn: socketStatus.enableImage ?? prev.imageOn,
         textOn: socketStatus.enableText ?? prev.textOn,
         giftOn: socketStatus.enableGift ?? prev.giftOn,
@@ -387,7 +387,7 @@ function Home() {
       .then((data) => {
         // อัปเดตสถานะการเปิด/ปิด ฟีเจอร์ทั้งหมด
         setStatus({
-          systemOn: data.systemOn ?? true,
+          systemOn: data.systemOpen ?? data.systemOn ?? true,
           imageOn: (data.enableImage ?? data.imageOn) ?? true,
           textOn: (data.enableText ?? data.textOn) ?? true,
           giftOn: (data.enableGift ?? data.giftOn) ?? true,

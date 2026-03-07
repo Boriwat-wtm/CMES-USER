@@ -88,8 +88,8 @@ function Gift() {
 				});
 				if (!response.ok) throw new Error("CONFIG_ERROR");
 				const data = await response.json();
-				// ระบบต้องเปิดทั้ง systemOn และ enableGift
-				const allowed = (data.systemOn ?? true) && (data.enableGift ?? true);
+				// ระบบต้องเปิดทั้ง systemOpen (จาก admin) และ enableGift
+				const allowed = (data.systemOpen ?? data.systemOn ?? true) && (data.enableGift ?? true);
 				setGiftDisabled(!allowed);
 				if (!allowed) {
 					setGiftStatusMessage("ขณะนี้ระบบปิดฟังก์ชันส่งของขวัญชั่วคราว");
