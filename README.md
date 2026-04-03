@@ -1,4 +1,4 @@
-# CMES-USER - Customer Management & E-Commerce System
+# CMES-USER - Content Management and Engagement System for Entertainment Venues
 
 A modern React/Node.js full-stack application for customer management with integrated e-commerce system, gift rewards, and real-time features.
 
